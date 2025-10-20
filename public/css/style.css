@@ -1,0 +1,214 @@
+/* public/css/style.css */
+/* Reset Básico */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+}
+
+/* Estilos de Botão Comum */
+.btn {
+    display: inline-block;
+    padding: 10px 15px;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #3498db;
+    /* Azul primário */
+    width: 100%;
+    /* Para preencher a largura na tela de login */
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+}
+
+/* Estilos de Formulário Básico (já usado na View/login.php) */
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Estilos de Layout para a Tela de Login */
+.page-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f0f2f5;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 360px;
+    padding: 30px;
+    background: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.login-container h1 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    /* Garante que o padding não aumente o tamanho total */
+}
+
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    border: 1px solid #f5c6cb;
+    text-align: center;
+}
+
+/* Estilos específicos para o layout do Dashboard */
+.header {
+    background-color: #2c3e50;
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header a {
+    color: #f1c40f;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.content {
+    padding: 30px;
+}
+
+.content ul {
+    list-style: none;
+    padding: 0;
+}
+
+.content ul li {
+    background: #ecf0f1;
+    margin-bottom: 10px;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.content ul li a {
+    text-decoration: none;
+    color: #3498db;
+    font-weight: bold;
+}
+
+/* Estilos de Mensagens de Feedback */
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.alert-error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+/* Estilos da Lista de Chamada */
+.chamada-lista {
+    list-style: none;
+    padding: 0;
+    max-width: 600px;
+    margin: 30px auto;
+}
+
+.chamada-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chamada-item label {
+    font-weight: normal;
+    font-size: 1.1em;
+    cursor: pointer;
+    flex-grow: 1;
+}
+
+.chamada-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-left: 15px;
+}
+
+/* Estilos da Montagem de Equipes */
+.equipe-form {
+    max-width: 700px;
+    margin: 30px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.equipe-membros-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.membro-card {
+    background-color: #f7f7f7;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.membro-card:hover {
+    background-color: #ecf0f1;
+}
+
+.membro-card input[type="checkbox"] {
+    margin-right: 10px;
+}

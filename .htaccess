@@ -1,0 +1,11 @@
+# sgi_erp/.htaccess
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /sgi_erp  
+
+    # Redireciona tudo que não for arquivo ou diretório existente para o index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php [L]
+</IfModule>
