@@ -53,16 +53,29 @@ class LoginController
             $_SESSION['logado'] = true;
             $_SESSION['funcionario_id'] = $usuario->funcionario_id;
             $_SESSION['funcionario_nome'] = $usuario->funcionario_nome;
-            $_SESSION['funcionario_tipo'] = $usuario->funcionario_tipo; // 'apontador' ou 'producao'
+            $_SESSION['funcionario_tipo'] = $usuario->funcionario_tipo; // 'admin, apontador' ou 'producao'
+
+            // 3. Redirecionamento baseado no TIPO (ACL)
+            $tipo = $_SESSION['funcionario_tipo'];
+            $redirect_url = '/sgi_erp/dashboard'; // Padrão
+
+            if ($tipo === 'admin') {
+                // Admin vai para Gestão de Permissões
+                $redirect_url = '/sgi_erp/permissoes/gestao';
+            } elseif ($tipo === 'financeiro') {
+                $redirect_url = '/sgi_erp/relatorios';
+            } elseif ($tipo === 'producao') {
+                $redirect_url = '/sgi_erp/meu-painel';
+            }
 
             // Remove qualquer mensagem de erro anterior
             unset($_SESSION['erro_login']);
 
-            // 3. Redireciona para o dashboard
-            header('Location: /sgi_erp/dashboard');
+            // 4. Redireciona para o dashboard
+            header('Location: ' . $redirect_url);
             exit();
         } else {
-            // 4. Falha no Login
+            // 5. Falha no Login
             $_SESSION['erro_login'] = 'Login ou Senha inválidos.';
             header('Location: /sgi_erp/');
             exit();

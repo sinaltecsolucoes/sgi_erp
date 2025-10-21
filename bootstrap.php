@@ -10,6 +10,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // 2. CAMINHO RAIZ DO PROJETO
 // __DIR__ aponta para a pasta onde o bootstrap.php está 
+define('DS', DIRECTORY_SEPARATOR);
 define('ROOT_PATH', __DIR__ . DIRECTORY_SEPARATOR);
 
 // 2. AUTOLOAD DE CLASSES
@@ -54,7 +55,23 @@ $routes = [
     '/equipes'  => 'EquipeController@index',
     '/equipes/salvar' => 'EquipeController@salvar',
 
+    // Rotas de Produção
+    '/producao'  => 'ProducaoController@index',
+    '/producao/salvar' => 'ProducaoController@salvar',
+
     // Rotas API (Para o App Android)
     '/api/login' => 'ApiController@login',
     '/api/presenca' => 'ApiController@presenca',
+
+    // MÓDULO DE GESTÃO DE PERMISSÕES (NOVO)
+    '/permissoes/gestao' => 'PermissaoController@index',
+    '/permissoes/salvar' => 'PermissaoController@salvar',
+
+    // MÓDULO DE CADASTRO DE FUNCIONÁRIOS (NOVO)
+    '/admin/funcionarios' => 'FuncionarioController@index', // Listagem
+    '/admin/funcionarios/cadastro' => 'FuncionarioController@cadastro', // Formulário (GET)
+    '/admin/funcionarios/salvar' => 'FuncionarioController@salvar', // Salvar (POST)
+
+    // MÓDULO FINANCEIRO / RELATÓRIOS (NOVO)
+    '/relatorios' => 'RelatorioController@pagamentos', // Rota principal de relatórios
 ];

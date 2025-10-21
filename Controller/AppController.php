@@ -27,9 +27,9 @@ class AppController
     {
         // Define as variáveis que serão usadas pelo template/main.php
         $title = "Dashboard";
-        $content_view = 'View/dashboard.php';
+        $content_view = ROOT_PATH . 'View' . DS . 'dashboard.php';
 
         // Inclui o layout principal que, por sua vez, incluirá a View do Dashboard
-        require_once ROOT_PATH . 'View/template/main.php';
+        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
 }

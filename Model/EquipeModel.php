@@ -112,4 +112,21 @@ class EquipeModel
             return false;
         }
     }
+
+    /**
+     * Atualiza apenas o nome de uma equipe existente.
+     */
+    public function atualizarNome($equipe_id, $novo_nome)
+    {
+        $query = "UPDATE {$this->table_equipes} SET nome = :nome WHERE id = :equipe_id";
+
+        try {
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':nome', $novo_nome);
+            $stmt->bindParam(':equipe_id', $equipe_id);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
 }

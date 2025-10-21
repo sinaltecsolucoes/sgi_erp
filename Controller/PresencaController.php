@@ -39,10 +39,10 @@ class PresencaController extends AppController
 
         // Variáveis para o Template
         $title = "Registro de Presença";
-        $content_view = 'View/presenca.php';
+        $content_view = ROOT_PATH . 'View' . DS . 'presenca.php';
 
         // Inclui o template. Nota: as variáveis $dados estão disponíveis na View/presenca.php
-        require_once ROOT_PATH . 'View/template/main.php';
+        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
 
     /**

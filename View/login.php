@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGI App - Login</title>
+    <title>SGI - Login</title>
     <link rel="stylesheet" href="/sgi_erp/public/css/style.css">
 </head>
 

@@ -212,3 +212,23 @@ label {
 .membro-card input[type="checkbox"] {
     margin-right: 10px;
 }
+
+/* Estilos de Formulário de Produção */
+.producao-form {
+    max-width: 500px;
+    margin: 30px auto;
+    padding: 25px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.form-select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    /* Garante que o padding não aumente o tamanho total */
+    margin-top: 5px;
+}

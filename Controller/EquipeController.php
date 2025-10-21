@@ -64,7 +64,7 @@ class EquipeController extends AppController
 
         // Variáveis para o Template
         $title = "Montagem de Equipe";
-        $content_view = 'View/equipes.php';
+        $content_view = ROOT_PATH . 'View' . DS . 'equipes.php';
 
         $dados = [
             'equipe' => $equipe,
@@ -72,7 +72,7 @@ class EquipeController extends AppController
             'membros_equipe_ids' => $membros_equipe_ids // IDs dos que já estão na equipe
         ];
 
-        require_once ROOT_PATH . 'View/template/main.php';
+        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
 
     /**
@@ -105,7 +105,9 @@ class EquipeController extends AppController
         } else {
             // 2b. Se existe, usa o ID existente
             $equipe_id = $equipe->id;
-            // Se o nome foi alterado, pode-se adicionar uma lógica de UPDATE aqui (Omissão por simplicidade do MVP)
+
+            // Atualiza o nome da equipe no banco de dados
+            $this->equipeModel->atualizarNome($equipe_id, $nome_equipe);
         }
 
         // 3. Limpa a equipe para reconstruir com os novos membros

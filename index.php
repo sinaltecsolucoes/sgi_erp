@@ -19,20 +19,45 @@ if (empty($url)) {
 }
 
 
-// 3. Procura a rota no mapa
+// 4. Procura a rota no mapa
 if (array_key_exists($url, $routes)) {
-    $target = $routes[$url]; // Ex: 'LoginController@index'
+    $target = $routes[$url]; // Ex: 'LoginController@index' 
 
-    // Divide em Controller e Método
+    // Divide em Controller e Método 
     list($controllerName, $methodName) = explode('@', $target);
 
-    // 4. Verifica e Executa o Controller
+    // **CHECA ACL: Permissão de Ação (Controller@Metodo)** 
+    $action = $controllerName . '@' . $methodName;
+    $tipo_usuario = $_SESSION['funcionario_tipo'] ?? 'convidado';
+
+    // Não checar ACL para rotas de Login (index, logar) e Logout
+    if ($action !== 'LoginController@index' && $action !== 'LoginController@logar' && $action !== 'LoginController@sair') {
+        if (!Acl::check($action, $tipo_usuario)) {
+
+            // Se o usuário está logado, mas não tem permissão para esta ação/tela http_response_code(403); 
+            // Proibido $_SESSION['erro'] = "Acesso Negado (403). Você não tem permissão para a ação **{$action}**."; 
+            // Redireciona o usuário para o seu painel seguro 
+            $redirect_url = '/sgi_erp/dashboard'; // Padrão 
+            if ($tipo_usuario === 'admin') {
+
+                // Redireciona admin para a sua área de gestão (que criaremos) 
+                $redirect_url = '/sgi_erp/permissoes/gestao';
+            } elseif ($tipo_usuario === 'financeiro') {
+                $redirect_url = '/sgi_erp/relatorios';
+            } elseif ($tipo_usuario === 'producao') {
+                $redirect_url = '/sgi_erp/meu-painel';
+            }
+            header('Location: ' . $redirect_url);
+            exit();
+        }
+    }
+
+    // 5. Verifica e Executa o Controller (APENAS SE A PERMISSÃO FOI CONCEDIDA) 
     if (class_exists($controllerName)) {
         $controller = new $controllerName();
-
         if (method_exists($controller, $methodName)) {
-            // Executa o método (a ação) do Controller
-            // Passamos a variável $routes para que o controller possa usá-la (se necessário)
+
+            // Executa o método 
             $controller->$methodName();
         } else {
             http_response_code(500);
