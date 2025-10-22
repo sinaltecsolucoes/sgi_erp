@@ -100,20 +100,21 @@ class FuncionarioModel
   {
     if (isset($dados['id']) && $dados['id'] > 0) {
       // Lógica de UPDATE
-      $query = "UPDATE {$this->table_funcionarios} 
-                      SET nome = :nome, tipo = :tipo, ativo = :ativo 
+      $query = "UPDATE {$this->table_funcionarios}
+                      SET nome = :nome, cpf = :cpf, tipo = :tipo, ativo = :ativo
                       WHERE id = :id";
       $stmt = $this->db->prepare($query);
       $stmt->bindParam(':id', $dados['id']);
     } else {
       // Lógica de INSERT
-      $query = "INSERT INTO {$this->table_funcionarios} (nome, tipo, ativo) 
-                      VALUES (:nome, :tipo, :ativo)";
+      $query = "INSERT INTO {$this->table_funcionarios} (nome, cpf, tipo, ativo) 
+                      VALUES (:nome, :cpf, :tipo, :ativo)";
       $stmt = $this->db->prepare($query);
     }
 
     try {
       $stmt->bindParam(':nome', $dados['nome']);
+      $stmt->bindParam(':cpf', $dados['cpf']);
       $stmt->bindParam(':tipo', $dados['tipo']);
       $stmt->bindParam(':ativo', $dados['ativo'], PDO::PARAM_BOOL);
 
@@ -122,7 +123,12 @@ class FuncionarioModel
       }
       return false;
     } catch (PDOException $e) {
-      // Em caso de erro (ex: nome duplicado, se tivéssemos UNIQUE)
+      // ERRO: Captura erro de CPF duplicado (restrição UNIQUE)
+      if ($e->getCode() === '23000') {
+        $_SESSION['erro'] = 'Erro: O CPF informado já está cadastrado no sistema.';
+      } else {
+        $_SESSION['erro'] = 'Erro interno ao salvar o funcionário.';
+      }
       return false;
     }
   }
@@ -166,6 +172,32 @@ class FuncionarioModel
       // Erro: Login duplicado (UNIQUE na tabela usuarios)
       $_SESSION['erro'] = "Erro de login: o nome de login **{$login}** já está em uso.";
       return false;
+    }
+  }
+
+  /**
+   * Conta o total de funcionários marcados como presentes na data de hoje.
+   * @return int O número total de presentes.
+   */
+  public function contarPresentesHoje()
+  {
+    $hoje = date('Y-m-d');
+    $query = "SELECT 
+                    COUNT(id) AS total_presentes
+                  FROM 
+                    {$this->table_presencas}
+                  WHERE 
+                    data = :hoje AND presente = TRUE";
+
+    try {
+      $stmt = $this->db->prepare($query);
+      $stmt->bindParam(':hoje', $hoje);
+      $stmt->execute();
+
+      return (int)$stmt->fetch()->total_presentes;
+    } catch (PDOException $e) {
+      error_log("Erro ao contar presentes: " . $e->getMessage());
+      return 0;
     }
   }
 }

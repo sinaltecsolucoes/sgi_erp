@@ -51,4 +51,37 @@ class ProducaoModel
             return false;
         }
     }
+
+    /**
+     * Soma a quantidade total de KG produzidos na data de hoje.
+     * @return float O total de quilos produzidos.
+     */
+    public function somarProducaoHoje()
+    {
+        // Usa a data atual no início do dia
+        $hoje_inicio = date('Y-m-d 00:00:00');
+        // E o final do dia
+        $hoje_fim = date('Y-m-d 23:59:59');
+
+        $query = "SELECT 
+                    SUM(quantidade_kg) AS total_kg_hoje
+                  FROM 
+                    {$this->table_producao}
+                  WHERE 
+                    data_hora BETWEEN :hoje_inicio AND :hoje_fim";
+
+        try {
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':hoje_inicio', $hoje_inicio);
+            $stmt->bindParam(':hoje_fim', $hoje_fim);
+            $stmt->execute();
+
+            // Retorna 0.00 se o resultado for nulo
+            $resultado = $stmt->fetch()->total_kg_hoje;
+            return (float)($resultado ?? 0.00);
+        } catch (PDOException $e) {
+            error_log("Erro ao somar produção: " . $e->getMessage());
+            return 0.00;
+        }
+    }
 }

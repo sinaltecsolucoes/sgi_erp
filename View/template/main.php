@@ -1,80 +1,75 @@
 <?php
-// Variáveis esperadas: $title, $content_view, $dados (opcional)
-// O AppController garante que o usuário está logado aqui.
-$theme_prefix = '/sgi_erp/public/theme/startbootstrap-sb-admin-2-4.1.4';
+// View/template/main.php
+// As variáveis $title, $content_view e $dados já devem estar definidas pelo Controller.
+
+// A variável deve apontar para a pasta 'dist'
+$theme_prefix = '/sgi_erp/public/theme/sb-admin-themewagon/dist';
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="Sistema de Gestão Integrada" />
+    <meta name="author" content="MD Soluções" />
 
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="Sistema de Gestão Integrada">
-    <meta name="author" content="Parceiro de Programação">
+    <title>SGI ERP - <?php echo htmlspecialchars($title ?? 'Página Principal'); ?></title>
 
-    <title>SGI ERP - <?php echo htmlspecialchars($title ?? 'Sistema'); ?></title>
-
-    <link href="<?php echo $theme_prefix; ?>/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo $theme_prefix; ?>/vendor/fontawesome-free/css/all.min.css">
-    <link rel="stylesheet" href="<?php echo $theme_prefix; ?>/css/sb-admin-2.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="<?php echo $theme_prefix; ?>/css/styles.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="/sgi_erp/public/css/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
 </head>
 
-<body id="page-top">
+<body class="sb-nav-fixed">
 
-    <div id="wrapper">
+    <?php require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'topbar.php'; ?>
 
-        <?php require_once 'sidebar.php'; ?>
+    <div id="layoutSidenav">
 
-        <div id="content-wrapper" class="d-flex flex-column">
+        <?php require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'sidebar.php'; ?>
 
-            <div id="content">
-
-                <?php require_once 'topbar.php'; ?>
-
-                <div class="container-fluid">
-
-                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800"><?php echo htmlspecialchars($title ?? 'Dashboard'); ?></h1>
-                    </div>
-
+        <div id="layoutSidenav_content">
+            <main>
+                <div class="container-fluid px-4">
                     <?php
                     if (file_exists($content_view)) {
-                        // Passa a variável $dados para o escopo da View
                         require_once $content_view;
                     } else {
-                        echo "<h1 class='text-danger'>Erro: View **`" . htmlspecialchars($content_view) . "`** não encontrada.</h1>";
+                        echo "<div class='alert alert-danger'>Erro: View <strong>" . htmlspecialchars($content_view) . "</strong> não encontrada.</div>";
                     }
                     ?>
+                </div>
+            </main>
 
-                </div>
-            </div>
-            <footer class="sticky-footer bg-white">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>Copyright &copy; SGI ERP <?php echo date('Y'); ?></span>
+            <footer class="py-4 bg-light mt-auto">
+                <div class="container-fluid px-4">
+                    <div class="d-flex align-items-center justify-content-between small">
+                        <div class="text-muted">Copyright &copy; SGI ERP <?php echo date('Y'); ?></div>
+                        <div>
+                            <a href="#">Política de Privacidade</a>
+                            &middot;
+                            <a href="#">Termos &amp; Condições</a>
+                        </div>
                     </div>
-                </div>
             </footer>
         </div>
     </div>
-    <a class="scroll-to-top rounded" href="#page-top">
-        <i class="fas fa-angle-up"></i>
-    </a>
 
-
-    <script src="<?php echo $theme_prefix; ?>/vendor/jquery/jquery.min.js"></script>
-    <script src="<?php echo $theme_prefix; ?>/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="<?php echo $theme_prefix; ?>/vendor/jquery-easing/jquery.easing.min.js"></script>
-    <script src="<?php echo $theme_prefix; ?>/js/sb-admin-2.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <script src="<?php echo $theme_prefix; ?>/js/scripts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <?php require_once ROOT_PATH . 'View' . DIRECTORY_SEPARATOR . 'template' . DIRECTORY_SEPARATOR . 'alerts.php'; ?>
-
-    
+    <script src="/sgi_erp/public/js/global-scripts.js"></script>
+    <?php require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'alerts.php'; ?>
+    <?php require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'logout_modal.php'; ?>
 </body>
 
 </html>

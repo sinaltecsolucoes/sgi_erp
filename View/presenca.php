@@ -1,37 +1,71 @@
 <?php
-// Certifica-se de que a variável $dados foi passada pelo Controller (via require_once do main.php)
+// Certifica-se de que a variável $dados foi passada pelo Controller
 $funcionarios = $dados['funcionarios'] ?? [];
 $data_hoje = $dados['data'] ?? date('Y-m-d');
+$base_url = '/sgi_erp';
 ?>
 
-<div class="content">
-    <h1>Registro de Presença</h1>
-    <p>Data: <strong><?php echo date('d/m/Y', strtotime($data_hoje)); ?></strong></p>
+<div class="pt-4">
+    <h1 class="mt-4">Registro de Presença</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item active">Chamada do Dia: <?php echo date('d/m/Y', strtotime($data_hoje)); ?></li>
+    </ol>
 
-    <form action="/sgi_erp/presenca/salvar" method="POST">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
 
-        <ul class="chamada-lista">
-            <?php if (empty($funcionarios)): ?>
-                <p style="text-align: center;">Não há funcionários de produção ativos para registrar.</p>
-            <?php else: ?>
-                <?php foreach ($funcionarios as $funcionario): ?>
-                    <li class="chamada-item">
-                        <label for="f_<?php echo $funcionario->id; ?>">
-                            <?php echo htmlspecialchars($funcionario->nome); ?>
-                        </label>
-                        <input
-                            type="checkbox"
-                            id="f_<?php echo $funcionario->id; ?>"
-                            name="presente[]"
-                            value="<?php echo $funcionario->id; ?>"
-                            <?php echo ($funcionario->esta_presente == 1) ? 'checked' : ''; ?>>
-                    </li>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </ul>
+            <div class="card shadow mb-4">
 
-        <div style="text-align: center; margin-top: 30px;">
-            <button type="submit" class="btn btn-primary">Salvar Chamada do Dia</button>
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Funcionários de Produção</h6>
+                </div>
+
+                <div class="card-body">
+                    <form action="<?php echo $base_url; ?>/presenca/salvar" method="POST">
+
+                        <div class="mb-4">
+                            <p class="text-muted">Marque os funcionários presentes. Os não marcados serão considerados ausentes.</p>
+
+                            <?php if (empty($funcionarios)): ?>
+                                <div class="alert alert-warning text-center">Nenhum funcionário de produção ativo para registro de presença.</div>
+                            <?php else: ?>
+                                <div class="list-group">
+                                    <?php foreach ($funcionarios as $funcionario): ?>
+                                        <?php
+                                        $id = $funcionario->id;
+                                        $is_presente = (int)$funcionario->esta_presente === 1;
+                                        ?>
+
+                                        <label class="list-group-item d-flex justify-content-between align-items-center">
+
+                                            <span class="<?php echo $is_presente ? 'text-success font-weight-bold' : 'text-danger'; ?>">
+                                                <i class="fas fa-user me-2"></i>
+                                                <?php echo htmlspecialchars($funcionario->nome); ?>
+                                            </span>
+
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input"
+                                                    type="checkbox"
+                                                    role="switch"
+                                                    name="presente[]"
+                                                    value="<?php echo $id; ?>"
+                                                    id="check-<?php echo $id; ?>"
+                                                    <?php echo $is_presente ? 'checked' : ''; ?>>
+                                            </div>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="d-flex justify-content-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg shadow">
+                                <i class="fas fa-save me-2"></i> Salvar Chamada do Dia
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-    </form>
+    </div>
 </div>

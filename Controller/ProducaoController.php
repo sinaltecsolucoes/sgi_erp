@@ -19,11 +19,11 @@ class ProducaoController extends AppController
         $this->producaoModel = new ProducaoModel();
 
         // Regra de Negócio: Apenas apontadores
-        if ($_SESSION['funcionario_tipo'] !== 'apontador') {
+       /* if ($_SESSION['funcionario_tipo'] !== 'apontador') {
             $_SESSION['erro'] = 'Acesso negado. Apenas Apontadores podem lançar a produção.';
             header('Location: /sgi_erp/dashboard');
             exit();
-        }
+        } */
     }
 
     /**

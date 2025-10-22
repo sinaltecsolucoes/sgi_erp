@@ -3,58 +3,85 @@
 $equipe = $dados['equipe'] ?? null;
 $funcionarios_disponiveis = $dados['funcionarios_disponiveis'] ?? [];
 $membros_equipe_ids = $dados['membros_equipe_ids'] ?? [];
+$base_url = '/sgi_erp';
 
 $nome_equipe_atual = $equipe ? htmlspecialchars($equipe->nome) : 'Equipe ' . date('d/m');
 ?>
 
-<div class="content">
-    <h1>Montagem de Equipe (Apontador)</h1>
+<div class="pt-4">
+    <h1 class="mt-4">Montagem de Equipe</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item active">Gerencie os membros da equipe de produção.</li>
+    </ol>
 
-    <div class="equipe-form">
-        <form action="/sgi_erp/equipes/salvar" method="POST">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
 
-            <div class="form-group">
-                <label for="nome_equipe">Nome da Equipe:</label>
-                <input
-                    type="text"
-                    id="nome_equipe"
-                    name="nome_equipe"
-                    required
-                    value="<?php echo $nome_equipe_atual; ?>"
-                    placeholder="Ex: Equipe Vermelha">
-            </div>
+            <div class="card shadow mb-4">
 
-            <hr>
-
-            <h2>Funcionários Presentes e Disponíveis</h2>
-            <p>Selecione abaixo os funcionários que farão parte desta equipe hoje:</p>
-
-            <?php if (empty($funcionarios_disponiveis)): ?>
-                <p class="alert alert-error" style="text-align: center;">Nenhum funcionário de produção foi marcado como presente hoje. Faça a chamada primeiro.</p>
-            <?php else: ?>
-                <div class="equipe-membros-grid">
-                    <?php foreach ($funcionarios_disponiveis as $funcionario): ?>
-                        <?php
-                        $id = $funcionario->id;
-                        $checked = in_array($id, $membros_equipe_ids) ? 'checked' : '';
-                        ?>
-                        <label class="membro-card">
-                            <input
-                                type="checkbox"
-                                name="membros[]"
-                                value="<?php echo $id; ?>"
-                                <?php echo $checked; ?>>
-                            <?php echo htmlspecialchars($funcionario->nome); ?>
-                        </label>
-                    <?php endforeach; ?>
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Informações da Equipe</h6>
                 </div>
-            <?php endif; ?>
 
-            <div style="text-align: center; margin-top: 30px;">
-                <button type="submit" class="btn btn-primary" <?php echo empty($funcionarios_disponiveis) ? 'disabled' : ''; ?>>
-                    Salvar Equipe
-                </button>
+                <div class="card-body">
+                    <form action="<?php echo $base_url; ?>/equipes/salvar" method="POST">
+
+                        <div class="mb-4">
+                            <label for="nome_equipe" class="form-label font-weight-bold">Nome da Equipe Atual:</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="nome_equipe"
+                                name="nome_equipe"
+                                required
+                                value="<?php echo $nome_equipe_atual; ?>"
+                                placeholder="Ex: Equipe A (Turno Manhã)">
+                        </div>
+
+                        <div class="mb-4">
+                            <h5 class="text-primary mb-3">Funcionários Presentes e Disponíveis</h5>
+                            <p class="text-muted small">Selecione abaixo quem fará parte da equipe hoje. (Apenas funcionários marcados como presentes aparecem aqui).</p>
+
+                            <?php if (empty($funcionarios_disponiveis)): ?>
+                                <div class="alert alert-warning text-center">Nenhum funcionário de produção está presente. Faça a Chamada de Presença primeiro.</div>
+                            <?php else: ?>
+                                <div class="list-group">
+                                    <?php foreach ($funcionarios_disponiveis as $funcionario): ?>
+                                        <?php
+                                        $id = $funcionario->id;
+                                        $is_checked = in_array($id, $membros_equipe_ids);
+                                        ?>
+
+                                        <label class="list-group-item d-flex justify-content-between align-items-center">
+
+                                            <span class="text-gray-800">
+                                                <i class="fas fa-user me-2"></i>
+                                                <?php echo htmlspecialchars($funcionario->nome); ?>
+                                            </span>
+
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input"
+                                                    type="checkbox"
+                                                    role="switch"
+                                                    name="membros[]"
+                                                    value="<?php echo $id; ?>"
+                                                    id="check-<?php echo $id; ?>"
+                                                    <?php echo $is_checked ? 'checked' : ''; ?>>
+                                            </div>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg shadow">
+                                <i class="fas fa-save me-2"></i> Salvar Equipe
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </form>
+        </div>
     </div>
 </div>

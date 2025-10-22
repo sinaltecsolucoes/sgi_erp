@@ -17,11 +17,11 @@ class EquipeController extends AppController
         $this->presencaModel = new PresencaModel(); // Necessário para checar a presença
 
         // Regra de Negócio: Apenas apontadores podem acessar esta função
-        if ($_SESSION['funcionario_tipo'] !== 'apontador') {
+        /*   if ($_SESSION['funcionario_tipo'] !== 'apontador') {
             $_SESSION['erro'] = 'Acesso negado. Apenas Apontadores podem montar equipes.';
             header('Location: /sgi_erp/dashboard');
             exit();
-        }
+        }*/
     }
 
     /**

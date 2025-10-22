@@ -1,234 +1,183 @@
-/* public/css/style.css */
-/* Reset Básico */
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
+/* ========================================== */
+/* SGI ERP - SB ADMIN 100% COMPATÍVEL */
+/* ========================================== */
+
+/* 1. FORÇAR CORES DO SB ADMIN */
+:root {
+    --primary: #4e73df;
+    --success: #1cc88a;
+    --info: #36b9cc;
+    --warning: #f6c23e;
+    --danger: #e74a3b;
+    --secondary: #858796;
+    --light: #f8f9fc;
+    --dark: #5a5c69;
 }
 
-/* Estilos de Botão Comum */
-.btn {
-    display: inline-block;
-    padding: 10px 15px;
-    font-size: 16px;
-    font-weight: bold;
-    text-align: center;
-    cursor: pointer;
-    border: none;
-    border-radius: 4px;
-    transition: background-color 0.3s ease;
+/* 2. SIDEBAR - AZUL ESCURO */
+.bg-gradient-primary {
+    background-color: #4e73df !important;
+    background-image: linear-gradient(180deg, #4e73df 10%, #224abe 100%) !important;
+    background-size: cover !important;
 }
 
+.sidebar-dark .sidebar-brand a {
+    color: #fff !important;
+}
+
+.sidebar-dark .nav-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.sidebar-dark .nav-link:hover {
+    color: #fff !important;
+    background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 3. CARDS COLORIDOS */
+.card-primary {
+    border-left: 5px solid var(--primary);
+}
+
+.card-success {
+    border-left: 5px solid var(--success);
+}
+
+.card-warning {
+    border-left: 5px solid var(--warning);
+}
+
+.card-danger {
+    border-left: 5px solid var(--danger);
+}
+
+/* 4. BOTÕES COLORIDOS */
 .btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-success {
+    background-color: var(--success);
+    border-color: var(--success);
+}
+
+.btn-warning {
+    background-color: var(--warning);
+    border-color: var(--warning);
     color: #fff;
-    background-color: #3498db;
-    /* Azul primário */
-    width: 100%;
-    /* Para preencher a largura na tela de login */
 }
 
-.btn-primary:hover {
-    background-color: #2980b9;
+.btn-info {
+    background-color: var(--info);
+    border-color: var(--info);
 }
 
-/* Estilos de Formulário Básico (já usado na View/login.php) */
-label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #333;
+/* 5. FONTE MAIOR */
+body {
+    font-size: 1rem !important;
+    /* 16px */
 }
 
-/* Estilos de Layout para a Tela de Login */
-.page-center {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background-color: #f0f2f5;
+h1.h3 {
+    font-size: 1.75rem !important;
 }
 
-.login-container {
-    width: 100%;
-    max-width: 360px;
-    padding: 30px;
-    background: #fff;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
+.sidebar .nav-link span {
+    font-size: 1rem !important;
 }
 
-.login-container h1 {
-    text-align: center;
-    color: #2c3e50;
-    margin-bottom: 30px;
+.table {
+    font-size: 1rem !important;
 }
 
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box;
-    /* Garante que o padding não aumente o tamanho total */
-}
-
-.error-message {
-    background-color: #f8d7da;
-    color: #721c24;
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-    border: 1px solid #f5c6cb;
-    text-align: center;
-}
-
-/* Estilos específicos para o layout do Dashboard */
-.header {
-    background-color: #2c3e50;
-    color: white;
-    padding: 15px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.header a {
-    color: #f1c40f;
-    text-decoration: none;
-    font-weight: bold;
-}
-
-.content {
-    padding: 30px;
-}
-
-.content ul {
-    list-style: none;
-    padding: 0;
-}
-
-.content ul li {
-    background: #ecf0f1;
-    margin-bottom: 10px;
-    padding: 15px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.content ul li a {
-    text-decoration: none;
-    color: #3498db;
-    font-weight: bold;
-}
-
-/* Estilos de Mensagens de Feedback */
-.alert {
-    padding: 15px;
-    margin-bottom: 20px;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    text-align: center;
-}
-
-.alert-success {
-    color: #155724;
-    background-color: #d4edda;
-    border-color: #c3e6cb;
-}
-
-.alert-error {
-    color: #721c24;
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-}
-
-/* Estilos da Lista de Chamada */
-.chamada-lista {
-    list-style: none;
-    padding: 0;
-    max-width: 600px;
-    margin: 30px auto;
-}
-
-.chamada-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    margin-bottom: 10px;
-    background: #fff;
-    border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.chamada-item label {
-    font-weight: normal;
-    font-size: 1.1em;
-    cursor: pointer;
-    flex-grow: 1;
-}
-
-.chamada-item input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    margin-left: 15px;
-}
-
-/* Estilos da Montagem de Equipes */
-.equipe-form {
-    max-width: 700px;
-    margin: 30px auto;
-    padding: 20px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.equipe-membros-grid {
+/* 6. DASHBOARD LAYOUT */
+.dashboard-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-top: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
-.membro-card {
-    background-color: #f7f7f7;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+.card {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+    border: none !important;
+}
+
+.card-header {
+    background-color: #f8f9fc !important;
+    border-bottom: 1px solid #e3e6f0 !important;
+    padding: 1rem 1.25rem !important;
+}
+
+.card-body {
+    padding: 1.25rem !important;
+}
+
+/* 7. STATUS BARS */
+.status-bar {
     display: flex;
-    align-items: center;
-    cursor: pointer;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
 }
 
-.membro-card:hover {
-    background-color: #ecf0f1;
+.status-btn {
+    flex: 1;
+    min-width: 200px;
+    padding: 1rem;
+    border-radius: 0.35rem;
+    text-align: center;
+    font-weight: 600;
+    border: none;
+    color: white;
+    text-decoration: none;
 }
 
-.membro-card input[type="checkbox"] {
-    margin-right: 10px;
+/* 8. TABELAS */
+.table thead th {
+    background-color: #eaecf4 !important;
+    border-top: none !important;
+    font-weight: 600 !important;
+    color: #5a5c69 !important;
 }
 
-/* Estilos de Formulário de Produção */
-.producao-form {
-    max-width: 500px;
-    margin: 30px auto;
-    padding: 25px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+/* 9. RESPONSIVO */
+@media (max-width: 768px) {
+    .status-bar {
+        flex-direction: column;
+    }
+
+    .status-btn {
+        min-width: auto;
+    }
 }
 
-.form-select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box;
-    /* Garante que o padding não aumente o tamanho total */
-    margin-top: 5px;
+/* Ajustes para ThemeWagon SB Admin */
+body {
+    font-size: 0.875rem;
+    color: #858796;
+}
+
+.sidebar .sidebar-brand {
+    height: 4.375rem;
+}
+
+.sidebar .nav-link {
+    padding: 0.75rem 1rem;
+}
+
+.container-fluid {
+    padding: 0 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .sidebar {
+        width: 14rem !important;
+    }
+
+    .sidebar .nav-item .nav-link {
+        display: block;
+        width: 100%;
+    }
 }

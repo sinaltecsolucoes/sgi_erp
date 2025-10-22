@@ -55,9 +55,9 @@ class FuncionarioController extends AppController
         ];
 
         $title = ($id ? "Editar" : "Cadastrar") . " Funcionário";
-        $content_view = 'View/funcionario_cadastro.php';
+        $content_view = ROOT_PATH . 'View' . DS . 'funcionario_cadastro.php';
 
-        require_once ROOT_PATH . 'View/templates/main.php';
+        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
 
     /**
@@ -75,13 +75,18 @@ class FuncionarioController extends AppController
         // 1. Coleta e Sanitiza os dados
         $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
         $nome = trim(filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_STRING));
+        $cpf_mascarado = trim(filter_input(INPUT_POST, 'cpf', FILTER_SANITIZE_STRING)); // Captura o CPF
+
+        // Limpeza da Máscara para salvar APENAS números no banco
+        $cpf = preg_replace('/[^0-9]/', '', $cpf_mascarado);
+
         $tipo = filter_input(INPUT_POST, 'tipo', FILTER_SANITIZE_STRING); // admin, apontador, producao, financeiro
         $ativo = filter_input(INPUT_POST, 'ativo', FILTER_SANITIZE_NUMBER_INT) === '1';
         $login = trim(filter_input(INPUT_POST, 'login', FILTER_SANITIZE_STRING));
         $senha = $_POST['senha'] ?? null; // Senha pode estar vazia (apenas se for edição e não mudar)
 
-        if (empty($nome) || empty($tipo)) {
-            $_SESSION['erro'] = 'Nome e Tipo são campos obrigatórios.';
+        if (empty($nome) || empty($tipo) || strlen($cpf) !== 11) {
+            $_SESSION['erro'] = 'Nome, Tipo e CPF válido (11 dígitos) são obrigatórios.';
             header('Location: /sgi_erp/admin/funcionarios/cadastro' . ($id ? '?id=' . $id : ''));
             exit();
         }
@@ -89,6 +94,7 @@ class FuncionarioController extends AppController
         $dados_funcionario = [
             'id' => $id,
             'nome' => $nome,
+            'cpf' => $cpf,
             'tipo' => $tipo,
             'ativo' => $ativo
         ];

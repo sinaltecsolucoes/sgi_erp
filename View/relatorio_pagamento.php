@@ -12,8 +12,8 @@ function formatarMoeda($valor)
 }
 ?>
 
-<div class="content">
-    <h1>Relatório de Pagamento por Produtividade</h1>
+<div class="pt-4">
+    <h1 class="fw-bold mb-3">Relatório de Pagamento por Produtividade</h1>
 
     <div class="producao-form">
         <form action="/sgi_erp/relatorios" method="GET" class="form-inline">

@@ -1,86 +1,121 @@
 <?php
-// Determina o tipo de usuário logado
+// View/template/sidebar.php
 $tipo_usuario = $_SESSION['funcionario_tipo'] ?? 'convidado';
 $base_url = '/sgi_erp';
+
+// Lógica para determinar a rota atual
+$current_url = strtok($_SERVER['REQUEST_URI'], '?');
+// Garante que /sgi_erp/dashboard seja apenas /dashboard
+$current_route = str_replace($base_url, '', $current_url);
+
+// Função auxiliar para checar se a rota atual corresponde a um link
+function is_active($route, $current_route)
+{
+    // Retorna 'active' se a rota atual começar com a rota do link (ex: /admin/funcionarios/cadastro é ativo em /admin/funcionarios)
+    return (strpos($current_route, $route) === 0) ? 'active' : '';
+}
 ?>
 
-<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+<div id="layoutSidenav_nav">
+    <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
+        <div class="sb-sidenav-menu">
+            <div class="nav">
+                <div class="sb-sidenav-menu-heading">CORE</div>
 
-    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?php echo $base_url; ?>/dashboard">
-        <div class="sidebar-brand-icon rotate-n-15">
-            <i class="fas fa-shrimp"></i>
+                <?php $route = '/dashboard';
+                $is_active = is_active($route, $current_route); ?>
+                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                    <div class="sb-nav-link-icon"><i class="fas fa-fw fa-tachometer-alt"></i></div>
+                    Página Inicial
+                </a>
+
+                <div class="sb-sidenav-menu-heading">MÓDULOS OPERACIONAIS</div>
+
+                <?php if (Acl::check('AppController@index', $tipo_usuario)): // Checagem genérica para bloco operacional 
+                ?>
+
+                    <?php $route = '/presenca';
+                    $is_active = is_active($route, $current_route); ?>
+                    <?php if (Acl::check('PresencaController@index', $tipo_usuario)): ?>
+                        <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                            <div class="sb-nav-link-icon"><i class="fas fa-calendar-check"></i></div>
+                            Chamada de Presença
+                        </a>
+                    <?php endif; ?>
+
+                    <?php $route = '/equipes';
+                    $is_active = is_active($route, $current_route); ?>
+                    <?php if (Acl::check('EquipeController@index', $tipo_usuario)): ?>
+                        <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                            <div class="sb-nav-link-icon"><i class="fas fa-users"></i></div>
+                            Montar Equipes
+                        </a>
+                    <?php endif; ?>
+
+                    <?php $route = '/producao';
+                    $is_active = is_active($route, $current_route); ?>
+                    <?php if (Acl::check('ProducaoController@index', $tipo_usuario)): ?>
+                        <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                            <div class="sb-nav-link-icon"><i class="fas fa-balance-scale"></i></div>
+                            Lançar Produção (Individual)
+                        </a>
+                    <?php endif; ?>
+
+                    <?php $route = '/producao/massa';
+                    $is_active = is_active($route, $current_route); ?>
+                    <?php if (Acl::check('ProducaoController@massa', $tipo_usuario)): ?>
+                        <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                            <div class="sb-nav-link-icon"><i class="fas fa-boxes"></i></div>
+                            Lançar Prod. em Massa
+                        </a>
+                    <?php endif; ?>
+
+                <?php endif; ?>
+
+                <div class="sb-sidenav-menu-heading">ADMINISTRAÇÃO / FINANCEIRO</div>
+
+                <?php $route = '/relatorios';
+                $is_active = is_active($route, $current_route); ?>
+                <?php if (Acl::check('RelatorioController@pagamentos', $tipo_usuario)): ?>
+                    <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-chart-line"></i></div>
+                        Relatórios / Pagamentos
+                    </a>
+                <?php endif; ?>
+
+                <?php $route = '/admin/valores-pagamento';
+                $is_active = is_active($route, $current_route); ?>
+                <?php if (Acl::check('ValoresPagamentoController@index', $tipo_usuario)): ?>
+                    <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-money-bill-wave"></i></div>
+                        Gerenciar Valores Pagto
+                    </a>
+                <?php endif; ?>
+
+
+                <?php $route = '/admin/funcionarios';
+                $is_active = is_active($route, $current_route); ?>
+                <?php if (Acl::check('FuncionarioController@index', $tipo_usuario)): ?>
+                    <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-user-friends"></i></div>
+                        Gerenciar Funcionários
+                    </a>
+                <?php endif; ?>
+
+                <?php $route = '/permissoes/gestao';
+                $is_active = is_active($route, $current_route); ?>
+                <?php if (Acl::check('PermissaoController@index', $tipo_usuario)): ?>
+                    <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-shield-alt"></i></div>
+                        Gestão de Permissões (ACL)
+                    </a>
+                <?php endif; ?>
+
+            </div>
         </div>
-        <div class="sidebar-brand-text mx-3">SGI <sup>ERP</sup></div>
-    </a>
-
-    <hr class="sidebar-divider my-0">
-
-    <li class="nav-item active">
-        <a class="nav-link" href="<?php echo $base_url; ?>/dashboard">
-            <i class="fas fa-fw fa-tachometer-alt"></i>
-            <span>Dashboard</span></a>
-    </li>
-
-    <hr class="sidebar-divider">
-
-    <div class="sidebar-heading">
-        Módulos Operacionais
-    </div>
-
-    <?php if ($tipo_usuario === 'apontador' || $tipo_usuario === 'admin'): ?>
-        <li class="nav-item">
-            <a class="nav-link" href="<?php echo $base_url; ?>/presenca">
-                <i class="fas fa-fw fa-calendar-check"></i>
-                <span>Chamada de Presença</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="<?php echo $base_url; ?>/equipes">
-                <i class="fas fa-fw fa-users"></i>
-                <span>Montar Equipes</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="<?php echo $base_url; ?>/producao">
-                <i class="fas fa-fw fa-balance-scale"></i>
-                <span>Lançar Produção</span>
-            </a>
-        </li>
-    <?php endif; ?>
-
-    <?php if ($tipo_usuario === 'financeiro' || $tipo_usuario === 'admin'): ?>
-        <li class="nav-item">
-            <a class="nav-link" href="<?php echo $base_url; ?>/relatorios/pagamentos">
-                <i class="fas fa-fw fa-chart-line"></i>
-                <span>Relatórios / Pagamentos</span>
-            </a>
-        </li>
-    <?php endif; ?>
-
-    <?php if ($tipo_usuario === 'admin'): ?>
-        <hr class="sidebar-divider">
-
-        <div class="sidebar-heading">
-            Administração
+        <div class="sb-sidenav-footer">
+            <div class="small">Logado como:</div>
+            <?php echo ucfirst(htmlspecialchars($tipo_usuario)); ?>
         </div>
-        <li class="nav-item">
-            <a class="nav-link" href="<?php echo $base_url; ?>/admin/funcionarios">
-                <i class="fas fa-fw fa-user-friends"></i>
-                <span>Gerenciar Funcionários</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="<?php echo $base_url; ?>/permissoes/gestao">
-                <i class="fas fa-fw fa-shield-alt"></i>
-                <span>Gestão de Permissões (ACL)</span>
-            </a>
-        </li>
-    <?php endif; ?>
-
-    <hr class="sidebar-divider d-none d-md-block">
-
-    <div class="text-center d-none d-md-inline">
-        <button class="rounded-circle border-0" id="sidebarToggle"></button>
-    </div>
-
-</ul>
+    </nav>
+</div>

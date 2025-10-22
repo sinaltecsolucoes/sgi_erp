@@ -20,16 +20,31 @@ class AppController
     }
 
     /**
-     * Exibe a página principal da aplicação (Dashboard)
+     * Exibe a página principal da aplicação (Página Inicial)
      * Rota: /dashboard
      */
     public function index()
     {
+        // NOVO: Instanciar Models necessários
+        $funcionarioModel = new FuncionarioModel();
+        $producaoModel = new ProducaoModel();
+
+        // 1. Buscar dados reais
+        $totalPresentes = $funcionarioModel->contarPresentesHoje();
+        $producaoTotal = $producaoModel->somarProducaoHoje();
+
+        // 2. Definir as variáveis para a View
+        $dados = [
+            'totalPresentes' => $totalPresentes,
+            'producaoTotal' => $producaoTotal,
+            // Outros dados futuros viriam aqui
+        ];
+
         // Define as variáveis que serão usadas pelo template/main.php
         $title = "Dashboard";
         $content_view = ROOT_PATH . 'View' . DS . 'dashboard.php';
 
-        // Inclui o layout principal que, por sua vez, incluirá a View do Dashboard
+        // Inclui o layout principal
         require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
 }

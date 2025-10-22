@@ -16,6 +16,10 @@ class Acl
         'ProducaoController@index' => 'Visualizar Lançamento de Produção',
         'ProducaoController@salvar' => 'Salvar Lançamento de Produção',
 
+        // Rotas de Lançamento em Massa 
+        'ProducaoController@massa' => 'Visualizar Lançamento em Massa',
+        'ProducaoController@salvarMassa' => 'Salvar Lançamento em Massa',
+
         // MÓDULO ADMINISTRATIVO (Gestão de Permissões e Cadastros) 
         'PermissaoController@index' => 'Visualizar Gestão de Permissões', // Tela Admin 
         'PermissaoController@salvar' => 'Salvar Permissões de Perfis', // Ação Admin 
@@ -27,6 +31,11 @@ class Acl
         // MÓDULO FINANCEIRO (Relatórios) 
         'RelatorioController@pagamentos' => 'Visualizar Relatório de Pagamentos',
         'RelatorioController@producaoGeral' => 'Visualizar Produção Geral',
+
+        // Rotas de Cadastro de Valores
+        'ValoresPagamentoController@index' => 'Visualizar Valores Pagamento',
+        'ValoresPagamentoController@cadastro' => 'Visualizar Cadastro Valor',
+        'ValoresPagamentoController@salvar' => 'Salvar Valor Pagamento',
     ];
 
     // Model de Permissão será usado na checagem 

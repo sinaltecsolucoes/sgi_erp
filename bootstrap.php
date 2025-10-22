@@ -44,6 +44,9 @@ $routes = [
     '/login'     => 'LoginController@logar',     // Processa o envio do formulário (POST)
     '/logout'    => 'LoginController@sair',      // Finaliza a sessão
 
+    // MÓDULO DE PERFIL
+    '/meu-perfil' => 'PerfilController@index', // Visualização e Edição do perfil
+
     // Rota para Pagina Principal
     '/dashboard' => 'AppController@index',       // Página principal da aplicação
 
@@ -58,20 +61,27 @@ $routes = [
     // Rotas de Produção
     '/producao'  => 'ProducaoController@index',
     '/producao/salvar' => 'ProducaoController@salvar',
+    '/producao/massa'  => 'ProducaoController@massa',
+    '/producao/massa/salvar' => 'ProducaoController@salvarMassa',
 
     // Rotas API (Para o App Android)
     '/api/login' => 'ApiController@login',
     '/api/presenca' => 'ApiController@presenca',
 
-    // MÓDULO DE GESTÃO DE PERMISSÕES (NOVO)
+    // MÓDULO DE GESTÃO DE PERMISSÕES
     '/permissoes/gestao' => 'PermissaoController@index',
     '/permissoes/salvar' => 'PermissaoController@salvar',
 
-    // MÓDULO DE CADASTRO DE FUNCIONÁRIOS (NOVO)
+    // MÓDULO DE CADASTRO DE FUNCIONÁRIOS
     '/admin/funcionarios' => 'FuncionarioController@index', // Listagem
     '/admin/funcionarios/cadastro' => 'FuncionarioController@cadastro', // Formulário (GET)
     '/admin/funcionarios/salvar' => 'FuncionarioController@salvar', // Salvar (POST)
 
-    // MÓDULO FINANCEIRO / RELATÓRIOS (NOVO)
+    // MÓDULO DE VALORES DE PAGAMENTO
+    '/admin/valores-pagamento' => 'ValoresPagamentoController@index', // Listagem
+    '/admin/valores-pagamento/cadastro' => 'ValoresPagamentoController@cadastro', // Formulário (GET)
+    '/admin/valores-pagamento/salvar' => 'ValoresPagamentoController@salvar', // Salvar (POST)
+
+    // MÓDULO FINANCEIRO / RELATÓRIOS
     '/relatorios' => 'RelatorioController@pagamentos', // Rota principal de relatórios
 ];

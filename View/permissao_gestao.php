@@ -8,7 +8,8 @@ $permissoes_atuais = $dados['permissoes_atuais'] ?? [];
 $perfis_com_admin = array_merge(['admin'], $perfis_disponiveis);
 ?>
 
-<div class="content">
+<div class="pt-4">
+
     <h1 class="fw-bold mb-3">Gerenciar Permissões de Ação (ACL)</h1>
     <p>Defina quais perfis podem executar cada ação (Visualizar, Salvar, Excluir) no sistema.</p>
 
@@ -76,4 +77,5 @@ $perfis_com_admin = array_merge(['admin'], $perfis_disponiveis);
 
         <button type="submit" class="btn btn-primary mt-3">Salvar Permissões</button>
     </form>
+
 </div>
