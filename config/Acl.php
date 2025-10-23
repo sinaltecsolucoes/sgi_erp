@@ -30,6 +30,9 @@ class Acl
 
         // MÓDULO FINANCEIRO (Relatórios) 
         'RelatorioController@pagamentos' => 'Visualizar Relatório de Pagamentos',
+        'RelatorioController@quantidades' => 'Visualizar Relatório de Quantidades',
+        'RelatorioController@servicos' => 'Visualizar Relatório de Serviços',
+        'RelatorioController@produtividade' => 'Visualizar Produtividade/Hora',
         'RelatorioController@producaoGeral' => 'Visualizar Produção Geral',
 
         // Rotas de Cadastro de Valores

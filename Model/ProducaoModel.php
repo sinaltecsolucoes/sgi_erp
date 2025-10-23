@@ -14,19 +14,20 @@ class ProducaoModel
 
     /**
      * Registra um lançamento de produção na base de dados.
-     * * @param int $funcionario_id ID do funcionário que realizou a ação.
-     * @param int $acao_id ID da ação realizada (ex: descabeçar).
-     * @param int $tipo_produto_id ID do tipo de produto (ex: camarão Pescado).
+     * @param int $funcionario_id ID do funcionário.
+     * @param int $acao_id ID da ação realizada.
+     * @param int $tipo_produto_id ID do tipo de produto.
+     * @param string $lote_produto NOVO: Lote do produto.
      * @param float $quantidade_kg Quantidade produzida em quilos.
-     * @param int|null $equipe_id ID da equipe (NULL se for produção individual).
+     * @param int|null $equipe_id ID da equipe.
      * @return bool TRUE se a inserção for bem-sucedida, FALSE caso contrário.
      */
-    public function registrarLancamento($funcionario_id, $acao_id, $tipo_produto_id, $quantidade_kg, $equipe_id = null)
+    public function registrarLancamento($funcionario_id, $acao_id, $tipo_produto_id, $lote_produto, $quantidade_kg, $equipe_id = null, $hora_inicio = null, $hora_fim = null)
     {
         $query = "INSERT INTO {$this->table_producao} 
-                  (funcionario_id, acao_id, tipo_produto_id, quantidade_kg, data_hora, equipe_id) 
+                  (funcionario_id, acao_id, tipo_produto_id, lote_produto, quantidade_kg, data_hora, equipe_id, hora_inicio, hora_fim) 
                   VALUES 
-                  (:funcionario_id, :acao_id, :tipo_produto_id, :quantidade_kg, NOW(), :equipe_id)";
+                  (:funcionario_id, :acao_id, :tipo_produto_id, :lote_produto, :quantidade_kg, NOW(), :equipe_id, :hora_inicio, :hora_fim)";
 
         try {
             $stmt = $this->db->prepare($query);
@@ -35,7 +36,10 @@ class ProducaoModel
             $stmt->bindParam(':funcionario_id', $funcionario_id);
             $stmt->bindParam(':acao_id', $acao_id);
             $stmt->bindParam(':tipo_produto_id', $tipo_produto_id);
+            $stmt->bindParam(':lote_produto', $lote_produto);
             $stmt->bindParam(':quantidade_kg', $quantidade_kg);
+            $stmt->bindParam(':hora_inicio', $hora_inicio);
+            $stmt->bindParam(':hora_fim', $hora_fim);
 
             // Tratamento especial para $equipe_id (pode ser NULL)
             if (is_null($equipe_id)) {

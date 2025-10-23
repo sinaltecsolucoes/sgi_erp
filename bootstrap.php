@@ -82,6 +82,15 @@ $routes = [
     '/admin/valores-pagamento/cadastro' => 'ValoresPagamentoController@cadastro', // Formulário (GET)
     '/admin/valores-pagamento/salvar' => 'ValoresPagamentoController@salvar', // Salvar (POST)
 
+    // MÓDULO DE CADASTRO DE TIPOS DE PRODUTO
+    '/admin/tipos-produto' => 'TipoProdutoController@index', // Listagem
+    '/admin/tipos-produto/cadastro' => 'TipoProdutoController@cadastro', // Formulário (GET)
+    '/admin/tipos-produto/salvar' => 'TipoProdutoController@salvar', // Salvar (POST)
+
     // MÓDULO FINANCEIRO / RELATÓRIOS
-    '/relatorios' => 'RelatorioController@pagamentos', // Rota principal de relatórios
+    '/relatorios' => 'RelatorioController@pagamentos', // Pagamento Total (Rota principal de relatórios)
+    '/relatorios/quantidades' => 'RelatorioController@quantidades', // Quantidades Produzidas
+    '/relatorios/servicos' => 'RelatorioController@servicos', // Serviços/Diárias
+    '/relatorios/produtividade' => 'RelatorioController@produtividade', // Produtividade/Hora
+    '/relatorios/imprimir' => 'RelatorioController@imprimir', // Layout PDF
 ];

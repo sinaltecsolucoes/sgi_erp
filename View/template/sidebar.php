@@ -20,7 +20,7 @@ function is_active($route, $current_route)
     <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
         <div class="sb-sidenav-menu">
             <div class="nav">
-                <div class="sb-sidenav-menu-heading">CORE</div>
+                <div class="sb-sidenav-menu-heading">HOME</div>
 
                 <?php $route = '/dashboard';
                 $is_active = is_active($route, $current_route); ?>
@@ -72,14 +72,25 @@ function is_active($route, $current_route)
 
                 <?php endif; ?>
 
-                <div class="sb-sidenav-menu-heading">ADMINISTRAÇÃO / FINANCEIRO</div>
+                <hr class="sidebar-divider">
 
-                <?php $route = '/relatorios';
+                <div class="sb-sidenav-menu-heading">ADMINISTRAÇÃO / CADASTROS</div>
+
+                <?php $route = '/admin/funcionarios';
                 $is_active = is_active($route, $current_route); ?>
-                <?php if (Acl::check('RelatorioController@pagamentos', $tipo_usuario)): ?>
+                <?php if (Acl::check('FuncionarioController@index', $tipo_usuario)): ?>
                     <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
-                        <div class="sb-nav-link-icon"><i class="fas fa-chart-line"></i></div>
-                        Relatórios / Pagamentos
+                        <div class="sb-nav-link-icon"><i class="fas fa-user-friends"></i></div>
+                        Gerenciar Funcionários
+                    </a>
+                <?php endif; ?>
+
+                <?php $route = '/admin/tipos-produto';
+                $is_active = is_active($route, $current_route);
+                if (Acl::check('TipoProdutoController@index', $tipo_usuario)): ?>
+                    <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-fw fa-box"></i></div>
+                        <span>Gerenciar Tipos de Produto</span>
                     </a>
                 <?php endif; ?>
 
@@ -92,16 +103,6 @@ function is_active($route, $current_route)
                     </a>
                 <?php endif; ?>
 
-
-                <?php $route = '/admin/funcionarios';
-                $is_active = is_active($route, $current_route); ?>
-                <?php if (Acl::check('FuncionarioController@index', $tipo_usuario)): ?>
-                    <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
-                        <div class="sb-nav-link-icon"><i class="fas fa-user-friends"></i></div>
-                        Gerenciar Funcionários
-                    </a>
-                <?php endif; ?>
-
                 <?php $route = '/permissoes/gestao';
                 $is_active = is_active($route, $current_route); ?>
                 <?php if (Acl::check('PermissaoController@index', $tipo_usuario)): ?>
@@ -111,6 +112,46 @@ function is_active($route, $current_route)
                     </a>
                 <?php endif; ?>
 
+                <hr class="sidebar-divider">
+
+                <div class="sb-sidenav-menu-heading">RELATÓRIOS</div>
+               
+                <?php $route = '/relatorios';
+                $is_active = is_active($route, $current_route); ?>
+                <?php if (Acl::check('RelatorioController@pagamentos', $tipo_usuario)): ?>
+                    <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-money-bill-wave"></i></div>
+                        Pagamento Total (R$)
+                    </a>
+                <?php endif; ?>
+
+                <?php $route = '/relatorios/produtividade';
+                $is_active = is_active($route, $current_route); ?>
+                <?php if (Acl::check('RelatorioController@produtividade', $tipo_usuario)): ?>
+                    <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-clock"></i></div>
+                        Análise Produtividade/Hora
+                    </a>
+                <?php endif; ?>
+
+                <?php $route = '/relatorios/quantidades';
+                $is_active = is_active($route, $current_route); ?>
+                <?php if (Acl::check('RelatorioController@quantidades', $tipo_usuario)): ?>
+                    <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-weight-hanging"></i></div>
+                        Quantidades Produzidas (Kg)
+                    </a>
+                <?php endif; ?>
+
+                <?php $route = '/relatorios/servicos';
+                $is_active = is_active($route, $current_route); ?>
+                <?php if (Acl::check('RelatorioController@servicos', $tipo_usuario)): ?>
+                    <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-hand-holding-usd"></i></div>
+                        Serviços / Diárias (Apoio)
+                    </a>
+                <?php endif; ?>
+                
             </div>
         </div>
         <div class="sb-sidenav-footer">
