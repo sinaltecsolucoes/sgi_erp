@@ -30,8 +30,12 @@ if (array_key_exists($url, $routes)) {
     $action = $controllerName . '@' . $methodName;
     $tipo_usuario = $_SESSION['funcionario_tipo'] ?? 'convidado';
 
+    // Define se é uma rota de API
+    $is_api_route = (strpos($controllerName, 'ApiController') === 0);
+
     // Não checar ACL para rotas de Login (index, logar) e Logout
-    if ($action !== 'LoginController@index' && $action !== 'LoginController@logar' && $action !== 'LoginController@sair') {
+    // if ($action !== 'LoginController@index' && $action !== 'LoginController@logar' && $action !== 'LoginController@sair') {
+    if (!($action === 'LoginController@index' || $action === 'LoginController@logar' || $action === 'LoginController@sair' || $is_api_route)) {
         if (!Acl::check($action, $tipo_usuario)) {
 
             // Se o usuário está logado, mas não tem permissão para esta ação/tela http_response_code(403); 

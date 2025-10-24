@@ -65,6 +65,7 @@ $routes = [
     '/producao/massa/salvar' => 'ProducaoController@salvarMassa',
 
     // Rotas API (Para o App Android)
+    '/api' => 'ApiController@info',
     '/api/login' => 'ApiController@login',
     '/api/presenca' => 'ApiController@presenca',
 
