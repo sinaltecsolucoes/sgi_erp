@@ -129,4 +129,32 @@ class EquipeModel
             return false;
         }
     }
+
+    /**
+     * Busca os IDs dos funcionários que já estão em alguma equipe HOJE.
+     * @return array IDs dos funcionários alocados.
+     */
+    public function buscarFuncionariosAlocadosHoje()
+    {
+        // Assume que equipes criadas hoje pertencem a funcionários alocados
+        $hoje = date('Y-m-d');
+
+        $query = "SELECT 
+                    ef.funcionario_id 
+                  FROM 
+                    {$this->table_assoc} ef
+                  JOIN
+                    {$this->table_equipes} e ON ef.equipe_id = e.id
+                  WHERE
+                    DATE(e.criado_em) = :hoje
+                  GROUP BY
+                    ef.funcionario_id";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':hoje', $hoje);
+        $stmt->execute();
+
+        // Retorna um array simples de IDs
+        return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    }
 }

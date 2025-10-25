@@ -68,6 +68,7 @@ $routes = [
     '/api' => 'ApiController@info',
     '/api/login' => 'ApiController@login',
     '/api/presenca' => 'ApiController@presenca',
+    '/api/equipe/dados' => 'ApiController@equipeDados',
 
     // MÓDULO DE GESTÃO DE PERMISSÕES
     '/permissoes/gestao' => 'PermissaoController@index',
