@@ -46,6 +46,7 @@ $routes = [
 
     // MÓDULO DE PERFIL
     '/meu-perfil' => 'PerfilController@index', // Visualização e Edição do perfil
+    '/meu-perfil/salvar-senha' => 'PerfilController@salvarSenha',
 
     // Rota para Pagina Principal
     '/dashboard' => 'AppController@index',       // Página principal da aplicação
@@ -58,6 +59,7 @@ $routes = [
     '/equipes'  => 'EquipeController@index',
     '/equipes/salvar' => 'EquipeController@salvar',
 
+
     // Rotas de Produção
     '/producao'  => 'ProducaoController@index',
     '/producao/salvar' => 'ProducaoController@salvar',
@@ -69,6 +71,9 @@ $routes = [
     '/api/login' => 'ApiController@login',
     '/api/presenca' => 'ApiController@presenca',
     '/api/equipe/dados' => 'ApiController@equipeDados',
+    '/api/lancamento/opcoes' => 'ApiController@lancamentoOpcoes',
+    '/api/equipe/salvar' => 'ApiController@equipeSalvar',
+    '/api/lancamento/salvar' => 'ApiController@lancamentoSalvar',
 
     // MÓDULO DE GESTÃO DE PERMISSÕES
     '/permissoes/gestao' => 'PermissaoController@index',
@@ -88,6 +93,11 @@ $routes = [
     '/admin/tipos-produto' => 'TipoProdutoController@index', // Listagem
     '/admin/tipos-produto/cadastro' => 'TipoProdutoController@cadastro', // Formulário (GET)
     '/admin/tipos-produto/salvar' => 'TipoProdutoController@salvar', // Salvar (POST)
+
+    // MÓDULO DE CADASTRO DE AÇÕES DE PRODUÇÃO
+    '/admin/acoes' => 'AcaoController@index', // Listagem
+    '/admin/acoes/cadastro' => 'AcaoController@cadastro', // Formulário (GET)
+    '/admin/acoes/salvar' => 'AcaoController@salvar', // Salvar (POST)  
 
     // MÓDULO FINANCEIRO / RELATÓRIOS
     '/relatorios' => 'RelatorioController@pagamentos', // Pagamento Total (Rota principal de relatórios)

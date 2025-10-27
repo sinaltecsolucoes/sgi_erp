@@ -48,7 +48,7 @@ $base_url = '/sgi_erp'; // Definição da base URL
                             </tr>
                         <?php else: ?>
                             <?php foreach ($funcionarios as $f):
-                                // CORREÇÃO 2: Definir $is_ativo no escopo do loop
+                                // Definir $is_ativo no escopo do loop
                                 $is_ativo = (int)($f->ativo ?? 0);
                             ?>
                                 <tr class="<?php echo $is_ativo ? '' : 'table-danger'; ?>">

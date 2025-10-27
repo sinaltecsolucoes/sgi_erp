@@ -19,7 +19,7 @@ $perfil = $dados['perfil'] ?? null;
                     </div>
 
                     <div class="col-md-8">
-                        <form>
+                        <form action="<?php echo $base_url; ?>/meu-perfil/salvar-senha" method="POST">
                             <div class="mb-3">
                                 <label class="form-label font-weight-bold">Nome:</label>
                                 <p class="form-control-static"><?php echo htmlspecialchars($perfil->nome); ?></p>
@@ -37,7 +37,7 @@ $perfil = $dados['perfil'] ?? null;
                             <h6 class="text-primary">Alterar Senha</h6>
                             <div class="mb-3">
                                 <label for="nova_senha" class="form-label">Nova Senha</label>
-                                <input type="password" class="form-control" id="nova_senha">
+                                <input type="password" class="form-control" id="nova_senha" name="nova_senha">
                             </div>
                             <button type="submit" class="btn btn-success">Salvar Alterações</button>
                         </form>

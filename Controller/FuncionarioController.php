@@ -104,14 +104,21 @@ class FuncionarioController extends AppController
 
         if ($funcionario_id) {
             // 3. Salva ou Atualiza o Usuário/Login
-            if ($this->funcionarioModel->criarOuAtualizarUsuario($funcionario_id, $login, $senha)) {
-                $_SESSION['sucesso'] = "Funcionário **{$nome}** e login salvos com sucesso!";
+            // NOVA LÓGICA: SÓ CHAMA O SALVAMENTO DE LOGIN SE FORNECIDO
+            if (!empty($login) || !empty($senha)) {
+                if ($this->funcionarioModel->criarOuAtualizarUsuario($funcionario_id, $login, $senha)) {
+                    $_SESSION['sucesso'] = "Funcionário **{$nome}** e login salvos com sucesso!";
+                } else {
+                    // Se falhar (ex: login duplicado), usa a mensagem de erro do Model
+                    $_SESSION['erro'] = $_SESSION['erro'] ?? 'Erro desconhecido ao salvar o login.';
+                }
             } else {
-                // A mensagem de erro de login duplicado já é setada dentro do Model
-                $_SESSION['erro'] = $_SESSION['erro'] ?? 'Erro desconhecido ao salvar o login.';
+                // Se NÃO FORNECER login/senha, apenas o funcionário é salvo
+                $_SESSION['sucesso'] = "Funcionário **{$nome}** salvo com sucesso!";
             }
         } else {
-            $_SESSION['erro'] = 'Erro interno ao salvar o registro do funcionário.';
+            // A mensagem de erro de CPF duplicado/erro interno já é setada dentro do Model
+            $_SESSION['erro'] = $_SESSION['erro'] ?? 'Erro interno ao salvar o registro do funcionário.';
         }
 
         header('Location: /sgi_erp/admin/funcionarios');

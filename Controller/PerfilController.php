@@ -35,6 +35,37 @@ class PerfilController extends AppController
         require_once ROOT_PATH . 'View' . DIRECTORY_SEPARATOR . 'template' . DIRECTORY_SEPARATOR . 'main.php';
     }
 
-    // Futuro: public function salvarFoto()
-    // Futuro: public function salvarDados()
+    /**
+     * Processa a alteração de senha a partir da tela de perfil.
+     * Rota: /meu-perfil/salvar-senha
+     */
+    public function salvarSenha()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /sgi_erp/meu-perfil');
+            exit();
+        }
+
+        $nova_senha = $_POST['nova_senha'] ?? null;
+        $funcionario_id = $_SESSION['funcionario_id'] ?? null;
+
+        // 1. Validação
+        if (empty($funcionario_id)) {
+            $_SESSION['erro'] = 'Sessão de usuário não encontrada.';
+        } elseif (empty($nova_senha) || strlen($nova_senha) < 6) {
+            $_SESSION['erro'] = 'A nova senha deve ter no mínimo 6 caracteres.';
+        } else {
+            // 2. Chamar o Model para salvar a senha
+            $usuarioModel = new UsuarioModel();
+
+            if ($usuarioModel->atualizarSenha($funcionario_id, $nova_senha)) {
+                $_SESSION['sucesso'] = 'Senha alterada com sucesso!';
+            } else {
+                $_SESSION['erro'] = 'Erro ao tentar atualizar a senha.';
+            }
+        }
+
+        header('Location: /sgi_erp/meu-perfil');
+        exit();
+    }
 }

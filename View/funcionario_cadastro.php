@@ -77,12 +77,12 @@ $tipos_validos = ['admin', 'apontador', 'producao', 'financeiro'];
                             <?php endif; ?>
 
                             <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="login" name="login" required value="<?php echo htmlspecialchars($login); ?>" placeholder="Login (Nome de Usuário)">
+                                <input type="text" class="form-control" id="login" name="login" value="<?php echo htmlspecialchars($login); ?>" placeholder="Login (Nome de Usuário)">
                                 <label for="login">Login (Nome de Usuário)</label>
                             </div>
 
                             <div class="form-floating mb-3">
-                                <input type="password" class="form-control" id="senha" name="senha" <?php echo $is_editing ? '' : 'required'; ?> placeholder="Nova Senha">
+                                <input type="password" class="form-control" id="senha" name="senha" <?php echo $is_editing ? '' : ''; ?> placeholder="Nova Senha">
                                 <label for="senha">Nova Senha <?php echo $is_editing ? '(Deixe em branco para não alterar)' : ''; ?></label>
                             </div>
 
