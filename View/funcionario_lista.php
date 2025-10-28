@@ -32,6 +32,7 @@ $base_url = '/sgi_erp'; // Definição da base URL
                         <tr>
                             <th class="text-center align-middle">ID</th>
                             <th class="text-center align-middle">Nome</th>
+                            <th class="text-center align-middle">CPF</th>
                             <th class="text-center align-middle">Tipo</th>
                             <th class="text-center align-middle">Login</th>
                             <th class="text-center align-middle">Status</th>
@@ -54,6 +55,7 @@ $base_url = '/sgi_erp'; // Definição da base URL
                                 <tr class="<?php echo $is_ativo ? '' : 'table-danger'; ?>">
                                     <td class="text-center align-middle"><?php echo htmlspecialchars($f->id); ?></td>
                                     <td class="align-middle"><?php echo htmlspecialchars($f->nome); ?></td>
+                                    <td class="align-middle"><?php echo $f->cpf ? htmlspecialchars(substr($f->cpf, 0, 3) . '.' . substr($f->cpf, 3, 3) . '.' . substr($f->cpf, 6, 3) . '-' . substr($f->cpf, 9, 2)) : 'N/A'; ?></td>
                                     <td class="align-middle"><?php echo ucfirst(htmlspecialchars($f->tipo)); ?></td>
                                     <td class="text-center align-middle"><?php echo htmlspecialchars($f->login ?? 'N/A'); ?></td>
 
@@ -80,10 +82,10 @@ $base_url = '/sgi_erp'; // Definição da base URL
         </div>
     </div>
 
-   <script>
+    <script>
         document.addEventListener('DOMContentLoaded', event => {
             const datatablesSimple = document.getElementById('datatablesSimple');
-            
+
             if (datatablesSimple) {
                 // Configurações de tradução injetadas diretamente na View
                 const config = {
@@ -101,13 +103,34 @@ $base_url = '/sgi_erp'; // Definição da base URL
                         },
                     },
                     // Desativar ordenação na coluna 'Ações' (índice 5)
-                    columns: [
-                        { select: 0, sortable: true }, 
-                        { select: 1, sortable: true },
-                        { select: 2, sortable: true },
-                        { select: 3, sortable: true },
-                        { select: 4, sortable: true },
-                        { select: 5, sortable: false } 
+                    columns: [{
+                            select: 0,
+                            sortable: true
+                        },
+                        {
+                            select: 1,
+                            sortable: true
+                        },
+                        {
+                            select: 2,
+                            sortable: true
+                        },
+                        {
+                            select: 3,
+                            sortable: true
+                        },
+                        {
+                            select: 4,
+                            sortable: true
+                        },
+                        {
+                            select: 5,
+                            sortable: true
+                        },
+                        {
+                            select: 6,
+                            sortable: false
+                        }
                     ]
                 };
 

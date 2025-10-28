@@ -21,8 +21,9 @@ class FuncionarioModel
     $query = "SELECT 
                     f.id, 
                     f.nome, 
-                    f.tipo, 
-                    f.ativo,     
+                    f.cpf, 
+                    f.tipo,
+                    f.ativo,
                     u.login    
                   FROM 
                     {$this->table_funcionarios} f
@@ -127,7 +128,8 @@ class FuncionarioModel
     } catch (PDOException $e) {
       // ERRO: Captura erro de CPF duplicado (restrição UNIQUE)
       if ($e->getCode() === '23000') {
-        $_SESSION['erro'] = 'Erro: O CPF informado já está cadastrado no sistema.';
+        return 'CPF_DUPLICADO';
+        //$_SESSION['erro'] = 'Erro: O CPF informado já está cadastrado no sistema.';
       } else {
         $_SESSION['erro'] = 'Erro interno ao salvar o funcionário.';
       }
@@ -142,107 +144,6 @@ class FuncionarioModel
    * @param string $senha A senha (texto plano).
    * @return bool TRUE se sucesso, FALSE se falha.
    */
-  /* public function criarOuAtualizarUsuario($funcionario_id, $login, $senha)
-  {
-    // Verifica se o login já existe
-    $check_query = "SELECT id FROM usuarios WHERE funcionario_id = :funcionario_id";
-    $check_stmt = $this->db->prepare($check_query);
-    $check_stmt->bindParam(':funcionario_id', $funcionario_id);
-    $check_stmt->execute();
-    $usuario_existe = $check_stmt->fetch();
-
-    $senha_hash_query = $senha ? ", senha = PASSWORD(:senha)" : "";
-
-    if ($usuario_existe) {
-      // UPDATE
-      $query = "UPDATE usuarios SET login = :login {$senha_hash_query} WHERE funcionario_id = :funcionario_id";
-    } else {
-      // INSERT
-      $query = "INSERT INTO usuarios (funcionario_id, login, senha) VALUES (:funcionario_id, :login, PASSWORD(:senha))";
-    }
-
-    try {
-      $stmt = $this->db->prepare($query);
-      $stmt->bindParam(':funcionario_id', $funcionario_id);
-      $stmt->bindParam(':login', $login);
-      if ($senha) {
-        $stmt->bindParam(':senha', $senha);
-      }
-
-      return $stmt->execute();
-    } catch (PDOException $e) {
-      // Erro: Login duplicado (UNIQUE na tabela usuarios)
-      $_SESSION['erro'] = "Erro de login: o nome de login **{$login}** já está em uso.";
-      return false;
-    }
-  } */
-
-
-  /**
-   * Cria ou atualiza o login do usuário associado a um funcionário.
-   * @param int $funcionario_id ID do funcionário.
-   * @param string $login O login do sistema.
-   * @param string $senha A senha (texto plano).
-   * @return bool TRUE se sucesso, FALSE se falha.
-   */
-  /* public function criarOuAtualizarUsuario($funcionario_id, $login, $senha)
-  {
-    // 1. Verifica se o login já existe
-    $check_query = "SELECT id FROM usuarios WHERE funcionario_id = :funcionario_id";
-    $check_stmt = $this->db->prepare($check_query);
-    $check_stmt->bindParam(':funcionario_id', $funcionario_id);
-    $check_stmt->execute();
-    $usuario_existe = $check_stmt->fetch();
-
-    $query = "";
-
-    // Hashear a senha se ela foi fornecida
-    $senha_hash = null;
-    if (!empty($senha)) {
-      // Usa o algoritmo de hash seguro do PHP (Bcrypt é o padrão)
-      $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
-    }
-
-    if ($usuario_existe) {
-      // UPDATE
-      if ($senha_hash) {
-        // Se houver senha nova, atualiza o login E a senha
-        $query = "UPDATE usuarios SET login = :login, senha = :senha_hash WHERE funcionario_id = :funcionario_id";
-      } else {
-        // Se NÃO houver senha nova, atualiza APENAS o login
-        $query = "UPDATE usuarios SET login = :login WHERE funcionario_id = :funcionario_id";
-      }
-    } else {
-      // INSERT (A senha deve ser obrigatória para INSERT)
-      if (!$senha_hash) {
-        $_SESSION['erro'] = "Erro de login: A senha é obrigatória para novos usuários.";
-        return false;
-      }
-      $query = "INSERT INTO usuarios (funcionario_id, login, senha) VALUES (:funcionario_id, :login, :senha_hash)";
-    }
-
-    try {
-      $stmt = $this->db->prepare($query);
-      $stmt->bindParam(':funcionario_id', $funcionario_id);
-      $stmt->bindParam(':login', $login);
-
-      // Bind da senha hasheada (apenas se ela existir)
-      if ($senha_hash) {
-        $stmt->bindParam(':senha_hash', $senha_hash);
-      }
-
-      return $stmt->execute();
-    } catch (PDOException $e) {
-      // Erro: Login duplicado (UNIQUE na tabela usuarios)
-      if ($e->getCode() === '23000') {
-        $_SESSION['erro'] = "Erro de login: o nome de login **{$login}** já está em uso.";
-      } else {
-        error_log("Erro ao salvar login/senha: " . $e->getMessage());
-        $_SESSION['erro'] = "Erro interno ao salvar o login do usuário.";
-      }
-      return false;
-    }
-  } */
 
   public function criarOuAtualizarUsuario($funcionario_id, $login, $senha)
   {
@@ -350,5 +251,21 @@ class FuncionarioModel
       error_log("Erro ao contar presentes: " . $e->getMessage());
       return 0;
     }
+  }
+
+  /**
+   * Busca um funcionário ativo pelo CPF.
+   * @param string $cpf CPF (somente números).
+   * @return object|bool Objeto do funcionário com ID, ou FALSE.
+   */
+  public function buscarPorCpf($cpf)
+  {
+    $query = "SELECT id, nome FROM {$this->table_funcionarios} WHERE cpf = :cpf LIMIT 1";
+
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':cpf', $cpf);
+    $stmt->execute();
+
+    return $stmt->fetch();
   }
 }

@@ -94,6 +94,16 @@ function is_active($route, $current_route)
                     </a>
                 <?php endif; ?>
 
+                <?php $route = '/admin/acoes'; 
+                $is_active = is_active($route, $current_route);
+                // Usamos o AcaoController@index para a checagem de permissão
+                if (Acl::check('AcaoController@index', $tipo_usuario)): ?>
+                    <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-hammer"></i></div>
+                        <span>Gerenciar Ações</span>
+                    </a>
+                <?php endif; ?>
+
                 <?php $route = '/admin/valores-pagamento';
                 $is_active = is_active($route, $current_route); ?>
                 <?php if (Acl::check('ValoresPagamentoController@index', $tipo_usuario)): ?>
@@ -115,7 +125,7 @@ function is_active($route, $current_route)
                 <hr class="sidebar-divider">
 
                 <div class="sb-sidenav-menu-heading">RELATÓRIOS</div>
-               
+
                 <?php $route = '/relatorios';
                 $is_active = is_active($route, $current_route); ?>
                 <?php if (Acl::check('RelatorioController@pagamentos', $tipo_usuario)): ?>
@@ -151,7 +161,7 @@ function is_active($route, $current_route)
                         Serviços / Diárias (Apoio)
                     </a>
                 <?php endif; ?>
-                
+
             </div>
         </div>
         <div class="sb-sidenav-footer">

@@ -40,12 +40,22 @@ $tipos_validos = ['admin', 'apontador', 'producao', 'financeiro'];
                             <legend class="float-none w-auto px-3 h6 text-primary">Dados Pessoais</legend>
 
                             <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="nome" name="nome" required value="<?php echo htmlspecialchars($nome); ?>" placeholder="Nome Completo">
-                                <label for="nome">Nome Completo</label>
+                                <input type="text"
+                                    class="form-control"
+                                    id="nome"
+                                    name="nome"
+                                    required
+                                    value="<?php echo htmlspecialchars($nome); ?>"
+                                    placeholder="Nome Completo"
+                                    style="text-transform: uppercase;"> <label for="nome">Nome Completo</label>
                             </div>
 
                             <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="cpf" name="cpf" required value="<?php echo htmlspecialchars($cpf); ?>" placeholder="CPF" maxlength="14">
+                                <input type="text"
+                                    class="form-control"
+                                    id="cpf" name="cpf" required
+                                    value="<?php echo htmlspecialchars($cpf); ?>"
+                                    placeholder="CPF" maxlength="14">
                                 <label for="cpf">CPF</label>
                             </div>
 
@@ -61,7 +71,12 @@ $tipos_validos = ['admin', 'apontador', 'producao', 'financeiro'];
                             </div>
 
                             <div class="mb-3 form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" id="ativo" name="ativo" value="1" <?php echo $ativo ? 'checked' : ''; ?>>
+                                <input class="form-check-input"
+                                    type="checkbox"
+                                    role="switch"
+                                    id="ativo"
+                                    name="ativo"
+                                    value="1" <?php echo $ativo ? 'checked' : ''; ?>>
                                 <label class="form-check-label" for="ativo">Ativo no Sistema</label>
                             </div>
 
@@ -98,3 +113,12 @@ $tipos_validos = ['admin', 'apontador', 'producao', 'financeiro'];
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Biblioteca jquery.mask.min.js já está carregada no template main.php
+        $('#cpf').mask('000.000.000-00', {
+            reverse: true
+        });
+    });
+</script>

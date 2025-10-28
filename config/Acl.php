@@ -28,6 +28,16 @@ class Acl
         'FuncionarioController@salvar' => 'Criar/Editar Funcionário',
         'FuncionarioController@excluir' => 'Excluir Funcionário',
 
+        // MÓDULO DE CADASTRO DE AÇÕES
+        'AcaoController@index' => 'Visualizar Lista de Ações',
+        'AcaoController@cadastro' => 'Visualizar Formulário de Ação',
+        'AcaoController@salvar' => 'Criar/Editar Ação',
+
+        // Rotas de Cadastro de Tipos de Produto
+        'TipoProdutoController@index' => 'Visualizar Tipos de Produto',
+        'TipoProdutoController@cadastro' => 'Visualizar Cadastro Tipo Prod.',
+        'TipoProdutoController@salvar' => 'Salvar Tipo de Produto',
+
         // MÓDULO FINANCEIRO (Relatórios) 
         'RelatorioController@pagamentos' => 'Visualizar Relatório de Pagamentos',
         'RelatorioController@quantidades' => 'Visualizar Relatório de Quantidades',

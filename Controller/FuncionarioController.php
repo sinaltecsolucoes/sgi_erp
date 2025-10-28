@@ -75,6 +75,8 @@ class FuncionarioController extends AppController
         // 1. Coleta e Sanitiza os dados
         $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
         $nome = trim(filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_STRING));
+        $nome = mb_strtoupper($nome, 'UTF-8'); // Aplica a conversão para maiúsculas
+       // $nome = trim(filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_STRING));
         $cpf_mascarado = trim(filter_input(INPUT_POST, 'cpf', FILTER_SANITIZE_STRING)); // Captura o CPF
 
         // Limpeza da Máscara para salvar APENAS números no banco
@@ -100,31 +102,51 @@ class FuncionarioController extends AppController
         ];
 
         // 2. Salva o Funcionário (INSERT/UPDATE)
-        $funcionario_id = $this->funcionarioModel->salvar($dados_funcionario);
+        /*  $funcionario_id = $this->funcionarioModel->salvar($dados_funcionario);
 
-        if ($funcionario_id) {
+        if ($funcionario_id) {*/
+
+        $resultado_salvar = $this->funcionarioModel->salvar($dados_funcionario);
+
+        if ($resultado_salvar === 'CPF_DUPLICADO') {
+            // FLUXO 1: CPF Duplicado (Mensagem de Confirmação)
+            $funcionario_existente = $this->funcionarioModel->buscarPorCpf($cpf);
+
+            if ($funcionario_existente) {
+                $id_existente = $funcionario_existente->id;
+                $nome_existente = $funcionario_existente->nome;
+
+                // Setamos uma sessão especial para a mensagem de confirmação
+                $_SESSION['confirm_action'] = [
+                    'message' => "O CPF **{$cpf_mascarado}** já está cadastrado para o funcionário **{$nome_existente}**. Deseja editar o cadastro existente?",
+                    'confirm_url' => "/sgi_erp/admin/funcionarios/cadastro?id={$id_existente}",
+                ];
+            } else {
+                $_SESSION['erro'] = 'Erro: O CPF já está cadastrado, mas não conseguimos localizar o registro. Verifique o banco de dados.';
+            }
+            header('Location: /sgi_erp/admin/funcionarios');
+            exit();
+        } elseif ($resultado_salvar) {
+            // FLUXO 2: SUCESSO na criação/edição do funcionário
+            $funcionario_id = $resultado_salvar;
             // 3. Salva ou Atualiza o Usuário/Login
-            // NOVA LÓGICA: SÓ CHAMA O SALVAMENTO DE LOGIN SE FORNECIDO
             if (!empty($login) || !empty($senha)) {
                 if ($this->funcionarioModel->criarOuAtualizarUsuario($funcionario_id, $login, $senha)) {
                     $_SESSION['sucesso'] = "Funcionário **{$nome}** e login salvos com sucesso!";
                 } else {
                     // Se falhar (ex: login duplicado), usa a mensagem de erro do Model
-                    $_SESSION['erro'] = $_SESSION['erro'] ?? 'Erro desconhecido ao salvar o login.';
+                    //  $_SESSION['erro'] = $_SESSION['erro'] ?? 'Erro desconhecido ao salvar o login.';
                 }
             } else {
                 // Se NÃO FORNECER login/senha, apenas o funcionário é salvo
                 $_SESSION['sucesso'] = "Funcionário **{$nome}** salvo com sucesso!";
             }
-        } else {
+        } /*else {
             // A mensagem de erro de CPF duplicado/erro interno já é setada dentro do Model
             $_SESSION['erro'] = $_SESSION['erro'] ?? 'Erro interno ao salvar o registro do funcionário.';
-        }
+        }*/
 
         header('Location: /sgi_erp/admin/funcionarios');
         exit();
     }
-
-    // Método de exclusão (Excluir) - (Omissão do código complexo de DELETE CASCADE por simplificidade do MVP)
-    // O ideal seria apenas INATIVAR (ativo=0) e não deletar.
 }

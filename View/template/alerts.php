@@ -33,4 +33,32 @@ if ($erro):
     </script>
 <?php
 endif;
+
+$confirm_action = $_SESSION['confirm_action'] ?? null;
+
+// Limpa a sessão após resgatar os valores
+unset($_SESSION['confirm_action']);
+
+if ($confirm_action):
+?>
+    <script>
+        Swal.fire({
+            icon: 'question',
+            title: 'CPF Duplicado!',
+            html: '<?php echo str_replace("\n", '<br>', htmlspecialchars($confirm_action['message'])); ?>',
+            showCancelButton: true,
+            confirmButtonText: 'Sim, Editar!',
+            cancelButtonText: 'Não, Voltar à Lista',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Redireciona para a URL de edição se o usuário confirmar
+                window.location.href = '<?php echo htmlspecialchars($confirm_action['confirm_url']); ?>';
+            }
+            // Se cancelar, a tela permanece na listagem (que é a rota atual)
+        });
+    </script>
+<?php
+endif;
+
 ?>
