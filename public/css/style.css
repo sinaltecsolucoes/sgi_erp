@@ -181,3 +181,27 @@ body {
         width: 100%;
     }
 }
+
+/* 10. ESTILOS CUSTOMIZADOS PARA PRESENCA (movidos do View/presenca.php) */
+/* Usa light theme do Bootstrap, mas com !important para garantir */
+
+/* Cor de fundo para presente (cinza claro) */
+.list-group-item-light-custom {
+    background-color: #f8f9fa !important;
+    /* Cor de fundo para presente */
+}
+
+/* Cor de fundo para ausente (mantém o padrão transparente/branco) */
+.list-group-item-danger-custom {
+    background-color: transparent !important;
+    /* Mantém transparente para ausente */
+}
+
+/* Garante que o texto em negrito (font-weight-bold) funcione, pois foi removido o `font-weight-bold` inicial do span no PHP */
+.text-success.font-weight-bold {
+    font-weight: 700 !important;
+}
+
+.text-danger {
+    color: var(--danger) !important;
+}

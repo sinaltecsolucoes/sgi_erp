@@ -8,11 +8,16 @@ class Acl
         'AppController@index' => 'Visualizar Dashboard',
         'MeuPainelController@index' => 'Visualizar Painel Pessoal',
 
-        // MÓDULO DE FLUXO DE PRODUÇÃO (Apontador) 
+        // MÓDULO DE FLUXO DE PRODUÇÃO (Apontador, Porteiro) 
         'PresencaController@index' => 'Visualizar Chamada',
         'PresencaController@salvar' => 'Registrar Chamada',
+
         'EquipeController@index' => 'Visualizar Montagem de Equipes',
-        'EquipeController@salvar' => 'Salvar Montagem de Equipes',
+        'EquipeController@salvar' => 'Salvar Edição de Equipes',
+        'EquipeController@salvarNova' => 'Criar Nova Equipe',
+        'EquipeController@mover' => 'Mover Membro entre Equipes',
+        'EquipeController@excluir' => 'Excluir Equipe',
+
         'ProducaoController@index' => 'Visualizar Lançamento de Produção',
         'ProducaoController@salvar' => 'Salvar Lançamento de Produção',
 

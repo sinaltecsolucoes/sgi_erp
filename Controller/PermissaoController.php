@@ -26,7 +26,7 @@ class PermissaoController extends AppController
      */
     public function index()
     {
-        $perfis_disponiveis = ['apontador', 'financeiro', 'producao'];
+        $perfis_disponiveis = ['apontador', 'financeiro', 'porteiro', 'producao'];
         $catalogo_acoes = Acl::getCatalogo(); // Obtém a lista completa de ações
 
         $permissoes_atuais = [];
@@ -61,7 +61,7 @@ class PermissaoController extends AppController
         }
 
         $permissoes_enviadas = $_POST['permissoes']; // Formato: ['perfil' => ['acao1', 'acao2', ...]]
-        $perfis_a_gerenciar = ['apontador', 'financeiro', 'producao']; // Perfis que podemos alterar
+        $perfis_a_gerenciar = ['apontador', 'financeiro', 'porteiro', 'producao']; // Perfis que podemos alterar
         $catalogo_acoes = Acl::getCatalogo();
 
         $erros = 0;

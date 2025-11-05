@@ -1,4 +1,5 @@
 <?php
+// View/presenca.php
 // Certifica-se de que a variável $dados foi passada pelo Controller
 $funcionarios = $dados['funcionarios'] ?? [];
 $data_hoje = $dados['data'] ?? date('Y-m-d');
@@ -33,24 +34,26 @@ $base_url = '/sgi_erp';
                                     <?php foreach ($funcionarios as $funcionario): ?>
                                         <?php
                                         $id = $funcionario->id;
-                                        $is_presente = (int)$funcionario->esta_presente === 1;
+                                        // Remoção das classes PHP de cor de texto e fundo.
+                                        // O JS/jQuery irá adicioná-las na carga do DOM e no evento 'change'.
                                         ?>
 
-                                        <label class="list-group-item d-flex justify-content-between align-items-center">
+                                        <label class="list-group-item d-flex justify-content-between align-items-center" id="row-<?php echo $id; ?>">
 
-                                            <span class="<?php echo $is_presente ? 'text-success font-weight-bold' : 'text-danger'; ?>">
+                                            <span id="text-<?php echo $id; ?>">
                                                 <i class="fas fa-user me-2"></i>
                                                 <?php echo htmlspecialchars($funcionario->nome); ?>
                                             </span>
 
                                             <div class="form-check form-switch">
-                                                <input class="form-check-input"
+                                                <input class="form-check-input presenca-check"
                                                     type="checkbox"
                                                     role="switch"
                                                     name="presente[]"
                                                     value="<?php echo $id; ?>"
+                                                    data-id="<?php echo $id; ?>"
                                                     id="check-<?php echo $id; ?>"
-                                                    <?php echo $is_presente ? 'checked' : ''; ?>>
+                                                    <?php echo (int)$funcionario->esta_presente === 1 ? 'checked' : ''; ?>>
                                             </div>
                                         </label>
                                     <?php endforeach; ?>

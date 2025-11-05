@@ -12,7 +12,7 @@ $tipo = $funcionario->tipo ?? 'producao';
 $login = $funcionario->login ?? '';
 $ativo = $funcionario->ativo ?? true;
 
-$tipos_validos = ['admin', 'apontador', 'producao', 'financeiro'];
+$tipos_validos = ['admin', 'apontador', 'porteiro', 'producao', 'financeiro'];
 ?>
 
 <div class="pt-4">

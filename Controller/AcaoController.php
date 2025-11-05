@@ -8,53 +8,40 @@ class AcaoController extends AppController
     public function __construct()
     {
         parent::__construct();
-        // Assume que a classe AcaoModel está disponível via Autoload
         $this->acaoModel = new AcaoModel();
     }
 
     /**
-     * Exibe a lista de todas as ações (CRUD - Leitura/Read).
+     * Lista todas as ações
      * Rota: /admin/acoes
-     * Permitido: Admin
      */
     public function index()
     {
-        // NOVO: Chamamos o Model para buscar os dados
         $acoes = $this->acaoModel->buscarTodas();
 
         $dados = [
-            'acoes' => $acoes
+            'acoes' => $acoes,
+            'pode_editar' => true  // <-- ADICIONE AQUI
         ];
 
         $title = "Gestão de Ações de Produção";
-
         $content_view = ROOT_PATH . 'View' . DS . 'acao_lista.php';
 
         require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
 
     /**
-     * Exibe o formulário de cadastro ou edição de ação.
-     * Rota: /admin/acoes/cadastro?id={id}
-     * Permitido: Admin
+     * Formulário de cadastro/edição
+     * Rota: /admin/acoes/cadastro?id=X
      */
     public function cadastro()
     {
-        // O AcaoModel precisa de um método 'buscarPorId' para este passo.
-        // Vamos assumir que você irá adicioná-lo ao AcaoModel.php.
-
         $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
         $acao = null;
 
         if ($id) {
-            // Assumimos que o método buscarPorId foi implementado no AcaoModel
-            // $acao = $this->acaoModel->buscarPorId($id); 
-
-            // Simulação para o MVP (se o buscarPorId ainda não existe)
-            // Se buscarPorId for implementado, retire a simulação abaixo.
-            if ($id == 1) $acao = (object)['id' => 1, 'nome' => 'Descascar', 'ativo' => true];
-
-            if (!$acao && $id != 1) { // Lógica real de não encontrado
+            $acao = $this->acaoModel->buscarPorId($id);
+            if (!$acao) {
                 $_SESSION['erro'] = 'Ação não encontrada.';
                 header('Location: /sgi_erp/admin/acoes');
                 exit();
@@ -62,19 +49,18 @@ class AcaoController extends AppController
         }
 
         $dados = [
-            'acao' => $acao
+            'acao' => $acao,
+            'pode_editar' => true  // <-- ADICIONE AQUI
         ];
 
-        $title = ($id ? "Editar" : "Cadastrar") . " Ação";
+        $title = $id ? "Editar Ação" : "Nova Ação";
         $content_view = ROOT_PATH . 'View' . DS . 'acao_cadastro.php';
 
         require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
-
     /**
-     * Processa a criação ou edição de uma ação (CRUD - Create/Update).
-     * Rota: /admin/acoes/salvar (via POST)
-     * Permitido: Admin
+     * Salva (criar ou editar)
+     * Rota: /admin/acoes/salvar (POST)
      */
     public function salvar()
     {
@@ -83,35 +69,46 @@ class AcaoController extends AppController
             exit();
         }
 
-        // 1. Coleta e Sanitiza os dados
         $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
-        $nome = trim(filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_STRING));
-        $ativo = filter_input(INPUT_POST, 'ativo', FILTER_SANITIZE_NUMBER_INT) === '1';
+        $nome = trim($_POST['nome'] ?? '');
+        $ativo = isset($_POST['ativo']) ? 1 : 0;
 
         if (empty($nome)) {
-            $_SESSION['erro'] = 'O nome da Ação é obrigatório.';
-            header('Location: /sgi_erp/admin/acoes/cadastro' . ($id ? '?id=' . $id : ''));
+            $_SESSION['erro'] = 'O nome da ação é obrigatório.';
+            $redirect = '/sgi_erp/admin/acoes/cadastro';
+            if ($id) $redirect .= "?id=$id";
+            header("Location: $redirect");
             exit();
         }
 
         $dados_acao = [
-            'id' => $id,
+            'id' => $id ?: null,
             'nome' => $nome,
             'ativo' => $ativo
         ];
 
-        // 2. Salva a Ação (Assumindo que você adicionará o método 'salvar' ao AcaoModel)
-        // if ($this->acaoModel->salvar($dados_acao)) { 
-
-        // Simulação de Salvamento
-        if (true) { // Substituir 'true' pela chamada real ao Model
+        if ($this->acaoModel->salvar($dados_acao)) {
             $_SESSION['sucesso'] = "Ação **{$nome}** salva com sucesso!";
         } else {
-            $_SESSION['erro'] = $_SESSION['erro'] ?? 'Erro interno ao salvar o registro da ação.';
+            $_SESSION['erro'] = $_SESSION['erro'] ?? 'Erro ao salvar a ação.';
         }
 
         header('Location: /sgi_erp/admin/acoes');
         exit();
     }
+
+    /**
+     * Exclusão (opcional - adicione botão na view se quiser)
+     */
+    public function excluir()
+    {
+        $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+        if (!$id || !$this->acaoModel->excluir($id)) {
+            $_SESSION['erro'] = 'Erro ao excluir a ação.';
+        } else {
+            $_SESSION['sucesso'] = 'Ação excluída com sucesso.';
+        }
+        header('Location: /sgi_erp/admin/acoes');
+        exit();
+    }
 }
-    

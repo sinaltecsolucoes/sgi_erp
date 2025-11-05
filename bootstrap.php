@@ -58,7 +58,9 @@ $routes = [
     // Rotas de Equipes
     '/equipes'  => 'EquipeController@index',
     '/equipes/salvar' => 'EquipeController@salvar',
-
+    '/equipes/salvar-nova' => 'EquipeController@salvarNova',
+    '/equipes/mover' => 'EquipeController@mover',
+    '/equipes/excluir' => 'EquipeController@excluir',
 
     // Rotas de Produção
     '/producao'  => 'ProducaoController@index',
