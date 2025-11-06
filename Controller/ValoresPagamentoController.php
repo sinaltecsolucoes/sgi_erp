@@ -13,49 +13,99 @@ class ValoresPagamentoController extends AppController
         $this->valPagModel = new ValoresPagamentoModel();
         $this->acaoModel = new AcaoModel();
         $this->tipoProdutoModel = new TipoProdutoModel();
-
-        // A ACL no index.php deve proteger esta rota para 'admin'.
     }
 
     /**
-     * Exibe a lista de valores de pagamento cadastrados.
+     * Lista todos os valores
      * Rota: /admin/valores-pagamento
      */
     public function index()
     {
         $valores = $this->valPagModel->buscarTodos();
+        // $tipo_usuario = $_SESSION['funcionario_tipo'] ?? 'convidado';
 
-        $dados = ['valores' => $valores];
-        $title = "Cadastro de Valores de Pagamento";
+        $dados = [
+            'valores' => $valores,
+            //'pode_editar' => Acl::check('ValoresPagamentoController@cadastro', $tipo_usuario)
+            'pode_editar' => true
+        ];
+
+        $title = "Gestão de Valores de Pagamento";
         $content_view = ROOT_PATH . 'View' . DS . 'valores_pagamento_lista.php';
 
         require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
 
     /**
-     * Exibe o formulário para criar um novo valor.
-     * Rota: /admin/valores-pagamento/cadastro
+     * Formulário de cadastro/edição
+     * Rota: /admin/valores-pagamento/cadastro?id=X
      */
-    public function cadastro()
+    /* public function cadastro()
     {
-        // Carrega as opções para os dropdowns
+        $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+        $valor_existente = null;
+        $tipo_usuario = $_SESSION['funcionario_tipo'] ?? 'convidado';
+
+        if ($id) {
+            $valor_existente = $this->valPagModel->buscarPorId($id);
+            if (!$valor_existente) {
+                $_SESSION['erro'] = 'Valor não encontrado.';
+                header('Location: /sgi_erp/admin/valores-pagamento');
+                exit();
+            }
+        }
+
         $acoes = $this->acaoModel->buscarTodas();
         $tipos_produto = $this->tipoProdutoModel->buscarTodos();
 
         $dados = [
             'acoes' => $acoes,
-            'tipos_produto' => $tipos_produto
+            'tipos_produto' => $tipos_produto,
+            'valor_existente' => $valor_existente,
+            'pode_editar' => Acl::check('ValoresPagamentoController@cadastro', $tipo_usuario)
         ];
 
-        $title = "Novo Valor de Pagamento";
+        $title = $id ? "Editar Valor de Pagamento" : "Novo Valor de Pagamento";
+        $content_view = ROOT_PATH . 'View' . DS . 'valores_pagamento_cadastro.php';
+
+        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
+    } */
+
+    public function cadastro()
+    {
+        $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+        $valor_existente = null;
+        //$tipo_usuario = $_SESSION['funcionario_tipo'] ?? 'convidado';
+
+        if ($id) {
+            $valor_existente = $this->valPagModel->buscarPorId($id);
+            if (!$valor_existente) {
+                $_SESSION['erro'] = 'Valor não encontrado.';
+                header('Location: /sgi_erp/admin/valores-pagamento');
+                exit();
+            }
+        }
+
+        $acoes = $this->acaoModel->buscarTodas();
+        $tipos_produto = $this->tipoProdutoModel->buscarTodos();
+
+        $dados = [
+            'acoes' => $acoes,
+            'tipos_produto' => $tipos_produto,
+            'valor_existente' => $valor_existente,
+            //'pode_editar' => Acl::check('ValoresPagamentoController@cadastro', $tipo_usuario)
+            'pode_editar' => true
+        ];
+
+        $title = $id ? "Editar Valor de Pagamento" : "Novo Valor de Pagamento";
         $content_view = ROOT_PATH . 'View' . DS . 'valores_pagamento_cadastro.php';
 
         require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
 
     /**
-     * Processa o salvamento do formulário.
-     * Rota: /admin/valores-pagamento/salvar
+     * Salva (criar ou editar)
+     * Rota: /admin/valores-pagamento/salvar (POST)
      */
     public function salvar()
     {
@@ -64,27 +114,56 @@ class ValoresPagamentoController extends AppController
             exit();
         }
 
-        $dados = [
-            'id' => filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT),
-            'tipo_produto_id' => filter_input(INPUT_POST, 'tipo_produto_id', FILTER_VALIDATE_INT),
-            'acao_id' => filter_input(INPUT_POST, 'acao_id', FILTER_VALIDATE_INT),
-            // Valor por quilo é capturado como string e limpo no Model
-            'valor_por_quilo' => filter_input(INPUT_POST, 'valor_por_quilo', FILTER_SANITIZE_STRING)
-        ];
+        $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+        $tipo_produto_id = filter_input(INPUT_POST, 'tipo_produto_id', FILTER_VALIDATE_INT);
+        $acao_id = filter_input(INPUT_POST, 'acao_id', FILTER_VALIDATE_INT);
+        $valor_por_quilo = trim($_POST['valor_por_quilo'] ?? '');
 
-        if (!$dados['tipo_produto_id'] || !$dados['acao_id'] || empty($dados['valor_por_quilo'])) {
+        if (!$tipo_produto_id || !$acao_id || empty($valor_por_quilo)) {
             $_SESSION['erro'] = 'Todos os campos são obrigatórios.';
-            header('Location: /sgi_erp/admin/valores-pagamento/cadastro');
+            $redirect = '/sgi_erp/admin/valores-pagamento/cadastro';
+            if ($id) $redirect .= "?id=$id";
+            header("Location: $redirect");
             exit();
         }
 
-        if ($this->valPagModel->salvar($dados)) {
-            $_SESSION['sucesso'] = 'Valor de pagamento salvo com sucesso!';
-        } else {
-            // A mensagem de erro de duplicidade já é setada no Model
-            $_SESSION['erro'] = $_SESSION['erro'] ?? 'Não foi possível salvar o valor.';
+        // Valida valor positivo
+        $valor_por_quilo = str_replace(',', '.', $valor_por_quilo);
+        if (!is_numeric($valor_por_quilo) || $valor_por_quilo <= 0) {
+            $_SESSION['erro'] = 'O valor deve ser um número positivo.';
+            header("Location: /sgi_erp/admin/valores-pagamento/cadastro?id=$id");
+            exit();
         }
 
+        $dados = [
+            'id' => $id ?: null,
+            'tipo_produto_id' => $tipo_produto_id,
+            'acao_id' => $acao_id,
+            'valor_por_quilo' => $valor_por_quilo
+        ];
+
+        if ($this->valPagModel->salvar($dados)) {
+            $_SESSION['sucesso'] = 'Valor salvo com sucesso!';
+        } else {
+            $_SESSION['erro'] = $_SESSION['erro'] ?? 'Erro ao salvar o valor.';
+        }
+
+        header('Location: /sgi_erp/admin/valores-pagamento');
+        exit();
+    }
+
+    /**
+     * Exclui um valor
+     * Rota: /admin/valores-pagamento/excluir?id=X
+     */
+    public function excluir()
+    {
+        $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+        if (!$id || !$this->valPagModel->excluir($id)) {
+            $_SESSION['erro'] = 'Erro ao excluir o valor.';
+        } else {
+            $_SESSION['sucesso'] = 'Valor excluído com sucesso.';
+        }
         header('Location: /sgi_erp/admin/valores-pagamento');
         exit();
     }

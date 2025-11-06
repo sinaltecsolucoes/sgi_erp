@@ -1,0 +1,222 @@
+C:\xampp\htdocs\sgi_erp>
+│   .htaccess
+│   bootstrap.php
+│   index.php
+│
+├───config
+│       Acl.php
+│       Database.php
+│
+├───Controller
+│       AcaoController copy.php
+│       AcaoController.php
+│       ApiController.php
+│       AppController.php
+│       EquipeController.php
+│       FuncionarioController.php
+│       LoginController.php
+│       PerfilController.php
+│       PermissaoController.php
+│       PresencaController.php
+│       ProducaoController.php
+│       RelatorioController.php
+│       TipoProdutoController.php
+│       ValoresPagamentoController.php
+│
+├───Model
+│       AcaoModel copy.php
+│       AcaoModel.php
+│       EquipeModel.php
+│       FuncionarioModel.php
+│       PermissaoModel.php
+│       PresencaModel.php
+│       ProducaoModel.php
+│       RelatorioModel copy.php
+│       RelatorioModel.php
+│       TipoProdutoModel.php
+│       UsuarioModel.php
+│       ValoresPagamentoModel.php
+│
+├───public
+│   ├───css
+│   │       login.css
+│   │       style.css
+│   │
+│   ├───img
+│   ├───js
+│   │       acao-interatividade.js
+│   │       custom-datatables.js
+│   │       equipes-interatividade.js
+│   │       global-scripts.js
+│   │       presenca-interatividade.js
+│   │       relatorios-interatividade.js
+│   │       valores-interatividade.js
+│   │
+│   └───theme
+│       └───sb-admin-themewagon
+│           │   .editorconfig
+│           │   .gitignore
+│           │   LICENSE
+│           │   package-lock.json
+│           │   package.json
+│           │   README.md
+│           │
+│           ├───dist
+│           │   │   401.html
+│           │   │   404.html
+│           │   │   500.html
+│           │   │   charts.html
+│           │   │   index.html
+│           │   │   layout-sidenav-light.html
+│           │   │   layout-static.html
+│           │   │   login.html
+│           │   │   password.html
+│           │   │   register.html
+│           │   │   tables.html
+│           │   │
+│           │   ├───assets
+│           │   │   ├───demo
+│           │   │   │       chart-area-demo.js
+│           │   │   │       chart-bar-demo.js
+│           │   │   │       chart-pie-demo.js
+│           │   │   │       datatables-demo.js
+│           │   │   │
+│           │   │   └───img
+│           │   │           error-404-monochrome.svg
+│           │   │
+│           │   ├───css
+│           │   │       styles.css
+│           │   │
+│           │   └───js
+│           │           datatables-simple-demo.js
+│           │           scripts.js
+│           │
+│           ├───scripts
+│           │       build-assets.js
+│           │       build-pug.js
+│           │       build-scripts.js
+│           │       build-scss.js
+│           │       clean.js
+│           │       render-assets.js
+│           │       render-pug.js
+│           │       render-scripts.js
+│           │       render-scss.js
+│           │       sb-watch.js
+│           │       start-debug.js
+│           │       start.js
+│           │
+│           └───src
+│               ├───assets
+│               │   ├───demo
+│               │   │       chart-area-demo.js
+│               │   │       chart-bar-demo.js
+│               │   │       chart-pie-demo.js
+│               │   │       datatables-demo.js
+│               │   │
+│               │   └───img
+│               │           error-404-monochrome.svg
+│               │
+│               ├───js
+│               │       datatables-simple-demo.js
+│               │       scripts.js
+│               │
+│               ├───pug
+│               │   ├───layouts
+│               │   │   │   authentication.pug
+│               │   │   │   dashboard.pug
+│               │   │   │   error.pug
+│               │   │   │
+│               │   │   └───includes
+│               │   │       │   footer.pug
+│               │   │       │   scripts.pug
+│               │   │       │
+│               │   │       ├───head
+│               │   │       │       css.pug
+│               │   │       │       icons.pug
+│               │   │       │       meta.pug
+│               │   │       │       title.pug
+│               │   │       │
+│               │   │       └───navigation
+│               │   │               sidenav.pug
+│               │   │               topnav.pug
+│               │   │
+│               │   └───pages
+│               │       │   401.pug
+│               │       │   404.pug
+│               │       │   500.pug
+│               │       │   charts.pug
+│               │       │   index.pug
+│               │       │   layout-sidenav-light.pug
+│               │       │   layout-static.pug
+│               │       │   login.pug
+│               │       │   password.pug
+│               │       │   register.pug
+│               │       │   tables.pug
+│               │       │
+│               │       └───includes
+│               │               datatable.pug
+│               │               page-header.pug
+│               │
+│               └───scss
+│                   │   styles.scss
+│                   │   _global.scss
+│                   │   _variables.scss
+│                   │
+│                   ├───layout
+│                   │       _authentication.scss
+│                   │       _dashboard-default.scss
+│                   │       _dashboard-fixed.scss
+│                   │       _error.scss
+│                   │
+│                   ├───navigation
+│                   │   │   _nav.scss
+│                   │   │   _topnav.scss
+│                   │   │
+│                   │   └───sidenav
+│                   │           _sidenav-dark.scss
+│                   │           _sidenav-light.scss
+│                   │           _sidenav.scss
+│                   │
+│                   ├───plugins
+│                   │       simple-datatables.scss
+│                   │
+│                   └───variables
+│                           _navigation.scss
+│                           _spacing.scss
+│
+└───View
+    │   acao_cadastro.php
+    │   acao_lista copy.php
+    │   acao_lista.php
+    │   dashboard.php
+    │   equipes.php
+    │   equipes_abas copy.php
+    │   equipes_abas.php
+    │   equipes_modal_edicao.php
+    │   equipes_modal_mover.php
+    │   funcionario_cadastro.php
+    │   funcionario_lista.php
+    │   login.php
+    │   perfil.php
+    │   permissao_gestao.php
+    │   presenca.php
+    │   producao.php
+    │   producao_massa.php
+    │   relatorio_dia_a_dia.php
+    │   relatorio_geral.php
+    │   relatorio_imprimir.php
+    │   relatorio_pagamento.php
+    │   relatorio_produtividade.php
+    │   relatorio_quantidades.php
+    │   relatorio_servicos.php
+    │   tipo_produto_cadastro.php
+    │   tipo_produto_lista.php
+    │   valores_pagamento_cadastro.php
+    │   valores_pagamento_lista.php
+    │
+    └───template
+            alerts.php
+            logout_modal.php
+            main.php
+            sidebar.php
+            topbar.php

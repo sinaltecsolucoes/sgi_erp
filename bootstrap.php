@@ -90,6 +90,7 @@ $routes = [
     '/admin/valores-pagamento' => 'ValoresPagamentoController@index', // Listagem
     '/admin/valores-pagamento/cadastro' => 'ValoresPagamentoController@cadastro', // Formulário (GET)
     '/admin/valores-pagamento/salvar' => 'ValoresPagamentoController@salvar', // Salvar (POST)
+    '/admin/valores-pagamento/excluir'  => 'ValoresPagamentoController@excluir',
 
     // MÓDULO DE CADASTRO DE TIPOS DE PRODUTO
     '/admin/tipos-produto' => 'TipoProdutoController@index', // Listagem
@@ -107,4 +108,7 @@ $routes = [
     '/relatorios/servicos' => 'RelatorioController@servicos', // Serviços/Diárias
     '/relatorios/produtividade' => 'RelatorioController@produtividade', // Produtividade/Hora
     '/relatorios/imprimir' => 'RelatorioController@imprimir', // Layout PDF
+    '/relatorios/atualizar-producao' => 'RelatorioController@atualizarProducao',
+    '/relatorios/excluir-producao'   => 'RelatorioController@excluirProducao',
+
 ];

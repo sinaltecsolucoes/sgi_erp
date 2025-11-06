@@ -1,82 +1,175 @@
-<?php
-// Dados necessários da array $dados
-$relatorio = $dados['relatorio'] ?? [];
-$data_inicio = $dados['data_inicio'] ?? date('Y-m-d');
-$data_fim = $dados['data_fim'] ?? date('Y-m-t');
-$erro = $dados['erro'] ?? '';
-$titulo_relatorio = $dados['titulo_relatorio'] ?? 'Quantidades Produzidas';
-$coluna_principal = $dados['coluna_principal'] ?? 'Quant. (Kg)';
+<!-- View/relatorio_quantidades.php -->
+<div class="container-fluid px-4">
+    <h1 class="mt-4"><?= htmlspecialchars($title) ?></h1>
 
-// Funções Auxiliares de Formatação (Definidas no Controller para escopo da View)
-function formatarNumero($valor)
-{
-    return number_format($valor, 2, ',', '.');
-}
-?>
-
-<div class="pt-4">
-    <h1 class="mt-4"><?php echo htmlspecialchars($titulo_relatorio); ?></h1>
+    <!-- FILTRO -->
     <div class="card shadow mb-4">
         <div class="card-body">
+            <form method="GET" action="/sgi_erp/relatorios/quantidades">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label>Data Início</label>
+                        <input type="date" name="ini" class="form-control" value="<?= $dados['data_inicio'] ?>" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label>Data Fim</label>
+                        <input type="date" name="fim" class="form-control" value="<?= $dados['data_fim'] ?>" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label>&nbsp;</label><br>
+                        <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
-    <?php if ($erro): ?>
-        <div class="alert alert-danger"><?php echo htmlspecialchars($erro); ?></div>
-    <?php elseif (!empty($relatorio)): ?>
-
+    <?php if (empty($dados['matriz'])): ?>
+        <div class="alert alert-info">Nenhum lançamento no período.</div>
+    <?php else: ?>
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Detalhes de Quantidades</h6>
-                <button class="btn btn-secondary btn-sm btn-print" onclick="window.print();">
-                    <i class="fas fa-print"></i> Imprimir Relatório
-                </button>
+                <h6 class="m-0 font-weight-bold text-primary">Quantidades Produzidas (Kg)</h6>
+                <div>
+                    <button id="btn-pdf" class="btn btn-danger btn-sm me-2">PDF</button>
+                    <button id="btn-excel" class="btn btn-success btn-sm">Excel</button>
+                </div>
             </div>
-
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped" width="100%" cellspacing="0">
-                        <thead>
-                            <tr class="bg-light">
-                                <th style="width: 40%;">NOMES</th>
-                                <th class="text-end"><?php echo date('d/m/Y', strtotime($data_inicio)); ?> <?php echo $coluna_principal; ?></th>
-                                <th class="text-end">Total <?php echo $coluna_principal; ?></th>
+                    <table class="table table-bordered" id="tabelaPrincipal">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>FUNCIONÁRIO</th>
+                                <?php foreach ($dados['datas'] as $d): ?>
+                                    <th class="text-center"><?= date('d/m', strtotime($d)) ?></th>
+                                <?php endforeach; ?>
+                                <th class="text-end">TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php
-                            $total_geral_kg = 0;
-                            foreach ($relatorio as $funcionario_id => $func):
-                                $total_func_kg = array_sum(array_column($func['detalhes'], 'total_kg'));
-                                $total_geral_kg += $total_func_kg;
-                            ?>
-                                <tr class="table-secondary font-weight-bold">
-                                    <td class="text-uppercase"><?php echo htmlspecialchars($func['nome']); ?></td>
-                                    <td class="text-end"><?php echo formatarNumero($total_func_kg); ?></td>
-                                    <td class="text-end"><?php echo formatarNumero($total_func_kg); ?></td>
+                            <?php foreach ($dados['matriz'] as $nome => $linha): ?>
+                                <tr class="funcionario-linha" style="cursor: pointer; background: #f8f9fa;">
+                                    <td>
+                                        <i class="fas fa-plus-circle text-primary me-2 icon-expand"></i>
+                                        <strong><?= htmlspecialchars($nome) ?></strong>
+                                    </td>
+                                    <?php foreach ($dados['datas'] as $d): ?>
+                                        <?php $kg = $linha[$d] ?? 0; ?>
+                                        <td class="text-end <?= $kg > 0 ? 'text-success fw-bold' : '' ?>" data-data="<?= $d ?>">
+                                            <?= $kg > 0 ? number_format($kg, 3, ',', '.') : '' ?>
+                                        </td>
+                                    <?php endforeach; ?>
+                                    <td class="text-end fw-bold table-success total-funcionario">
+                                        <?= number_format($linha['total'], 3, ',', '.') ?>
+                                    </td>
                                 </tr>
 
-                                <?php foreach ($func['detalhes'] as $detalhe): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars("{$detalhe['acao_nome']} {$detalhe['produto_nome']} - lote {$detalhe['lote']}"); ?></td>
-                                        <td class="text-end"><?php echo formatarNumero($detalhe['total_kg']); ?></td>
-                                        <td class="text-end"><?php echo formatarNumero($detalhe['total_kg']); ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endforeach; ?>
+                                <!-- LINHA EXPANDIDA COM EDIÇÃO POR PRODUTO -->
+                                <tr class="detalhes-linha" style="display: none;">
+                                    <td colspan="<?= count($dados['datas']) + 2 ?>">
+                                        <div class="p-4 bg-light rounded">
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <strong class="text-primary h5 mb-0">
+                                                    Lançamentos de <?= htmlspecialchars($nome) ?>
+                                                </strong>
+                                                <div>
+                                                    <button class="btn btn-warning btn-sm btn-editar-produto">
+                                                        Editar
+                                                    </button>
+                                                    <button class="btn btn-danger btn-sm btn-excluir-produto" style="display:none;">
+                                                        Excluir
+                                                    </button>
+                                                    <button class="btn btn-success btn-sm btn-salvar-produto" style="display:none;">
+                                                        Salvar
+                                                    </button>
+                                                    <button class="btn btn-secondary btn-sm btn-cancelar-produto" style="display:none;">
+                                                        Cancelar
+                                                    </button>
+                                                </div>
+                                            </div>
 
-                            <tr class="table-dark font-weight-bold">
-                                <td>TOTAL GERAL</td>
-                                <td class="text-end"><?php echo formatarNumero($total_geral_kg); ?></td>
-                                <td class="text-end"><?php echo formatarNumero($total_geral_kg); ?></td>
-                            </tr>
+                                            <table class="table table-sm table-bordered table-hover">
+                                                <thead class="table-secondary">
+                                                    <tr>
+                                                        <th>Produto</th>
+                                                        <?php foreach ($dados['datas'] as $d): ?>
+                                                            <th class="text-center"><?= date('d/m', strtotime($d)) ?></th>
+                                                        <?php endforeach; ?>
+                                                        <th>Ação</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="corpo-edicao">
+                                                    <?php
+                                                    $produtos = [];
+                                                    foreach ($dados['detalhes'][$nome] ?? [] as $data => $items) {
+                                                        foreach ($items as $prod => $qtd) {
+                                                            if (!isset($produtos[$prod])) {
+                                                                $produtos[$prod] = [];
+                                                            }
+                                                            $produtos[$prod][$data] = [
+                                                                'kg' => $qtd,
+                                                                'id' => $dados['ids'][$nome][$data][$prod] ?? 0
+                                                            ];
+                                                        }
+                                                    }
+                                                    foreach ($produtos as $prod => $dias): ?>
+                                                        <tr data-produto="<?= htmlspecialchars($prod) ?>">
+                                                            <td><strong><?= htmlspecialchars($prod) ?></strong></td>
+                                                            <?php foreach ($dados['datas'] as $d): ?>
+                                                                <?php
+                                                                $item = $dias[$d] ?? ['kg' => 0, 'id' => 0];
+                                                                $funcionarioId = $dados['funcionario_ids'][$nome] ?? 0;
+                                                                $tipoProdutoId = $dados['tipo_produto_ids'][$prod] ?? 0;
+                                                                ?>
+                                                                <td class="text-center celula-valor"
+                                                                    data-id="<?= $item['id'] ?>"
+                                                                    data-data="<?= $d ?>"
+                                                                    data-funcionario-id="<?= $funcionarioId ?>"
+                                                                    data-tipo-produto-id="<?= $tipoProdutoId ?>">
+                                                                    <span class="valor-exibicao">
+                                                                        <?= $item['kg'] > 0 ? number_format($item['kg'], 3, ',', '.') : '-' ?>
+                                                                    </span>
+                                                                    <input type="text" class="form-control form-control-sm input-edicao"
+                                                                        value="<?= $item['kg'] > 0 ? number_format($item['kg'], 3, ',', '.') : '' ?>"
+                                                                        placeholder="0,000"
+                                                                        style="display:none; width:90px;">
+                                                                </td>
+                                                            <?php endforeach; ?>
+                                                            <td>
+                                                                <button class="btn btn-danger btn-sm btn-excluir-linha" title="Excluir este produto">
+                                                                    Excluir
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
                         </tbody>
+                        <tfoot class="table-dark">
+                            <tr>
+                                <th>TOTAL GERAL</th>
+                                <?php foreach ($dados['datas'] as $d): ?>
+                                    <th class="text-end total-dia">
+                                        <?= number_format($dados['total_por_dia'][$d], 3, ',', '.') ?>
+                                    </th>
+                                <?php endforeach; ?>
+                                <th class="text-end" id="total-geral">
+                                    <?= number_format($dados['total_geral'], 3, ',', '.') ?>
+                                </th>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
         </div>
-
-    <?php else: ?>
-        <div class="alert alert-info">Nenhuma produção rastreável encontrada para este período.</div>
     <?php endif; ?>
 </div>
+
+<script>
+    var relatorioDatas = <?= json_encode($dados['datas']) ?>;
+</script>

@@ -70,9 +70,25 @@ $theme_prefix = '/sgi_erp/public/theme/sb-admin-themewagon/dist';
     <script src="/sgi_erp/public/js/global-scripts.js"></script>
     <script src="/sgi_erp/public/js/presenca-interatividade.js"></script>
     <script src="/sgi_erp/public/js/equipes-interatividade.js"></script>
-    <?php if ($dados['pode_editar'] ?? false): ?>
-        <script src="/sgi_erp/public/js/acao-interatividade.js"></script>
+
+    <<?php
+        // Carrega scripts específicos por página
+        $pode_editar = $dados['pode_editar'] ?? false;
+        $pagina_atual = $_SERVER['REQUEST_URI'] ?? '';
+        $is_relatorio = strpos($pagina_atual, '/relatorios/') !== false;
+        $is_acoes = strpos($pagina_atual, '/admin/acoes') !== false;
+        ?>
+
+        <?php if ($pode_editar || $is_acoes): ?>
+        <script src="/sgi_erp/public/js/acao-interatividade.js">
+        </script>
+        <script src="/sgi_erp/public/js/valores-interatividade.js"></script>
     <?php endif; ?>
+
+    <?php if ($is_relatorio): ?>
+        <script src="/sgi_erp/public/js/relatorios-interatividade.js"></script>
+    <?php endif; ?>
+
     <?php require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'alerts.php'; ?>
     <?php require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'logout_modal.php'; ?>
 </body>

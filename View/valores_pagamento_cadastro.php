@@ -1,11 +1,11 @@
 <?php
+// View/valores_pagamento_cadastro.php
 $acoes = $dados['acoes'] ?? [];
 $tipos_produto = $dados['tipos_produto'] ?? [];
-$valor_existente = $dados['valor_existente'] ?? null; // Para futura edição
+$valor_existente = $dados['valor_existente'] ?? null;
 $base_url = '/sgi_erp';
 $is_editing = $valor_existente !== null;
 
-// Valores padrão
 $id = $valor_existente->id ?? '';
 $valor = $valor_existente->valor_por_quilo ?? '';
 $acao_id = $valor_existente->acao_id ?? '';
@@ -13,7 +13,7 @@ $produto_id = $valor_existente->tipo_produto_id ?? '';
 ?>
 
 <div class="pt-4">
-    <h1 class="mt-4"><?php echo $is_editing ? "Editar Valor" : "Novo Valor de Pagamento"; ?></h1>
+    <h1 class="mt-4"><?php echo $is_editing ? "Editar Valor de Pagamento" : "Novo Valor de Pagamento"; ?></h1>
     <ol class="breadcrumb mb-4">
         <li class="breadcrumb-item"><a href="<?php echo $base_url; ?>/admin/valores-pagamento">Valores de Pagamento</a></li>
         <li class="breadcrumb-item active"><?php echo $is_editing ? "Edição" : "Cadastro"; ?></li>
@@ -22,14 +22,11 @@ $produto_id = $valor_existente->tipo_produto_id ?? '';
     <div class="row justify-content-center">
         <div class="col-lg-6">
             <div class="card shadow mb-4">
-
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Definir Valor por Quilo</h6>
                 </div>
-
                 <div class="card-body">
                     <form action="<?php echo $base_url; ?>/admin/valores-pagamento/salvar" method="POST">
-
                         <input type="hidden" name="id" value="<?php echo $id; ?>">
 
                         <div class="mb-3">
@@ -42,6 +39,7 @@ $produto_id = $valor_existente->tipo_produto_id ?? '';
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                            <?php if ($is_editing): ?><input type="hidden" name="tipo_produto_id" value="<?php echo $produto_id; ?>"><?php endif; ?>
                         </div>
 
                         <div class="mb-3">
@@ -55,18 +53,16 @@ $produto_id = $valor_existente->tipo_produto_id ?? '';
                                 <?php endforeach; ?>
                             </select>
                             <?php if ($is_editing): ?><input type="hidden" name="acao_id" value="<?php echo $acao_id; ?>"><?php endif; ?>
-                            <?php if ($is_editing): ?><input type="hidden" name="tipo_produto_id" value="<?php echo $produto_id; ?>"><?php endif; ?>
                         </div>
 
                         <div class="mb-4">
                             <label for="valor_por_quilo" class="form-label font-weight-bold">Valor por Quilo (R$):</label>
-                            <input
-                                type="text"
-                                class="form-control"
+                            <input type="text"
+                                class="form-control money-mask"
                                 id="valor_por_quilo"
                                 name="valor_por_quilo"
-                                required
-                                value="<?php echo htmlspecialchars($valor); ?>"
+                                required 
+                                value="<?php echo $is_editing ? htmlspecialchars(number_format($valor, 2, ',', '.')) : ''; ?>"
                                 placeholder="Ex: 5,50">
                         </div>
 

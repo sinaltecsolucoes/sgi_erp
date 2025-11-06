@@ -21,7 +21,7 @@ class AcaoController extends AppController
 
         $dados = [
             'acoes' => $acoes,
-            'pode_editar' => true  // <-- ADICIONE AQUI
+            'pode_editar' => true  
         ];
 
         $title = "Gestão de Ações de Produção";
@@ -50,7 +50,7 @@ class AcaoController extends AppController
 
         $dados = [
             'acao' => $acao,
-            'pode_editar' => true  // <-- ADICIONE AQUI
+            'pode_editar' => true  
         ];
 
         $title = $id ? "Editar Ação" : "Nova Ação";

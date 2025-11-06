@@ -1,5 +1,7 @@
 <?php
-// Controller/RelatorioController.php
+// app/Controller/RelatorioController.php
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class RelatorioController extends AppController
 {
@@ -9,210 +11,138 @@ class RelatorioController extends AppController
     {
         parent::__construct();
         $this->relatorioModel = new RelatorioModel();
-
-        // A ACL no index.php protege todos os métodos deste Controller
-        // para usuários 'admin' e 'financeiro'.
     }
 
-    /**
-     * Coleta as datas do filtro e chama o Model para processar todos os dados.
-     * @return array [data_inicio, data_fim, relatorio_dados, erro]
-     */
-    private function coletarDadosRelatorio()
+    private function coletarFiltro()
     {
-        // Lógica de coleta de datas
         $hoje = new DateTime();
-        $data_inicio_padrao = $hoje->format('Y-m-01');
-        $data_fim_padrao = $hoje->format('Y-m-t');
-
-        $data_inicio = filter_input(INPUT_GET, 'data_inicio', FILTER_SANITIZE_STRING) ?? $data_inicio_padrao;
-        $data_fim = filter_input(INPUT_GET, 'data_fim', FILTER_SANITIZE_STRING) ?? $data_fim_padrao;
-
-        $erro = '';
-        $relatorio_dados = [];
+        $data_inicio = $_GET['data_inicio'] ?? $hoje->format('Y-m-01');
+        $data_fim = $_GET['data_fim'] ?? $hoje->format('Y-m-t');
+        $visualizacao = $_GET['visualizacao'] ?? 'sintetico';
 
         if (strtotime($data_inicio) > strtotime($data_fim)) {
-            $erro = 'A data inicial não pode ser maior que a data final.';
-        } else {
-            // Chama o método unificado do Model para calcular TUDO
-            $relatorio_dados = $this->relatorioModel->gerarRelatorioCompleto($data_inicio, $data_fim);
-
-            if (empty($relatorio_dados['producao']) && empty($relatorio_dados['servicos_apoio']) && empty($erro)) {
-                $erro = 'Nenhum lançamento encontrado para o período selecionado.';
-            }
+            $erro = "Data inicial não pode ser maior que data final.";
+            return compact('data_inicio', 'data_fim', 'visualizacao', 'erro');
         }
 
-        return [
-            'data_inicio' => $data_inicio,
-            'data_fim' => $data_fim,
-            'relatorio_dados' => $relatorio_dados,
-            'erro' => $erro
-        ];
+        $dados = $this->relatorioModel->gerarRelatorioCompleto($data_inicio, $data_fim);
+
+        return compact('data_inicio', 'data_fim', 'visualizacao', 'dados', 'erro');
     }
 
-    /**
-     * Combina os detalhes de dois relatórios (produção e serviços) somando os totais.
-     * @param array $relatorio1 (Ex: Producao)
-     * @param array $relatorio2 (Ex: Servicos)
-     * @return array Relatório final combinado.
-     */
-    private function combinarRelatorios(array $relatorio1, array $relatorio2)
-    {
-        $final = $relatorio1;
-
-        foreach ($relatorio2 as $func_id => $data) {
-            if (isset($final[$func_id])) {
-                // O funcionário já existe na primeira array, então somamos
-                $final[$func_id]['total_a_pagar'] += $data['total_a_pagar'];
-                // Fazemos o merge dos detalhes (registros)
-                $final[$func_id]['detalhes'] = array_merge($final[$func_id]['detalhes'], $data['detalhes']);
-            } else {
-                // O funcionário só tem serviço, então adicionamos
-                $final[$func_id] = $data;
-            }
-        }
-        return $final;
-    }
-
-    /**
-     * R02: Exibe o relatório de pagamento total (Produtividade + Serviços).
-     * Rota: /relatorios (Rota principal de pagamentos)
-     */
-    public function pagamentos()
-    {
-        $dados_filtro = $this->coletarDadosRelatorio();
-        $relatorio_dados = $dados_filtro['relatorio_dados'];
-        $visualizacao = filter_input(INPUT_GET, 'visualizacao', FILTER_SANITIZE_STRING) ?? 'sintetico';
-
-        $producao = $relatorio_dados['producao'] ?? [];
-        $servicos = $relatorio_dados['servicos_apoio'] ?? [];
-
-        $relatorio_final = $this->combinarRelatorios($producao, $servicos);
-
-        // IDs de funcionário mantidos
-        $relatorio_final_indexado = array_values($relatorio_final);
-
-        $dados = [
-            'relatorio' => $relatorio_final_indexado,
-            'visualizacao' => $visualizacao,
-            'tipo_relatorio' => 'Pagamento por Produtividade',
-            'titulo_relatorio' => 'Relatório de Pagamento por Produtividade',
-            'coluna_principal' => 'Valores (R$)',
-            'coluna_detalhe' => 'Valor',
-            'incluir_horas' => true,
-            'erro' => $dados_filtro['erro'],
-            'data_inicio' => $dados_filtro['data_inicio'],
-            'data_fim' => $dados_filtro['data_fim']
-        ];
-
-        $title = "Pagamento Total";
-        $content_view = ROOT_PATH . 'View' . DS . 'relatorio_geral.php'; // View unificada
-        
-
-        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
-    }
-
-    /**
-     * R01: Exibe o relatório de quantidades produzidas (Apenas Produção Rastreável).
-     * Rota: /relatorios/quantidades
-     */
+    // RELATÓRIO DE QUANTIDADES
     public function quantidades()
     {
-        $dados_filtro = $this->coletarDadosRelatorio();
-        $relatorio_dados = $dados_filtro['relatorio_dados'];
+        $hoje = new DateTime();
+        $data_inicio = $_GET['ini'] ?? $hoje->format('Y-m-01');
+        $data_fim = $_GET['fim'] ?? $hoje->format('Y-m-t');
+
+        if (strtotime($data_inicio) > strtotime($data_fim)) {
+            $_SESSION['erro'] = "Data inicial não pode ser maior que data final.";
+            header('Location: /sgi_erp/relatorios/quantidades');
+            exit;
+        }
+
+        $relatorio = $this->relatorioModel->getQuantidadesDiaADia($data_inicio, $data_fim);
+
+        $title = "RELATÓRIO DE PRODUÇÃO - PERÍODO: " .
+            date('d/m/Y', strtotime($data_inicio)) . " - " .
+            date('d/m/Y', strtotime($data_fim));
+
+        $content_view = ROOT_PATH . 'View/relatorio_quantidades.php';
 
         $dados = [
-            'relatorio' => $relatorio_dados['producao'] ?? [],
-            'tipo_relatorio' => 'Quantidades de Produção',
-            'titulo_relatorio' => 'Relatório de Quantidades Produtividade',
-            'coluna_principal' => 'Quant. (Kg)',
-            'coluna_detalhe' => 'Quant. (kg)',
-            'incluir_horas' => true,
-            'erro' => $dados_filtro['erro'],
-            'data_inicio' => $dados_filtro['data_inicio'],
-            'data_fim' => $dados_filtro['data_fim']
+            'matriz' => $relatorio['matriz'],
+            'detalhes' => $relatorio['detalhes'],
+            'ids' => $relatorio['ids'],           // ESSA LINHA!
+            'datas' => $relatorio['datas'],
+            'total_por_dia' => $relatorio['total_por_dia'],
+            'total_geral' => $relatorio['total_geral'],
+            'data_inicio' => $data_inicio,
+            'data_fim' => $data_fim,
+            'pode_editar' => true
         ];
 
-        $title = "Relatório de Quantidades";
-        $content_view = ROOT_PATH . 'View' . DS . 'relatorio_quantidades.php'; // View específica
+        // === BUSCA IDS PARA EDIÇÃO INLINE ===
+        $funcionario_ids = [];
+        $tipo_produto_ids = $this->relatorioModel->getAllTipoProdutoIds();
 
-        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
+        foreach ($dados['matriz'] as $nome => $linha) {
+            $id = $this->relatorioModel->getFuncionarioIdByNome($nome);
+            $funcionario_ids[$nome] = $id ?: 0;
+        }
+
+        $dados['funcionario_ids'] = $funcionario_ids;
+        $dados['tipo_produto_ids'] = $tipo_produto_ids;
+
+        require_once ROOT_PATH . 'View/template/main.php';
     }
 
-    /**
-     * R03: Exibe o relatório de serviços/diárias (Apenas Serviços de Apoio).
-     * Rota: /relatorios/servicos
-     */
-    public function servicos()
+    public function atualizarProducao()
     {
-        $dados_filtro = $this->coletarDadosRelatorio();
-        $relatorio_dados = $dados_filtro['relatorio_dados'];
+        header('Content-Type: application/json');
+        $json = file_get_contents('php://input');
+        $data = json_decode($json, true);
 
-        $dados = [
-            'relatorio' => $relatorio_dados['servicos_apoio'] ?? [],
-            'tipo_relatorio' => 'Serviços e Diárias (Apoio)',
-            'titulo_relatorio' => 'Relatório de Serviços - Diárias',
-            'coluna_principal' => 'Valores (R$)',
-            'coluna_detalhe' => 'Valor',
-            'incluir_horas' => true,
-            'erro' => $dados_filtro['erro'],
-            'data_inicio' => $dados_filtro['data_inicio'],
-            'data_fim' => $dados_filtro['data_fim']
-        ];
+        if (!$data || !isset($data['updates']) || !is_array($data['updates'])) {
+            // Adicionado is_array para garantir que 'updates' é um array
+            echo json_encode(['success' => false, 'message' => 'Dados inválidos. Nenhum array "updates" recebido.']);
+            exit;
+        }
 
-        $title = "Relatório de Serviços";
-        $content_view = ROOT_PATH . 'View' . DS . 'relatorio_servicos.php'; // View específica
+        $updates = $data['updates'];
 
-        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
+        // REFINAMENTO: Removido o código de busca por nome. 
+        // Agora, validamos se os IDs necessários (enviados pelo JS) estão presentes.
+        foreach ($updates as &$up) {
+            // 1. Renomeia 'quantidade_kg' para 'valor' para o Model
+            $up['valor'] = $up['quantidade_kg'] ?? 0;
+
+            // 2. Garante que os IDs vieram do JS (necessário para INSERT no Model)
+            $func_id = $up['funcionario_id'] ?? null;
+            $tipo_id = $up['tipo_produto_id'] ?? null;
+
+            // 3. Validação: se o lançamento é novo (id=0), os IDs de FKs são obrigatórios
+            if (($up['id'] ?? 0) == 0 && ($func_id === null || $tipo_id === null)) {
+                // Se for um novo lançamento e o JS falhou em enviar os IDs, retorna erro.
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Lançamento novo não possui Funcionário/Produto ID.'
+                ]);
+                exit;
+            }
+            // Se o lançamento é UPDATE (id > 0), o Model só precisa do id e valor. 
+            // O Model já está preparado para lidar com IDs nulos/zero, mas é bom ter o func_id/tipo_id.
+
+            // *Opcional: Se for um UPDATE (id>0), não precisamos dos FKs.
+            // Para simplificar, vamos manter a validação mínima (só para novos).
+        }
+        // *Note: A variável $up é por referência, então o array $updates agora tem a chave 'valor'.
+
+        $result = $this->relatorioModel->atualizarLancamentos($updates);
+
+        echo json_encode([
+            'success' => $result['success'],
+            'message' => $result['msg'],
+            'errors' => $result['erros'],
+            'novos_ids' => $result['novos_ids'] // *** MUDANÇA AQUI: Repassa a lista de novos IDs ***
+        ]);
+        exit;
     }
 
-    /**
-     * R04: Exibe o relatório de Produtividade (Kg/Hora).
-     * Rota: /relatorios/produtividade
-     */
-    public function produtividade()
+    public function excluirProducao()
     {
-        $dados_filtro = $this->coletarDadosRelatorio();
-        $relatorio_dados = $dados_filtro['relatorio_dados'];
+        $input = json_decode(file_get_contents('php://input'), true);
+        $ids = $input['ids'] ?? [];
 
-        $dados = [
-            'relatorio' => $relatorio_dados['analise_produtividade'] ?? [],
-            'tipo_relatorio' => 'Produtividade (Kg/Hora)',
-            'titulo_relatorio' => 'Análise de Produtividade por Hora',
-            // ... (Restante dos dados de filtro e erro)
-        ];
+        if (empty($ids)) {
+            echo json_encode(['success' => false, 'msg' => 'IDs não informados']);
+            exit;
+        }
 
-        $title = "Produtividade/Hora";
-        $content_view = ROOT_PATH . 'View' . DS . 'relatorio_produtividade.php';
+        $resultado = $this->relatorioModel->excluirLancamentos($ids);
 
-        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
-    }
-
-    /**
-     * Exibe o relatório de pagamento com um layout otimizado para impressão/PDF.
-     * Rota: /relatorios/imprimir
-     */
-    public function imprimir()
-    {
-        // Coleta os mesmos dados do filtro
-        $dados_filtro = $this->coletarDadosRelatorio();
-        $relatorio_dados = $dados_filtro['relatorio_dados'];
-        
-        // Coleta o modo de visualização da URL de impressão
-        $visualizacao = filter_input(INPUT_GET, 'visualizacao', FILTER_SANITIZE_STRING) ?? 'sintetico';
-
-        // Combina Produção e Serviços
-        $producao = $relatorio_dados['producao'] ?? [];
-        $servicos = $relatorio_dados['servicos_apoio'] ?? [];
-        $relatorio_final = $this->combinarRelatorios($producao, $servicos);
-
-        $dados = [
-            'relatorio' => array_values($relatorio_final),
-            'visualizacao' => $visualizacao, // Passa o modo de visualização
-            
-        ];
-
-        // **IMPORTANTE:** Incluir uma view customizada SEM o main.php
-        require_once ROOT_PATH . 'View' . DS . 'relatorio_imprimir.php';
+        echo json_encode($resultado);
+        exit;
     }
 }

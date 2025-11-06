@@ -1,8 +1,8 @@
 <?php
+// View/valores_pagamento_lista.php
 $valores = $dados['valores'] ?? [];
 $base_url = '/sgi_erp';
-$tipo_usuario_logado = $_SESSION['funcionario_tipo'] ?? 'convidado';
-$pode_editar = Acl::check('ValoresPagamentoController@cadastro', $tipo_usuario_logado);
+$pode_editar = $dados['pode_editar'] ?? false;
 ?>
 
 <div class="pt-4">
@@ -21,30 +21,26 @@ $pode_editar = Acl::check('ValoresPagamentoController@cadastro', $tipo_usuario_l
     </div>
 
     <div class="card shadow mb-4">
-
         <div class="card-header py-3">
             <h6 class="m-0 font-weight-bold text-primary">Valores por Ação e Produto</h6>
         </div>
-
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered table-hover" id="datatablesSimple" width="100%" cellspacing="0">
-
+                <table class="table table-bordered table-hover" id="datatablesSimple">
                     <thead>
                         <tr>
                             <th>Ação</th>
                             <th>Tipo de Produto</th>
                             <th>Valor por Quilo (R$)</th>
                             <?php if ($pode_editar): ?>
-                                <th class="text-center" style="width: 100px;">Ações</th>
+                                <th class="text-center" style="width: 120px;">Ações</th>
                             <?php endif; ?>
                         </tr>
                     </thead>
-
                     <tbody>
                         <?php if (empty($valores)): ?>
                             <tr>
-                                <td colspan="4" class="text-center">Nenhum valor de pagamento cadastrado.</td>
+                                <td colspan="<?php echo $pode_editar ? 4 : 3; ?>" class="text-center">Nenhum valor cadastrado.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($valores as $v): ?>
@@ -52,12 +48,15 @@ $pode_editar = Acl::check('ValoresPagamentoController@cadastro', $tipo_usuario_l
                                     <td><?php echo htmlspecialchars($v->acao_nome); ?></td>
                                     <td><?php echo htmlspecialchars($v->produto_nome); ?></td>
                                     <td>R$ <?php echo number_format($v->valor_por_quilo, 2, ',', '.'); ?></td>
-
                                     <?php if ($pode_editar): ?>
                                         <td class="text-center">
                                             <a href="<?php echo $base_url; ?>/admin/valores-pagamento/cadastro?id=<?php echo $v->id; ?>"
-                                                class="btn btn-sm btn-info" title="Editar">
+                                                class="btn btn-sm btn-warning" title="Editar">
                                                 <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="javascript:void(0)" onclick="confirmarExclusaoValor(<?php echo $v->id; ?>, '<?php echo addslashes($v->acao_nome . ' - ' . $v->produto_nome); ?>')"
+                                                class="btn btn-sm btn-danger" title="Excluir">
+                                                <i class="fas fa-trash"></i>
                                             </a>
                                         </td>
                                     <?php endif; ?>
