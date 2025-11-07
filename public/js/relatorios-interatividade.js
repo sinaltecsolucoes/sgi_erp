@@ -1,5 +1,6 @@
+// public/js/relatorios-interatividade.js (REFINADO - Corrige duplicação, totais e novos IDs)
 $(document).ready(function () {
-    let ultimoBackup = null; // Para o "Desfazer"
+    let ultimoBackup = null; // Para "Desfazer"
 
     // MÁSCARA BRASILEIRA
     $(document).on('input', '.input-edicao', function () {
@@ -17,13 +18,22 @@ $(document).ready(function () {
         $icon.toggleClass('fa-plus-circle fa-minus-circle');
     });
 
-    // EDITAR
+    // INICIAR EDIÇÃO
     $(document).on('click', '.btn-editar-produto', function () {
         const $container = $(this).closest('.detalhes-linha');
+        ultimoBackup = [];
+
         $container.find('.celula-valor').each(function () {
             const $cell = $(this);
             const texto = $cell.find('.valor-exibicao').text().trim();
-            const num = texto === '-' ? 0 : parseFloat(texto.replace(/\./g, '').replace(',', '.')) || 0;
+            const num = texto === '-' || texto === '' ? 0 : parseFloat(texto.replace(/\./g, '').replace(',', '.')) || 0;
+
+            ultimoBackup.push({
+                id: $cell.data('id'),
+                data: $cell.data('data'),
+                original: num
+            });
+
             $cell.data('original', num);
             $cell.find('.input-edicao').val(num > 0 ? num.toFixed(3).replace('.', ',') : '');
         });
@@ -45,183 +55,290 @@ $(document).ready(function () {
             Swal.fire('Nada para desfazer', '', 'info');
             return;
         }
+
         ultimoBackup.forEach(u => {
             const $cell = $(`td[data-id="${u.id}"][data-data="${u.data}"]`);
-            const valorOriginal = u.original;
-            $cell.find('.valor-exibicao').text(valorOriginal > 0 ? valorOriginal.toLocaleString('pt-BR', { minimumFractionDigits: 3 }) : '-');
-            $cell.find('.input-edicao').val(valorOriginal > 0 ? valorOriginal.toFixed(3).replace('.', ',') : '');
+            const textoExibicao = u.original > 0 ? u.original.toLocaleString('pt-BR', { minimumFractionDigits: 3 }) : '-';
+            $cell.find('.valor-exibicao').text(textoExibicao).show();
+            $cell.find('.input-edicao').val('').hide();
         });
+
         calcularTotais();
-        Swal.fire({ title: 'Desfeito!', icon: 'info', timer: 1500, showConfirmButton: false });
+        Swal.fire('Desfeito!', '', 'success');
     });
 
-    // SALVAR
     $(document).on('click', '.btn-salvar-produto', function () {
-        const $container = $(this).closest('.detalhes-linha');
+        const $botaoSalvar = $(this); // ← GUARDA O BOTÃO
+        const $container = $botaoSalvar.closest('.detalhes-linha'); // ← LINHA CORRETA
         const updates = [];
 
         $container.find('.celula-valor').each(function () {
             const $cell = $(this);
-            const id = parseInt($cell.data('id')) || 0;
-            const data = $cell.data('data');
-            const original = parseFloat($cell.data('original')) || 0;
+            const inputVal = $cell.find('.input-edicao').val().trim();
+            let novoValor = 0;
 
-            const raw = $cell.find('.input-edicao').val().replace(/[^\d,-]/g, '').replace(',', '.');
-            const digitado = parseFloat(raw) || 0;
+            if (inputVal !== '' && inputVal !== '0,000') {
+                novoValor = parseFloat(inputVal.replace(/\./g, '').replace(',', '.')) || 0;
+            }
 
-            if (digitado !== original || (id === 0 && digitado > 0)) {
+            const original = $cell.data('original') || 0;
+            if (novoValor !== original) {
                 updates.push({
-                    id: id,
-                    quantidade_kg: digitado,
-                    data: data,
+                    id: $cell.data('id') || 0,
+                    quantidade_kg: novoValor.toFixed(3),
+                    data: $cell.data('data'),
                     funcionario_id: $cell.data('funcionario-id'),
                     tipo_produto_id: $cell.data('tipo-produto-id')
                 });
+
+                // Atualiza o data-original para evitar reenvio
+                $cell.data('original', novoValor);
             }
         });
 
         if (updates.length === 0) {
-            Swal.fire('Nenhum valor alterado', '', 'info');
+            // Se nada mudou, só fecha a edição
+            $container.find('.valor-exibicao').show();
+            $container.find('.input-edicao').hide();
+            $container.find('.btn-salvar-produto, .btn-cancelar-produto, .btn-desfazer').hide();
+            $container.find('.btn-editar-produto').show();
             return;
         }
 
-        // Backup antes de enviar
-        ultimoBackup = updates.map(u => ({
-            id: u.id,
-            data: u.data,
-            original: $(`td[data-id="${u.id}"][data-data="${u.data}"]`).data('original')
-        }));
-
         Swal.fire({
-            title: 'Salvar alterações?',
-            text: `${updates.length} lançamento(s) serão salvos`,
+            title: 'Confirmar alterações?',
+            text: `${updates.length} valor(es) será(ão) salvo(s)`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Sim, salvar!',
             cancelButtonText: 'Cancelar'
-        }).then(result => {
+        }).then((result) => {
             if (!result.isConfirmed) return;
+
+            Swal.fire({ title: 'Salvando...', didOpen: () => Swal.showLoading() });
 
             $.ajax({
                 url: '/sgi_erp/relatorios/atualizar-producao',
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ updates: updates }),
-                dataType: 'json',
                 success: function (res) {
-                    if (res.success) {
-                        // 1. Atualiza exibição e data-original dos valores que foram editados (existentes e novos)
-                        updates.forEach(u => {
-                            const $cell = $(`td[data-id="${u.id}"][data-data="${u.data}"]`);
-                            const novoValor = u.quantidade_kg;
-                            $cell.find('.valor-exibicao').text(novoValor > 0 ? novoValor.toLocaleString('pt-BR', { minimumFractionDigits: 3 }) : '-');
-                            $cell.data('original', novoValor);
+                    Swal.close();
 
-                            // 2. Garante que os valores de Kg > 0 sejam formatados corretamente
-                            $cell.find('.input-edicao').val(novoValor > 0 ? novoValor.toFixed(3).replace('.', ',') : '');
+                    if (res.success) {
+                        // === USA O $container CORRETO (do botão original) ===
+                        $container.find('.celula-valor').each(function () {
+                            const $cell = $(this);
+                            const valorAtual = $cell.data('original') || 0;
+                            const texto = valorAtual > 0
+                                ? parseFloat(valorAtual).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+                                : '-';
+
+                            // VOLTA PARA LABEL
+                            $cell.find('.valor-exibicao').text(texto).show();
+                            $cell.find('.input-edicao').val('').hide();
+
+                            // Atualiza data-id se for novo
+                            if (($cell.data('id') || 0) == 0) {
+                                const match = (res.novos_ids || []).find(n =>
+                                    n.data === $cell.data('data') &&
+                                    parseInt(n.func_id) === parseInt($cell.data('funcionario-id')) &&
+                                    parseInt(n.tipo_id) === parseInt($cell.data('tipo-produto-id'))
+                                );
+                                if (match) {
+                                    $cell.attr('data-id', match.new_id);
+                                }
+                            }
                         });
 
-                        // *** MUDANÇA AQUI: Atualiza os data-id para novos lançamentos ***
-                        if (res.novos_ids && res.novos_ids.length > 0) {
-                            res.novos_ids.forEach(novo => {
-                                // Seleciona a célula que tinha id=0, data e os IDs de FKs (func_id e tipo_id)
-                                // Usamos as FKs para garantir que pegamos a célula correta
-                                const $cell = $(`td[data-id="0"][data-data="${novo.data}"][data-funcionario-id="${novo.func_id}"][data-tipo-produto-id="${novo.tipo_id}"]`);
-                                if ($cell.length) {
-                                    $cell.data('id', novo.new_id); // Atualiza o data-id
-                                    // A partir de agora, esta célula fará um UPDATE
-                                }
-                            });
-                        }
-
+                        // Recalcula totais
                         calcularTotais();
 
-                        // Toast
-                        const Toast = Swal.mixin({
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000,
-                            timerProgressBar: true
-                        });
-                        Toast.fire({
+                        // Restaura botões
+                        $container.find('.btn-salvar-produto, .btn-cancelar-produto, .btn-desfazer').hide();
+                        $container.find('.btn-editar-produto').show();
+
+                        Swal.fire({
+                            title: 'Sucesso!',
+                            text: res.msg || 'Tudo salvo!',
                             icon: 'success',
-                            title: res.message || 'Salvo com sucesso!'
+                            timer: 1500
                         });
+
                     } else {
-                        Swal.fire('Erro', res.message, 'error');
+                        Swal.fire('Erro!', res.msg || 'Falha ao salvar.', 'error');
                     }
                 },
                 error: function () {
-                    Swal.fire('Erro', 'Falha na comunicação com o servidor', 'error');
+                    Swal.close();
+                    Swal.fire('Erro de conexão', 'Tente novamente.', 'error');
                 }
             });
         });
     });
 
-    // EXCLUIR LINHA (produto inteiro)
+    // EXCLUIR LINHA (refinado: confirma e remove seletivamente)
     $(document).on('click', '.btn-excluir-linha', function () {
         const $row = $(this).closest('tr');
-        const produto = $row.data('produto');
+        const ids = [];
+
+        // Coleta IDs existentes na linha
+        $row.find('.celula-valor[data-id]').each(function () {
+            const id = parseInt($(this).data('id'));
+            if (id > 0) ids.push(id);
+        });
+
+        if (ids.length === 0) {
+            Swal.fire('Nada para excluir', 'Esta linha não tem dados salvos.', 'info');
+            return;
+        }
 
         Swal.fire({
-            title: 'Excluir produto?',
-            text: `"${produto}" será removido de todos os dias!`,
+            title: 'Excluir linha?',
+            text: 'Isso removerá todos os valores desta linha!',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Sim, excluir',
-            cancelButtonText: 'Cancelar'
+            confirmButtonText: 'Sim, excluir!'
         }).then(result => {
-            if (result.isConfirmed) {
-                const ids = [];
-                $row.find('.celula-valor').each(function () {
-                    const id = parseInt($(this).data('id')) || 0;
-                    if (id > 0) ids.push(id);
-                });
+            if (!result.isConfirmed) return;
 
-                $.ajax({
-                    url: '/sgi_erp/relatorios/excluir-producao',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ ids: ids }),
-                    dataType: 'json',
-                    success: function (res) {
-                        if (res.success) {
-                            $row.remove();
-                            calcularTotais();
-                            Swal.fire('Excluído!', '', 'success');
-                        }
+            Swal.fire({
+                title: 'Excluindo...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            $.ajax({
+                url: '/sgi_erp/relatorios/excluir-producao',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ ids: ids }),
+                dataType: 'json',
+                success: function (res) {
+                    Swal.close();
+                    if (res.success) {
+                        $row.remove();
+                        calcularTotais();
+                        Swal.fire('Excluído!', res.msg || 'Linha removida.', 'success');
+                    } else {
+                        Swal.fire('Erro!', res.msg || 'Falha ao excluir.', 'error');
                     }
-                });
-            }
+                },
+                error: function () {
+                    Swal.close();
+                    Swal.fire('Erro de conexão', 'Tente novamente.', 'error');
+                }
+            });
         });
     });
 
-    // RECALCULAR TOTAIS
+    // RECALCULAR TOTAIS (REFINADO: Só soma células visíveis/não-zero + parse robusto)
+    /*  window.calcularTotais = function () {
+          let totalGeral = 0;
+  
+          // 1. Atualiza TOTAL POR FUNCIONÁRIO
+          $('.funcionario-linha').each(function () {
+              const $linhaFunc = $(this);
+              const $detalhe = $linhaFunc.next('.detalhes-linha');
+              let somaFuncionario = 0;
+  
+              // Pega todas as células visíveis do funcionário (na linha de detalhes)
+              $detalhe.find('.celula-valor .valor-exibicao').each(function () {
+                  const texto = $(this).text().trim();
+                  if (texto !== '' && texto !== '-' && texto !== '0,000') {
+                      const valor = parseFloat(texto.replace(/\./g, '').replace(',', '.')) || 0;
+                      somaFuncionario += valor;
+                  }
+              });
+  
+              // Atualiza o total na linha do funcionário
+              const $totalFunc = $linhaFunc.find('.total-funcionario');
+              const formatoFunc = somaFuncionario.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+              $totalFunc.text(formatoFunc);
+          });
+  
+          // 2. Atualiza TOTAL POR DIA (rodapé)
+          $('.total-dia').each(function (index) {
+              let somaDia = 0;
+              $(`.celula-valor:nth-child(${index + 2}) .valor-exibicao`).each(function () {
+                  const texto = $(this).text().trim();
+                  if (texto !== '' && texto !== '-' && texto !== '0,000') {
+                      const valor = parseFloat(texto.replace(/\./g, '').replace(',', '.')) || 0;
+                      somaDia += valor;
+                  }
+              });
+  
+              const formatoDia = somaDia.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+              $(this).text(formatoDia);
+              totalGeral += somaDia;
+          });
+  
+          // 3. Atualiza TOTAL GERAL
+          $('#total-geral').text(totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }));
+      }; */
+
     window.calcularTotais = function () {
-        // Totais por dia
-        $('.total-dia').each(function () {
-            const data = $(this).closest('th').prevAll('th').not(':first').index() - 1;
-            let soma = 0;
-            $(`td[data-data]:nth-child(${data + 2}) .valor-exibicao`).each(function () {
-                const txt = $(this).text().trim();
-                if (txt !== '-' && txt !== '') {
-                    soma += parseFloat(txt.replace(/\./g, '').replace(',', '.'));
-                }
+        let totalGeral = 0;
+
+        // 1. ZERA TODOS OS TOTAIS VISÍVEIS (evita soma duplicada)
+        $('.total-dia').text('0,000');
+        $('.total-funcionario').text('0,000');
+        $('#total-geral').text('0,000');
+
+        // 2. ATUALIZA TOTAL POR DIA (rodapé) + TOTAL POR FUNCIONÁRIO (linha principal)
+        $('.funcionario-linha').each(function () {
+            const $linhaFunc = $(this);
+            const nomeFunc = $linhaFunc.find('td:first strong').text().trim();
+            let somaFuncionario = 0;
+
+            // Percorre cada coluna de data
+            $linhaFunc.find('td[data-data]').each(function (index) {
+                const $celulaDia = $(this);
+                const data = $celulaDia.data('data');
+                let somaDia = 0;
+
+                // Soma todos os valores editáveis dessa data (na linha de detalhes do mesmo funcionário)
+                const $detalhes = $linhaFunc.next('.detalhes-linha');
+                $detalhes.find(`.celula-valor[data-data="${data}"] .valor-exibicao`).each(function () {
+                    const texto = $(this).text().trim();
+                    if (texto && texto !== '-' && texto !== '0,000') {
+                        const valor = parseFloat(texto.replace(/\./g, '').replace(',', '.')) || 0;
+                        somaDia += valor;
+                        somaFuncionario += valor;
+                    }
+                });
+
+                // === ATUALIZA O TOTAL DO DIA NA LINHA DO FUNCIONÁRIO ===
+                const formatoDia = somaDia > 0
+                    ? somaDia.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+                    : '';
+                $celulaDia.text(formatoDia);
+                if (somaDia > 0) $celulaDia.addClass('text-success fw-bold');
+                else $celulaDia.removeClass('text-success fw-bold');
+
+                // === ATUALIZA O TOTAL DO DIA NO RODAPÉ ===
+                const $totalDiaRodape = $('.total-dia').eq(index);
+                let totalAtualRodape = parseFloat($totalDiaRodape.text().replace(/\./g, '').replace(',', '.') || '0');
+                totalAtualRodape += somaDia;
+                $totalDiaRodape.text(totalAtualRodape.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }));
             });
-            $(this).text(soma.toLocaleString('pt-BR', { minimumFractionDigits: 3 }));
+
+            // === ATUALIZA TOTAL DO FUNCIONÁRIO ===
+            const formatoFunc = somaFuncionario.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+            $linhaFunc.find('.total-funcionario').text(formatoFunc);
+
+            // Acumula no total geral
+            totalGeral += somaFuncionario;
         });
 
-        // Total geral
-        let totalGeral = 0;
-        $('.total-dia').each(function () {
-            const v = parseFloat($(this).text().replace(/\./g, '').replace(',', '.')) || 0;
-            totalGeral += v;
-        });
-        $('#total-geral').text(totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 3 }));
+        // === ATUALIZA TOTAL GERAL ===
+        $('#total-geral').text(totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }));
     };
 
-    // PDF & EXCEL (já existiam)
+    // Inicializa totais na carga da página
+    calcularTotais();
+
+    // PDF & EXCEL (mantidos, assumindo funções existentes)
     $('#btn-pdf').click(() => gerarPDF());
     $('#btn-excel').click(() => exportarExcel());
 });

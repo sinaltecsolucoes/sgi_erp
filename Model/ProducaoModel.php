@@ -88,4 +88,101 @@ class ProducaoModel
             return 0.00;
         }
     }
+
+    public function buscarLancamentosPorData($data)
+    {
+        $sql = "SELECT 
+                p.id,
+                p.funcionario_id,
+                p.acao_id,
+                p.tipo_produto_id,
+                p.lote_produto,
+                p.quantidade_kg,
+                p.equipe_id,
+                p.hora_inicio,
+                p.hora_fim
+            FROM {$this->table_producao} p
+            WHERE DATE(p.data_hora) = :data
+            ORDER BY p.funcionario_id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':data', $data);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function excluirLancamento($id)
+    {
+        $sql = "DELETE FROM producao WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id]);
+    }
+
+    public function buscarLancamentoUnico($data, $funcionario_id, $acao_id, $tipo_produto_id)
+    {
+        $sql = "SELECT id, quantidade_kg 
+            FROM producao 
+            WHERE DATE(data_hora) = ? 
+              AND funcionario_id = ? 
+              AND acao_id = ? 
+              AND tipo_produto_id = ?";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$data, $funcionario_id, $acao_id, $tipo_produto_id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function atualizarLancamento($id, $acao_id, $tipo_produto_id, $quantidade_kg, $lote_produto, $hora_inicio, $hora_fim)
+    {
+        $sql = "UPDATE producao SET 
+                acao_id = :acao,          
+                tipo_produto_id = :tp,    
+                quantidade_kg = :qtd,
+                lote_produto = :lote,
+                hora_inicio = :inicio,
+                hora_fim = :fim
+            WHERE id = :id";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                ':acao' => $acao_id,
+                ':tp' => $tipo_produto_id,
+                ':qtd' => $quantidade_kg,
+                ':lote' => $lote_produto,
+                ':inicio' => $hora_inicio,
+                ':fim' => $hora_fim,
+                ':id' => $id
+            ]);
+        } catch (PDOException $e) {
+            error_log("Erro ao atualizar produção: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function buscarTodosLancamentosDoDia($data)
+    {
+        $sql = "SELECT 
+                p.id,
+                p.funcionario_id,
+                f.nome as funcionario_nome,
+                p.acao_id,
+                a.nome as acao_nome,
+                p.tipo_produto_id,
+                tp.nome as produto_nome,
+                p.quantidade_kg,
+                p.lote_produto,
+                p.hora_inicio,
+                p.hora_fim
+            FROM producao p
+            JOIN funcionarios f ON p.funcionario_id = f.id
+            JOIN acoes a ON p.acao_id = a.id
+            JOIN tipos_produto tp ON p.tipo_produto_id = tp.id
+            WHERE DATE(p.data_hora) = ?
+            ORDER BY f.nome, p.hora_inicio";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$data]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

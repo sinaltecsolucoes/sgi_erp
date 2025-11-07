@@ -145,4 +145,43 @@ class RelatorioController extends AppController
         echo json_encode($resultado);
         exit;
     }
+
+    // === RELATÓRIO DE VALORES A PAGAR ===
+    public function pagamentos()
+    {
+        $hoje = new DateTime();
+        $data_inicio = $_GET['ini'] ?? $hoje->format('Y-m-01');
+        $data_fim = $_GET['fim'] ?? $hoje->format('Y-m-t');
+
+        if (strtotime($data_inicio) > strtotime($data_fim)) {
+            $_SESSION['erro'] = "Data inicial não pode ser maior que data final.";
+            header('Location: /sgi_erp/relatorios/pagamentos');
+            exit;
+        }
+
+        // Reusa a lógica de quantidades + multiplica pelo valor por quilo
+        $relatorio = $this->relatorioModel->getValoresFinanceirosDiaADia($data_inicio, $data_fim);
+
+        $title = "RELATÓRIO FINANCEIRO - VALORES A PAGAR: " .
+            date('d/m/Y', strtotime($data_inicio)) . " - " .
+            date('d/m/Y', strtotime($data_fim));
+
+        $content_view = ROOT_PATH . 'View/relatorio_pagamentos.php';
+
+        $dados = [
+            'matriz' => $relatorio['matriz'],
+            'detalhes' => $relatorio['detalhes'],
+            'ids' => $relatorio['ids'],
+            'datas' => $relatorio['datas'],
+            'total_por_dia' => $relatorio['total_por_dia'],
+            'total_geral' => $relatorio['total_geral'],
+            'data_inicio' => $data_inicio,
+            'data_fim' => $data_fim,
+            'pode_editar' => true,
+            'funcionario_ids' => $relatorio['funcionario_ids'],
+            'tipo_produto_ids' => $relatorio['tipo_produto_ids']
+        ];
+
+        require_once ROOT_PATH . 'View/template/main.php';
+    }
 }

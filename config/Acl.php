@@ -24,6 +24,7 @@ class Acl
         // Rotas de Lançamento em Massa 
         'ProducaoController@massa' => 'Visualizar Lançamento em Massa',
         'ProducaoController@salvarMassa' => 'Salvar Lançamento em Massa',
+        'ProducaoController@editarDia' => 'Editar Produção do Dia',
 
         // MÓDULO ADMINISTRATIVO (Gestão de Permissões e Cadastros) 
         'PermissaoController@index' => 'Visualizar Gestão de Permissões', // Tela Admin 
@@ -49,6 +50,8 @@ class Acl
         'RelatorioController@servicos' => 'Visualizar Relatório de Serviços',
         'RelatorioController@produtividade' => 'Visualizar Produtividade/Hora',
         'RelatorioController@producaoGeral' => 'Visualizar Produção Geral',
+        'RelatorioController@atualizarProducao' => 'Editar Lançamentos nos Relatórios',
+        'RelatorioController@excluirProducao'   => 'Excluir Lançamentos nos Relatórios',
 
         // Rotas de Cadastro de Valores
         'ValoresPagamentoController@index' => 'Visualizar Valores Pagamento',

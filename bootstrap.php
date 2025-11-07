@@ -67,6 +67,9 @@ $routes = [
     '/producao/salvar' => 'ProducaoController@salvar',
     '/producao/massa'  => 'ProducaoController@massa',
     '/producao/massa/salvar' => 'ProducaoController@salvarMassa',
+    '/producao/editar-massa' => 'ProducaoController@editarMassa',
+    '/producao/editar-dia' => 'ProducaoController@editarDia',
+    '/producao/salvar-massa-edit'  => 'ProducaoController@salvarMassaEdit',
 
     // Rotas API (Para o App Android)
     '/api' => 'ApiController@info',
@@ -103,7 +106,7 @@ $routes = [
     '/admin/acoes/salvar' => 'AcaoController@salvar', // Salvar (POST)  
 
     // MÓDULO FINANCEIRO / RELATÓRIOS
-    '/relatorios' => 'RelatorioController@pagamentos', // Pagamento Total (Rota principal de relatórios)
+    '/relatorios/pagamentos' => 'RelatorioController@pagamentos', // Pagamento Total 
     '/relatorios/quantidades' => 'RelatorioController@quantidades', // Quantidades Produzidas
     '/relatorios/servicos' => 'RelatorioController@servicos', // Serviços/Diárias
     '/relatorios/produtividade' => 'RelatorioController@produtividade', // Produtividade/Hora

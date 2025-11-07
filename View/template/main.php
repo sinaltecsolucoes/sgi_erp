@@ -88,7 +88,6 @@ $theme_prefix = '/sgi_erp/public/theme/sb-admin-themewagon/dist';
     <?php if ($is_relatorio): ?>
         <script src="/sgi_erp/public/js/relatorios-interatividade.js"></script>
     <?php endif; ?>
-
     <?php require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'alerts.php'; ?>
     <?php require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'logout_modal.php'; ?>
 </body>

@@ -86,6 +86,18 @@ function is_group_active($routes_array, $current_route)
                                 <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Lançar Prod. em Massa</a>
                             <?php endif; ?>
 
+                            <?php $route = '/producao/editar-massa';
+                            $is_active = is_active($route, $current_route); ?>
+                            <?php if (Acl::check('ProducaoController@editarMassa', $tipo_usuario)): ?>
+                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Editar Produção em Massa</a>
+                            <?php endif; ?>
+
+                            <?php $route = '/producao/editar-dia';
+                            $is_active = is_active($route, $current_route); ?>
+                            <?php if (Acl::check('ProducaoController@editarDia', $tipo_usuario)): ?>
+                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Editar Produção do Dia</a>
+                            <?php endif; ?>
+
                         </nav>
                     </div>
 
@@ -163,7 +175,7 @@ function is_group_active($routes_array, $current_route)
                     <div class="collapse <?php echo $rel_is_active; ?>" id="collapseRelatorios" aria-labelledby="headingRelatorios" data-bs-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
 
-                            <?php $route = '/relatorios';
+                            <?php $route = '/relatorios/pagamentos';
                             $is_active = is_active($route, $current_route); ?>
                             <?php if (Acl::check('RelatorioController@pagamentos', $tipo_usuario)): ?>
                                 <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Pagamento Total (R$)</a>

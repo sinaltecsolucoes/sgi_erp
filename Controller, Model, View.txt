@@ -79,47 +79,6 @@ class ProducaoController extends AppController
             exit();
         }
 
-        // NOVO: Tenta ler o JSON (requisição do producao-editar-dia.js)
-        $json_data = file_get_contents('php://input');
-        $dados_post = json_decode($json_data, true);
-
-        $is_ajax = !empty($json_data);
-        $id = $dados_post['id'] ?? null; // ID só existe na EDIÇÃO
-
-        if ($id && $is_ajax) {
-            // Se for requisição AJAX com ID (EDIÇÃO/UPDATE)
-
-            // 1. Coletar dados do $dados_post (JSON)
-            $acao_id = $dados_post['acao_id'] ?? null;
-            $tipo_produto_id = $dados_post['tipo_produto_id'] ?? null;
-            $quantidade_kg = $dados_post['quantidade_kg'] ?? 0.0;
-            $hora_inicio = $dados_post['hora_inicio'] ?? null;
-            $hora_fim = $dados_post['hora_fim'] ?? null;
-            $lote_produto = ''; // O JS não envia, então deixamos vazio/default
-
-            $response = ['success' => false, 'msg' => ''];
-
-            // 2. Chama o método de atualização no Model
-            if ($this->producaoModel->atualizarLancamento(
-                $id,
-                $acao_id,
-                $tipo_produto_id,
-                $quantidade_kg,
-                $lote_produto,
-                $hora_inicio,
-                $hora_fim
-            )) {
-                $response['success'] = true;
-            } else {
-                $response['msg'] = 'Falha ao salvar a edição no banco de dados.';
-            }
-
-            // 3. Retorna o JSON e TERMINA A EXECUÇÃO
-            header('Content-Type: application/json'); // Garante que o navegador saiba que é JSON
-            echo json_encode($response);
-            exit(); // ⬅️ A LINHA ESSENCIAL QUE FALTAVA
-        }
-
         // 1. Coleta e Sanitiza os dados do POST
         $funcionario_id = filter_input(INPUT_POST, 'funcionario_id', FILTER_VALIDATE_INT);
         $acao_id = filter_input(INPUT_POST, 'acao_id', FILTER_VALIDATE_INT);
@@ -217,7 +176,7 @@ class ProducaoController extends AppController
      * Processa o formulário de lançamento em massa
      * Rota: /producao/massa/salvar
      */
-   /* public function salvarMassa()
+    public function salvarMassa()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: /sgi_erp/producao/massa');
@@ -293,9 +252,9 @@ class ProducaoController extends AppController
 
         header('Location: /sgi_erp/producao/massa');
         exit();
-    } */
+    }
 
-   /* public function editarMassa()
+    public function editarMassa()
     {
         $data_selecionada = $_GET['data'] ?? date('Y-m-d');
 
@@ -361,9 +320,9 @@ class ProducaoController extends AppController
 
         $content_view = ROOT_PATH . 'View/producao_editar_massa.php';
         require_once ROOT_PATH . 'View/template/main.php';
-    } */
+    }
 
-   /* public function salvarMassaEdit()
+    public function salvarMassaEdit()
     {
         $data = $_POST['data'] ?? '';
         $acao_id = $_POST['acao_id'] ?? 0;
@@ -431,7 +390,7 @@ class ProducaoController extends AppController
         $_SESSION['sucesso'] = "Edição concluída! Salvos: $salvos | Atualizados: $atualizados | Removidos: $removidos";
         header('Location: /sgi_erp/producao/editar-massa?data=' . $data);
         exit;
-    } */
+    }
 
     public function editarDia()
     {
@@ -477,9 +436,327 @@ class ProducaoController extends AppController
             'totais' => $totais // <- passa os totais pra view
         ];
 
-        extract($dados);
-
         $content_view = ROOT_PATH . 'View/producao_editar_dia.php';
         require_once ROOT_PATH . 'View/template/main.php';
     }
 }
+
+
+<?php
+// Model/ProducaoModel.php
+
+class ProducaoModel
+{
+    private $db;
+    private $table_producao = 'producao';
+
+    public function __construct()
+    {
+        // Inicializa a conexão com o banco de dados
+        $this->db = Database::getInstance()->connect();
+    }
+
+    /**
+     * Registra um lançamento de produção na base de dados.
+     * @param int $funcionario_id ID do funcionário.
+     * @param int $acao_id ID da ação realizada.
+     * @param int $tipo_produto_id ID do tipo de produto.
+     * @param string $lote_produto NOVO: Lote do produto.
+     * @param float $quantidade_kg Quantidade produzida em quilos.
+     * @param int|null $equipe_id ID da equipe.
+     * @return bool TRUE se a inserção for bem-sucedida, FALSE caso contrário.
+     */
+    public function registrarLancamento($funcionario_id, $acao_id, $tipo_produto_id, $lote_produto, $quantidade_kg, $equipe_id = null, $hora_inicio = null, $hora_fim = null)
+    {
+        $query = "INSERT INTO {$this->table_producao} 
+                  (funcionario_id, acao_id, tipo_produto_id, lote_produto, quantidade_kg, data_hora, equipe_id, hora_inicio, hora_fim) 
+                  VALUES 
+                  (:funcionario_id, :acao_id, :tipo_produto_id, :lote_produto, :quantidade_kg, NOW(), :equipe_id, :hora_inicio, :hora_fim)";
+
+        try {
+            $stmt = $this->db->prepare($query);
+
+            // Bind dos parâmetros
+            $stmt->bindParam(':funcionario_id', $funcionario_id);
+            $stmt->bindParam(':acao_id', $acao_id);
+            $stmt->bindParam(':tipo_produto_id', $tipo_produto_id);
+            $stmt->bindParam(':lote_produto', $lote_produto);
+            $stmt->bindParam(':quantidade_kg', $quantidade_kg);
+            $stmt->bindParam(':hora_inicio', $hora_inicio);
+            $stmt->bindParam(':hora_fim', $hora_fim);
+
+            // Tratamento especial para $equipe_id (pode ser NULL)
+            if (is_null($equipe_id)) {
+                $stmt->bindValue(':equipe_id', null, PDO::PARAM_NULL);
+            } else {
+                $stmt->bindParam(':equipe_id', $equipe_id);
+            }
+
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            // Em caso de erro na consulta, logar ou tratar.
+            // echo "Erro ao registrar produção: " . $e->getMessage();
+            return false;
+        }
+    }
+
+    /**
+     * Soma a quantidade total de KG produzidos na data de hoje.
+     * @return float O total de quilos produzidos.
+     */
+    public function somarProducaoHoje()
+    {
+        // Usa a data atual no início do dia
+        $hoje_inicio = date('Y-m-d 00:00:00');
+        // E o final do dia
+        $hoje_fim = date('Y-m-d 23:59:59');
+
+        $query = "SELECT 
+                    SUM(quantidade_kg) AS total_kg_hoje
+                  FROM 
+                    {$this->table_producao}
+                  WHERE 
+                    data_hora BETWEEN :hoje_inicio AND :hoje_fim";
+
+        try {
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':hoje_inicio', $hoje_inicio);
+            $stmt->bindParam(':hoje_fim', $hoje_fim);
+            $stmt->execute();
+
+            // Retorna 0.00 se o resultado for nulo
+            $resultado = $stmt->fetch()->total_kg_hoje;
+            return (float)($resultado ?? 0.00);
+        } catch (PDOException $e) {
+            error_log("Erro ao somar produção: " . $e->getMessage());
+            return 0.00;
+        }
+    }
+
+    public function buscarLancamentosPorData($data)
+    {
+        $sql = "SELECT 
+                p.id,
+                p.funcionario_id,
+                p.acao_id,
+                p.tipo_produto_id,
+                p.lote_produto,
+                p.quantidade_kg,
+                p.equipe_id,
+                p.hora_inicio,
+                p.hora_fim
+            FROM {$this->table_producao} p
+            WHERE DATE(p.data_hora) = :data
+            ORDER BY p.funcionario_id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':data', $data);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function excluirLancamento($id)
+    {
+        $sql = "DELETE FROM producao WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id]);
+    }
+
+    public function buscarLancamentoUnico($data, $funcionario_id, $acao_id, $tipo_produto_id)
+    {
+        $sql = "SELECT id, quantidade_kg 
+            FROM producao 
+            WHERE DATE(data_hora) = ? 
+              AND funcionario_id = ? 
+              AND acao_id = ? 
+              AND tipo_produto_id = ?";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$data, $funcionario_id, $acao_id, $tipo_produto_id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function atualizarLancamento($id, $quantidade_kg, $lote_produto, $hora_inicio, $hora_fim)
+    {
+        $sql = "UPDATE producao SET 
+                quantidade_kg = :qtd,
+                lote_produto = :lote,
+                hora_inicio = :inicio,
+                hora_fim = :fim
+            WHERE id = :id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':qtd' => $quantidade_kg,
+            ':lote' => $lote_produto,
+            ':inicio' => $hora_inicio,
+            ':fim' => $hora_fim,
+            ':id' => $id
+        ]);
+    }
+
+    public function buscarTodosLancamentosDoDia($data)
+    {
+        $sql = "SELECT 
+                p.id,
+                p.funcionario_id,
+                f.nome as funcionario_nome,
+                p.acao_id,
+                a.nome as acao_nome,
+                p.tipo_produto_id,
+                tp.nome as produto_nome,
+                p.quantidade_kg,
+                p.lote_produto,
+                p.hora_inicio,
+                p.hora_fim
+            FROM producao p
+            JOIN funcionarios f ON p.funcionario_id = f.id
+            JOIN acoes a ON p.acao_id = a.id
+            JOIN tipos_produto tp ON p.tipo_produto_id = tp.id
+            WHERE DATE(p.data_hora) = ?
+            ORDER BY f.nome, p.hora_inicio";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$data]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+}
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    let dadosOriginais = {};
+
+    function aplicarMascaraKg(input) {
+        let v = input.value.replace(/\D/g, '');
+        if (!v) return;
+        v = v.replace(/(\d)(\d{3})$/, '$1,$2');
+        v = v.replace(/(?=(\d{3})+(\D))\B/g, '.');
+        input.value = v;
+    }
+
+    function atualizarTotalDia(funcionarioNome) {
+        let total = 0;
+        document.querySelectorAll(`tr[data-funcionario="${funcionarioNome}"]`).forEach(row => {
+            const kgText = row.querySelector('.kg-view').textContent;
+            const kg = parseFloat(kgText.replace(/\./g, '').replace(',', '.') || 0);
+            total += kg;
+        });
+        const formato = total.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+        document.querySelectorAll(`tr[data-funcionario="${funcionarioNome}"] .total-dia`)
+            .forEach(el => el.textContent = formato + ' kg');
+    }
+
+    document.addEventListener('click', function (e) {
+        const btnEditar = e.target.closest('.btn-editar');
+        const btnCancelar = e.target.closest('.btn-cancelar');
+        const tr = e.target.closest('tr');
+        if (!tr) return;
+
+        if (btnEditar) {
+            if (btnEditar.textContent.trim() === 'Editar') {
+                // SALVA VALORES ORIGINAIS
+                dadosOriginais[tr.dataset.id] = {
+                    acao: tr.querySelector('.acao-view').textContent,
+                    produto: tr.querySelector('.produto-view').textContent,
+                    kg: tr.querySelector('.kg-view').textContent,
+                    inicio: tr.querySelector('.inicio-view').textContent,
+                    fim: tr.querySelector('.fim-view').textContent
+                };
+
+                // ATIVA MODO EDIÇÃO
+                tr.querySelectorAll('.view-mode').forEach(el => el.classList.add('d-none'));
+                tr.querySelectorAll('.edit-mode').forEach(el => el.classList.remove('d-none'));
+
+
+                // 1. Pega os IDs atuais (GARANTINDO QUE SEJA UMA STRING LIMPA)
+                const acaoIdAtual = String(tr.dataset.acaoId).trim();
+                const produtoIdAtual = String(tr.dataset.produtoId).trim();
+
+                // 2. Seleciona o valor exato no dropdown da Ação
+                const selectAcao = tr.querySelector('.acao-select');
+                if (selectAcao && acaoIdAtual) {
+                    // Força a atribuição do valor (que deve ser o ID da option)
+                    selectAcao.value = acaoIdAtual;
+                }
+
+                // 3. Seleciona o valor exato no dropdown do Produto
+                const selectProduto = tr.querySelector('.produto-select');
+                if (selectProduto && produtoIdAtual) {
+                    // Força a atribuição do valor (que deve ser o ID da option)
+                    selectProduto.value = produtoIdAtual;
+                }
+
+                btnEditar.innerHTML = 'Salvar';
+                btnEditar.classList.remove('btn-success');
+                btnEditar.classList.add('btn-primary');
+                tr.querySelector('.btn-cancelar').classList.remove('d-none');
+
+                // Máscara KG
+                const kgInput = tr.querySelector('.kg-input');
+                aplicarMascaraKg(kgInput);
+                kgInput.addEventListener('input', () => aplicarMascaraKg(kgInput));
+
+            } else {
+                // SALVAR
+                const dados = {
+                    id: tr.dataset.id,
+                    acao_id: tr.querySelector('.acao-select').value,
+                    tipo_produto_id: tr.querySelector('.produto-select').value,
+                    quantidade_kg: parseFloat(tr.querySelector('.kg-input').value.replace(/\./g, '').replace(',', '.') || 0),
+                    hora_inicio: tr.querySelector('.hora-inicio').value || null,
+                    hora_fim: tr.querySelector('.hora-fim').value || null
+                };
+
+                fetch('/sgi_erp/producao/salvar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            // Atualiza labels com os novos valores
+                            tr.querySelector('.acao-view').textContent = tr.querySelector('.acao-select option:checked').textContent;
+                            tr.querySelector('.produto-view').textContent = tr.querySelector('.produto-select option:checked').textContent;
+                            tr.querySelector('.kg-view').textContent = tr.querySelector('.kg-input').value;
+                            tr.querySelector('.inicio-view').textContent = tr.querySelector('.hora-inicio').value || '--:--';
+                            tr.querySelector('.fim-view').textContent = tr.querySelector('.hora-fim').value || '--:--';
+
+                            // Volta ao modo visualização
+                            tr.querySelectorAll('.view-mode').forEach(el => el.classList.remove('d-none'));
+                            tr.querySelectorAll('.edit-mode').forEach(el => el.classList.add('d-none'));
+                            btnEditar.innerHTML = 'Editar';
+                            btnEditar.classList.remove('btn-primary');
+                            btnEditar.classList.add('btn-success');
+                            tr.querySelector('.btn-cancelar').classList.add('d-none');
+
+                            atualizarTotalDia(tr.dataset.funcionario);
+                            Swal.fire('Salvo!', 'Tudo atualizado com sucesso.', 'success');
+                            tr.style.backgroundColor = '#d4edda';
+                            setTimeout(() => tr.style.backgroundColor = '', 1000);
+                        } else {
+                            Swal.fire('Erro', res.msg || 'Falha ao salvar', 'error');
+                        }
+                    });
+            }
+        }
+
+        if (btnCancelar) {
+            const orig = dadosOriginais[tr.dataset.id];
+            if (orig) {
+                tr.querySelector('.acao-view').textContent = orig.acao;
+                tr.querySelector('.produto-view').textContent = orig.produto;
+                tr.querySelector('.kg-view').textContent = orig.kg;
+                tr.querySelector('.inicio-view').textContent = orig.inicio;
+                tr.querySelector('.fim-view').textContent = orig.fim;
+            }
+
+            tr.querySelectorAll('.view-mode').forEach(el => el.classList.remove('d-none'));
+            tr.querySelectorAll('.edit-mode').forEach(el => el.classList.add('d-none'));
+            tr.querySelector('.btn-editar').innerHTML = 'Editar';
+            tr.querySelector('.btn-editar').classList.remove('btn-primary');
+            tr.querySelector('.btn-editar').classList.add('btn-success');
+            tr.querySelector('.btn-cancelar').classList.add('d-none');
+        }
+    });
+});
