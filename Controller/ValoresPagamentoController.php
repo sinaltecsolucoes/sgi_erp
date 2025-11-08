@@ -22,11 +22,9 @@ class ValoresPagamentoController extends AppController
     public function index()
     {
         $valores = $this->valPagModel->buscarTodos();
-        // $tipo_usuario = $_SESSION['funcionario_tipo'] ?? 'convidado';
 
         $dados = [
             'valores' => $valores,
-            //'pode_editar' => Acl::check('ValoresPagamentoController@cadastro', $tipo_usuario)
             'pode_editar' => true
         ];
 
@@ -40,42 +38,10 @@ class ValoresPagamentoController extends AppController
      * Formulário de cadastro/edição
      * Rota: /admin/valores-pagamento/cadastro?id=X
      */
-    /* public function cadastro()
-    {
-        $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-        $valor_existente = null;
-        $tipo_usuario = $_SESSION['funcionario_tipo'] ?? 'convidado';
-
-        if ($id) {
-            $valor_existente = $this->valPagModel->buscarPorId($id);
-            if (!$valor_existente) {
-                $_SESSION['erro'] = 'Valor não encontrado.';
-                header('Location: /sgi_erp/admin/valores-pagamento');
-                exit();
-            }
-        }
-
-        $acoes = $this->acaoModel->buscarTodas();
-        $tipos_produto = $this->tipoProdutoModel->buscarTodos();
-
-        $dados = [
-            'acoes' => $acoes,
-            'tipos_produto' => $tipos_produto,
-            'valor_existente' => $valor_existente,
-            'pode_editar' => Acl::check('ValoresPagamentoController@cadastro', $tipo_usuario)
-        ];
-
-        $title = $id ? "Editar Valor de Pagamento" : "Novo Valor de Pagamento";
-        $content_view = ROOT_PATH . 'View' . DS . 'valores_pagamento_cadastro.php';
-
-        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
-    } */
-
     public function cadastro()
     {
         $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
         $valor_existente = null;
-        //$tipo_usuario = $_SESSION['funcionario_tipo'] ?? 'convidado';
 
         if ($id) {
             $valor_existente = $this->valPagModel->buscarPorId($id);
@@ -93,7 +59,6 @@ class ValoresPagamentoController extends AppController
             'acoes' => $acoes,
             'tipos_produto' => $tipos_produto,
             'valor_existente' => $valor_existente,
-            //'pode_editar' => Acl::check('ValoresPagamentoController@cadastro', $tipo_usuario)
             'pode_editar' => true
         ];
 

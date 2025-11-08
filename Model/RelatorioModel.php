@@ -61,7 +61,7 @@ class RelatorioModel
         p.quantidade_kg,
         p.hora_inicio,
         p.hora_fim,
-        vp.valor_por_kg
+        vp.valor_por_quilo
     FROM producao p
     JOIN funcionarios f ON p.funcionario_id = f.id
     JOIN acoes a ON p.acao_id = a.id
@@ -89,7 +89,12 @@ class RelatorioModel
       $data = $l->data;
       $fid = $l->funcionario_id;
       $nome = $l->funcionario_nome;
-      $valor = $l->quantidade_kg * $l->valor_por_kg;
+      //$valor = $l->quantidade_kg * $l->valor_por_kg;
+
+      // Usa '?? 0' para garantir que se for NULL, o valor seja zero.
+      $valor_por_kg = $l->valor_por_kg ?? 0;
+      $valor = $l->quantidade_kg * $valor_por_kg; // Agora multiplica por um valor seguro (0 ou o preço)
+
       $horas = $this->calcularHorasDecimais($l->hora_inicio, $l->hora_fim);
 
       // Inicializa funcionário
@@ -242,7 +247,7 @@ class RelatorioModel
     return [
       'matriz' => $matriz,
       'detalhes' => $detalhes,
-      'ids' => $ids,                    // NOVO: IDs pra edição
+      'ids' => $ids,                    // IDs pra edição
       'datas' => $datas,
       'total_por_dia' => $total_por_dia,
       'total_geral' => array_sum($total_por_dia)
@@ -263,7 +268,7 @@ class RelatorioModel
       $func_id = $u['funcionario_id'] ?? null;
       $tipo_id = $u['tipo_produto_id'] ?? null;
 
-      // === NORMALIZAÇÃO ROBUSTA DE VALORES (aceita 5.000, 5,000, 5000, etc.) ===
+      // === NORMALIZAÇÃO DE VALORES (aceita 5.000, 5,000, 5000, etc.) ===
       $valorStr = trim($u['quantidade_kg'] ?? $u['valor'] ?? '0'); // Aceita os dois nomes por segurança
 
       if ($valorStr === '' || $valorStr === '-' || $valorStr === '0' || $valorStr === '0,000' || $valorStr === '0.000') {

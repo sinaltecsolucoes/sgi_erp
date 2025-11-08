@@ -19,13 +19,6 @@ class ProducaoController extends AppController
         $this->tipoProdutoModel = new TipoProdutoModel();
         $this->producaoModel = new ProducaoModel();
         $this->funcionarioModel = new FuncionarioModel();
-
-        // Regra de Negócio: Apenas apontadores
-        /* if ($_SESSION['funcionario_tipo'] !== 'apontador') {
-            $_SESSION['erro'] = 'Acesso negado. Apenas Apontadores podem lançar a produção.';
-            header('Location: /sgi_erp/dashboard');
-            exit();
-        } */
     }
 
     /**
@@ -79,7 +72,7 @@ class ProducaoController extends AppController
             exit();
         }
 
-        // NOVO: Tenta ler o JSON (requisição do producao-editar-dia.js)
+        //Tenta ler o JSON (requisição do producao-editar-dia.js)
         $json_data = file_get_contents('php://input');
         $dados_post = json_decode($json_data, true);
 
@@ -117,7 +110,7 @@ class ProducaoController extends AppController
             // 3. Retorna o JSON e TERMINA A EXECUÇÃO
             header('Content-Type: application/json'); // Garante que o navegador saiba que é JSON
             echo json_encode($response);
-            exit(); // ⬅️ A LINHA ESSENCIAL QUE FALTAVA
+            exit();
         }
 
         // 1. Coleta e Sanitiza os dados do POST
@@ -217,7 +210,7 @@ class ProducaoController extends AppController
      * Processa o formulário de lançamento em massa
      * Rota: /producao/massa/salvar
      */
-   /* public function salvarMassa()
+    public function salvarMassa()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: /sgi_erp/producao/massa');
@@ -293,9 +286,9 @@ class ProducaoController extends AppController
 
         header('Location: /sgi_erp/producao/massa');
         exit();
-    } */
+    }
 
-   /* public function editarMassa()
+    /* public function editarMassa()
     {
         $data_selecionada = $_GET['data'] ?? date('Y-m-d');
 
@@ -363,7 +356,7 @@ class ProducaoController extends AppController
         require_once ROOT_PATH . 'View/template/main.php';
     } */
 
-   /* public function salvarMassaEdit()
+    /* public function salvarMassaEdit()
     {
         $data = $_POST['data'] ?? '';
         $acao_id = $_POST['acao_id'] ?? 0;
@@ -442,13 +435,13 @@ class ProducaoController extends AppController
             $data = date('Y-m-d');
         }
 
-        // 2. Validação/Sanitização da data (Ajustada)
+        // 2. Validação/Sanitização da data 
         // Se a data não for um formato YYYY-MM-DD válido, volta para a data atual.
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data)) {
             // Em vez de só redefinir a variável local $data, 
             // precisamos ter certeza que a view recebe o valor correto.
             $data = date('Y-m-d');
-            // OPTIONAL: Se quiser informar o erro de data para o usuário
+            // Se quiser informar o erro de data para o usuário
             if (isset($_GET['data'])) { // Só se a data foi enviada e estava errada
                 $_SESSION['erro'] = 'Data informada é inválida. Exibindo dados da data atual.';
             }

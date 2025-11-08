@@ -99,7 +99,7 @@ class AcaoModel
     }
 
     /**
-     * Exclui uma ação (opcional - para futuro)
+     * Exclui uma ação 
      */
     public function excluir($id)
     {

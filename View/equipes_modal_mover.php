@@ -1,6 +1,5 @@
 <?php
 // View/equipes_modal_mover.php
-// Versão SIMPLIFICADA e CORRETA
 
 $base_url = '/sgi_erp';
 $equipeModel = new EquipeModel();

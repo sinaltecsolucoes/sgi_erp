@@ -61,7 +61,7 @@ $produto_id = $valor_existente->tipo_produto_id ?? '';
                                 class="form-control money-mask"
                                 id="valor_por_quilo"
                                 name="valor_por_quilo"
-                                required 
+                                required
                                 value="<?php echo $is_editing ? htmlspecialchars(number_format($valor, 2, ',', '.')) : ''; ?>"
                                 placeholder="Ex: 5,50">
                         </div>

@@ -50,8 +50,6 @@ class ProducaoModel
 
             return $stmt->execute();
         } catch (PDOException $e) {
-            // Em caso de erro na consulta, logar ou tratar.
-            // echo "Erro ao registrar produção: " . $e->getMessage();
             return false;
         }
     }

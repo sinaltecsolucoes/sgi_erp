@@ -98,7 +98,7 @@ class AcaoController extends AppController
     }
 
     /**
-     * Exclusão (opcional - adicione botão na view se quiser)
+     * Exclusão
      */
     public function excluir()
     {

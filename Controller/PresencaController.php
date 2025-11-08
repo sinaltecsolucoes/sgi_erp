@@ -13,13 +13,6 @@ class PresencaController extends AppController
 
         $this->funcionarioModel = new FuncionarioModel();
         $this->presencaModel = new PresencaModel();
-
-        // OPÇÃO: Rejeitar se não for 'apontador'
-      /*  if ($_SESSION['funcionario_tipo'] !== 'apontador') {
-            $_SESSION['erro'] = 'Apenas Apontadores podem fazer a chamada.';
-            header('Location: /sgi_erp/dashboard');
-            exit();
-        }*/
     }
 
     /**

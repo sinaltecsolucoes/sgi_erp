@@ -13,7 +13,6 @@ $nome_equipe_atual = $equipe['nome'] ?? ('Equipe ' . date('d/m'));
 // Verifica se a lista de funcionários na equipe tem o ID, para marcar o switch como 'checked'
 function is_funcionario_in_equipe($id, $funcionariosNaEquipe)
 {
-    // Note: $funcionariosNaEquipe agora é um array simples de IDs (inteiros)
     return in_array((int)$id, $funcionariosNaEquipe);
 }
 ?>
@@ -60,9 +59,6 @@ function is_funcionario_in_equipe($id, $funcionariosNaEquipe)
                                         $id = $funcionario->id;
                                         $nome = htmlspecialchars($funcionario->nome);
                                         $checked = is_funcionario_in_equipe($id, $funcionariosNaEquipe);
-
-                                        // As classes iniciais não precisam mais de PHP, pois o JS faz isso no load.
-                                        // Mantemos apenas os IDs e data-id para o JS (equipes-interatividade.js) funcionar
                                     ?>
 
                                         <label class="list-group-item d-flex justify-content-between align-items-center" id="row-equipe-<?php echo $id; ?>">

@@ -7,16 +7,12 @@ class AppController
 
     public function __construct()
     {
-        // Regra de Ouro: Proteger as rotas!
         // Verifica se a sessão 'logado' existe e é verdadeira
         if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true) {
             // Se não estiver logado, redireciona para o login (sgi_erp é o nome do projeto web)
             header('Location: /sgi_erp/');
             exit();
         }
-
-        // Futuramente, aqui podemos adicionar checagens de permissão
-        // Ex: if ($_SESSION['funcionario_tipo'] !== 'apontador') { ... redireciona }
     }
 
     /**
@@ -25,7 +21,7 @@ class AppController
      */
     public function index()
     {
-        // NOVO: Instanciar Models necessários
+        // Instanciar Models necessários
         $funcionarioModel = new FuncionarioModel();
         $producaoModel = new ProducaoModel();
 
@@ -37,7 +33,6 @@ class AppController
         $dados = [
             'totalPresentes' => $totalPresentes,
             'producaoTotal' => $producaoTotal,
-            // Outros dados futuros viriam aqui
         ];
 
         // Define as variáveis que serão usadas pelo template/main.php

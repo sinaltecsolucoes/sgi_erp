@@ -42,9 +42,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 tr.querySelectorAll('.view-mode').forEach(el => el.classList.add('d-none'));
                 tr.querySelectorAll('.edit-mode').forEach(el => el.classList.remove('d-none'));
 
-                // AQUI NÃO FAZ MAIS NADA COM O VALUE DOS SELECTS
-                // Porque o PHP já deixou o "selected" certinho!
-
                 btnEditar.innerHTML = 'Salvar';
                 btnEditar.classList.remove('btn-success');
                 btnEditar.classList.add('btn-primary');

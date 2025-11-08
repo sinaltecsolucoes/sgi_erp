@@ -1,8 +1,41 @@
-// public/js/relatorios-interatividade.js (REFINADO - Corrige duplicação, totais e novos IDs)
+// public/js/relatorios-interatividade.js
 $(document).ready(function () {
     let ultimoBackup = null; // Para "Desfazer"
 
-    // MÁSCARA BRASILEIRA
+    /**
+     * Função auxiliar para formatar valores numéricos com base na unidade global.
+     * A variável 'unidadeMedida' é definida em cada View PHP ('R$' ou 'KG').
+     * @param {number} numero - O valor a ser formatado.
+     * @returns {string} O valor formatado (Ex: "R$ 10,00" ou "5,000 kg").
+     */
+    function formatarTotal(numero) {
+        if (typeof numero !== 'number' || isNaN(numero) || numero === 0) {
+            return '';
+        }
+
+        const unidade = typeof unidadeMedida !== 'undefined' ? unidadeMedida : 'R$';
+
+        let decimais;
+        let prefixo = '';
+        let sufixo = '';
+
+        if (unidade === 'KG') {
+            decimais = 3; // 3 casas decimais para KG
+            sufixo = ' kg';
+        } else { // Assume 'R$' ou qualquer outro
+            decimais = 2; // 2 casas decimais para Moeda
+            prefixo = 'R$ ';
+        }
+
+        const valorFormatado = numero.toLocaleString('pt-BR', {
+            minimumFractionDigits: decimais,
+            maximumFractionDigits: decimais
+        });
+
+        return prefixo + valorFormatado + sufixo;
+    }
+
+    // MÁSCARA BRASILEIRA (para entrada de usuário)
     $(document).on('input', '.input-edicao', function () {
         let v = this.value.replace(/\D/g, '');
         v = v.replace(/(\d)(\d{3})$/, '$1,$2');
@@ -26,7 +59,14 @@ $(document).ready(function () {
         $container.find('.celula-valor').each(function () {
             const $cell = $(this);
             const texto = $cell.find('.valor-exibicao').text().trim();
-            const num = texto === '-' || texto === '' ? 0 : parseFloat(texto.replace(/\./g, '').replace(',', '.')) || 0;
+
+            // Remove R$ ou KG e converte para número
+            let num = 0;
+            if (texto && texto !== '-') {
+                // Remove R$ e KG (se for o caso)
+                let textoLimpo = texto.replace('R$', '').replace('kg', '').trim();
+                num = parseFloat(textoLimpo.replace(/\./g, '').replace(',', '.')) || 0;
+            }
 
             ultimoBackup.push({
                 id: $cell.data('id'),
@@ -35,7 +75,13 @@ $(document).ready(function () {
             });
 
             $cell.data('original', num);
-            $cell.find('.input-edicao').val(num > 0 ? num.toFixed(3).replace('.', ',') : '');
+
+            // Define quantas casas decimais mostrar no input
+            let casasDecimais = (typeof unidadeMedida !== 'undefined' && unidadeMedida === 'KG') ? 3 : 2;
+
+            // Formata o valor para o input (usando vírgula como decimal)
+            const valorInput = num > 0 ? num.toFixed(casasDecimais).replace('.', ',') : '';
+            $cell.find('.input-edicao').val(valorInput);
         });
 
         $container.find('.valor-exibicao').hide();
@@ -58,7 +104,7 @@ $(document).ready(function () {
 
         ultimoBackup.forEach(u => {
             const $cell = $(`td[data-id="${u.id}"][data-data="${u.data}"]`);
-            const textoExibicao = u.original > 0 ? u.original.toLocaleString('pt-BR', { minimumFractionDigits: 3 }) : '-';
+            const textoExibicao = u.original > 0 ? formatarTotal(u.original) : '-';
             $cell.find('.valor-exibicao').text(textoExibicao).show();
             $cell.find('.input-edicao').val('').hide();
         });
@@ -68,8 +114,8 @@ $(document).ready(function () {
     });
 
     $(document).on('click', '.btn-salvar-produto', function () {
-        const $botaoSalvar = $(this); // ← GUARDA O BOTÃO
-        const $container = $botaoSalvar.closest('.detalhes-linha'); // ← LINHA CORRETA
+        const $botaoSalvar = $(this);
+        const $container = $botaoSalvar.closest('.detalhes-linha');
         const updates = [];
 
         $container.find('.celula-valor').each(function () {
@@ -78,26 +124,29 @@ $(document).ready(function () {
             let novoValor = 0;
 
             if (inputVal !== '' && inputVal !== '0,000') {
+                // Remove ponto de milhar e troca vírgula por ponto para float
                 novoValor = parseFloat(inputVal.replace(/\./g, '').replace(',', '.')) || 0;
             }
 
+            // Define casas decimais para comparação
+            let casasDecimaisComp = (typeof unidadeMedida !== 'undefined' && unidadeMedida === 'KG') ? 3 : 2;
+
             const original = $cell.data('original') || 0;
-            if (novoValor !== original) {
+            if (novoValor.toFixed(casasDecimaisComp) !== original.toFixed(casasDecimaisComp)) {
                 updates.push({
                     id: $cell.data('id') || 0,
+                    // Garante que enviamos com ponto como separador decimal para o PHP
                     quantidade_kg: novoValor.toFixed(3),
                     data: $cell.data('data'),
                     funcionario_id: $cell.data('funcionario-id'),
                     tipo_produto_id: $cell.data('tipo-produto-id')
                 });
 
-                // Atualiza o data-original para evitar reenvio
                 $cell.data('original', novoValor);
             }
         });
 
         if (updates.length === 0) {
-            // Se nada mudou, só fecha a edição
             $container.find('.valor-exibicao').show();
             $container.find('.input-edicao').hide();
             $container.find('.btn-salvar-produto, .btn-cancelar-produto, .btn-desfazer').hide();
@@ -126,12 +175,12 @@ $(document).ready(function () {
                     Swal.close();
 
                     if (res.success) {
-                        // === USA O $container CORRETO (do botão original) ===
                         $container.find('.celula-valor').each(function () {
                             const $cell = $(this);
                             const valorAtual = $cell.data('original') || 0;
+
                             const texto = valorAtual > 0
-                                ? parseFloat(valorAtual).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+                                ? formatarTotal(valorAtual) // Usa a função dinâmica
                                 : '-';
 
                             // VOLTA PARA LABEL
@@ -151,8 +200,7 @@ $(document).ready(function () {
                             }
                         });
 
-                        // Recalcula totais
-                        calcularTotais();
+                        calcularTotais(); // Recalcula totais
 
                         // Restaura botões
                         $container.find('.btn-salvar-produto, .btn-cancelar-produto, .btn-desfazer').hide();
@@ -177,7 +225,7 @@ $(document).ready(function () {
         });
     });
 
-    // EXCLUIR LINHA (refinado: confirma e remove seletivamente)
+    // EXCLUIR LINHA 
     $(document).on('click', '.btn-excluir-linha', function () {
         const $row = $(this).closest('tr');
         const ids = [];
@@ -232,63 +280,18 @@ $(document).ready(function () {
         });
     });
 
-    // RECALCULAR TOTAIS (REFINADO: Só soma células visíveis/não-zero + parse robusto)
-    /*  window.calcularTotais = function () {
-          let totalGeral = 0;
-  
-          // 1. Atualiza TOTAL POR FUNCIONÁRIO
-          $('.funcionario-linha').each(function () {
-              const $linhaFunc = $(this);
-              const $detalhe = $linhaFunc.next('.detalhes-linha');
-              let somaFuncionario = 0;
-  
-              // Pega todas as células visíveis do funcionário (na linha de detalhes)
-              $detalhe.find('.celula-valor .valor-exibicao').each(function () {
-                  const texto = $(this).text().trim();
-                  if (texto !== '' && texto !== '-' && texto !== '0,000') {
-                      const valor = parseFloat(texto.replace(/\./g, '').replace(',', '.')) || 0;
-                      somaFuncionario += valor;
-                  }
-              });
-  
-              // Atualiza o total na linha do funcionário
-              const $totalFunc = $linhaFunc.find('.total-funcionario');
-              const formatoFunc = somaFuncionario.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-              $totalFunc.text(formatoFunc);
-          });
-  
-          // 2. Atualiza TOTAL POR DIA (rodapé)
-          $('.total-dia').each(function (index) {
-              let somaDia = 0;
-              $(`.celula-valor:nth-child(${index + 2}) .valor-exibicao`).each(function () {
-                  const texto = $(this).text().trim();
-                  if (texto !== '' && texto !== '-' && texto !== '0,000') {
-                      const valor = parseFloat(texto.replace(/\./g, '').replace(',', '.')) || 0;
-                      somaDia += valor;
-                  }
-              });
-  
-              const formatoDia = somaDia.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-              $(this).text(formatoDia);
-              totalGeral += somaDia;
-          });
-  
-          // 3. Atualiza TOTAL GERAL
-          $('#total-geral').text(totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }));
-      }; */
-
+    // RECALCULAR TOTAIS 
     window.calcularTotais = function () {
         let totalGeral = 0;
 
-        // 1. ZERA TODOS OS TOTAIS VISÍVEIS (evita soma duplicada)
-        $('.total-dia').text('0,000');
-        $('.total-funcionario').text('0,000');
-        $('#total-geral').text('0,000');
+        // 1. ZERA TODOS OS TOTAIS VISÍVEIS (evita soma duplicada ao percorrer)
+        $('.total-dia').text('');
+        $('.total-funcionario').text('');
+        $('#total-geral').text('');
 
         // 2. ATUALIZA TOTAL POR DIA (rodapé) + TOTAL POR FUNCIONÁRIO (linha principal)
         $('.funcionario-linha').each(function () {
             const $linhaFunc = $(this);
-            const nomeFunc = $linhaFunc.find('td:first strong').text().trim();
             let somaFuncionario = 0;
 
             // Percorre cada coluna de data
@@ -299,46 +302,87 @@ $(document).ready(function () {
 
                 // Soma todos os valores editáveis dessa data (na linha de detalhes do mesmo funcionário)
                 const $detalhes = $linhaFunc.next('.detalhes-linha');
+
                 $detalhes.find(`.celula-valor[data-data="${data}"] .valor-exibicao`).each(function () {
-                    const texto = $(this).text().trim();
-                    if (texto && texto !== '-' && texto !== '0,000') {
-                        const valor = parseFloat(texto.replace(/\./g, '').replace(',', '.')) || 0;
+                    const textoCompleto = $(this).text().trim();
+
+                    // Remove 'R$ ' ou 'kg' para obter o número puro
+                    let textoLimpo = textoCompleto.replace('R$', '').replace('kg', '').trim();
+
+                    if (textoLimpo && textoLimpo !== '-') {
+                        // Converte para float: remove ponto de milhar e troca vírgula por ponto.
+                        const valor = parseFloat(textoLimpo.replace(/\./g, '').replace(',', '.')) || 0;
                         somaDia += valor;
                         somaFuncionario += valor;
                     }
                 });
 
                 // === ATUALIZA O TOTAL DO DIA NA LINHA DO FUNCIONÁRIO ===
-                const formatoDia = somaDia > 0
-                    ? somaDia.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
-                    : '';
+                const formatoDia = somaDia > 0 ? formatarTotal(somaDia) : '';
                 $celulaDia.text(formatoDia);
                 if (somaDia > 0) $celulaDia.addClass('text-success fw-bold');
                 else $celulaDia.removeClass('text-success fw-bold');
 
-                // === ATUALIZA O TOTAL DO DIA NO RODAPÉ ===
+                // === ATUALIZA O TOTAL DO DIA NO RODAPÉ (ACÚMULO) ===
                 const $totalDiaRodape = $('.total-dia').eq(index);
-                let totalAtualRodape = parseFloat($totalDiaRodape.text().replace(/\./g, '').replace(',', '.') || '0');
+
+                // Le o valor atual do rodapé
+                let textoRodape = $totalDiaRodape.text().replace('R$', '').replace('kg', '').trim();
+
+                // Converte o valor atual do rodapé para float (limpando a formatação)
+                let totalAtualRodape = parseFloat(textoRodape.replace(/\./g, '').replace(',', '.') || '0');
+
+                // Soma o total do dia do funcionário atual
                 totalAtualRodape += somaDia;
-                $totalDiaRodape.text(totalAtualRodape.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }));
+
+                // Escreve o valor acumulado, formatado novamente.
+                $totalDiaRodape.text(formatarTotal(totalAtualRodape));
             });
 
-            // === ATUALIZA TOTAL DO FUNCIONÁRIO ===
-            const formatoFunc = somaFuncionario.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+            // === ATUALIZA TOTAL DO FUNCIONÁRIO (LINHA PRINCIPAL) ===
+            const formatoFunc = formatarTotal(somaFuncionario);
             $linhaFunc.find('.total-funcionario').text(formatoFunc);
 
             // Acumula no total geral
             totalGeral += somaFuncionario;
         });
 
-        // === ATUALIZA TOTAL GERAL ===
-        $('#total-geral').text(totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }));
+        // === ATUALIZA TOTAL GERAL (RODAPÉ FINAL) ===
+        $('#total-geral').text(formatarTotal(totalGeral));
     };
 
     // Inicializa totais na carga da página
     calcularTotais();
 
-    // PDF & EXCEL (mantidos, assumindo funções existentes)
-    $('#btn-pdf').click(() => gerarPDF());
-    $('#btn-excel').click(() => exportarExcel());
+    /**
+     * Coleta os parâmetros de filtro e redireciona para a rota de impressão/exportação.
+     * @param {string} formato - 'pdf' ou 'excel'
+     */
+    function acionarExportacao(formato) {
+        const path = window.location.pathname;
+        const tipoRelatorio = path.split('/').pop();
+
+        // Coleta os valores de data (usando os inputs do filtro)
+        const dataInicio = $('input[name="ini"]').val();
+        const dataFim = $('input[name="fim"]').val();
+
+        if (!dataInicio || !dataFim) {
+            Swal.fire('Filtros obrigatórios', 'Selecione as datas de Início e Fim.', 'warning');
+            return;
+        }
+
+        const url = `/sgi_erp/relatorios/imprimir?tipo=${tipoRelatorio}&ini=${dataInicio}&fim=${dataFim}&formato=${formato}`;
+
+        // Abre em uma nova aba para não interromper a navegação
+        window.open(url, '_blank');
+    }
+
+    // PDF & EXCEL
+    $('#btn-pdf').off('click').on('click', function () {
+        acionarExportacao('pdf');
+    });
+
+    $('#btn-excel').off('click').on('click', function () {
+        acionarExportacao('excel');
+    });
 });

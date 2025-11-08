@@ -126,10 +126,8 @@ class FuncionarioModel
       }
       return false;
     } catch (PDOException $e) {
-      // ERRO: Captura erro de CPF duplicado (restrição UNIQUE)
       if ($e->getCode() === '23000') {
         return 'CPF_DUPLICADO';
-        //$_SESSION['erro'] = 'Erro: O CPF informado já está cadastrado no sistema.';
       } else {
         $_SESSION['erro'] = 'Erro interno ao salvar o funcionário.';
       }

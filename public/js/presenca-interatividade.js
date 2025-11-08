@@ -29,7 +29,7 @@ $(document).ready(function () {
     });
 
     /**
-     * Ajuste: Quando a página carrega, aplica as classes customizadas
+     * Quando a página carrega, aplica as classes customizadas
      * para garantir que a cor inicial esteja correta, caso o status
      * tenha sido carregado pelo PHP (vindo do banco de dados).
      */

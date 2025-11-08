@@ -116,7 +116,6 @@ $tipos_validos = ['admin', 'apontador', 'porteiro', 'producao', 'financeiro'];
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Biblioteca jquery.mask.min.js já está carregada no template main.php
         $('#cpf').mask('000.000.000-00', {
             reverse: true
         });

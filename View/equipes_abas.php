@@ -224,8 +224,6 @@ function renderizar_lista_funcionarios_disponiveis($lista)
 // Passamos os dados para os modais, garantindo que o escopo seja correto
 $dados_para_modais = $dados;
 
-// ATENÇÃO: Você DEVE criar os arquivos 'equipes_modal_edicao.php' e 'equipes_modal_mover.php' no diretório View/
-// Os includes foram movidos para FORA do loop para resolver o erro fatal.
 require_once 'equipes_modal_edicao.php';
 require_once 'equipes_modal_mover.php';
 ?>

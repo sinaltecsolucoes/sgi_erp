@@ -172,4 +172,5 @@
 
 <script>
     var relatorioDatas = <?= json_encode($dados['datas']) ?>;
+    var unidadeMedida = 'KG'; 
 </script>

@@ -26,8 +26,6 @@ class TipoProdutoModel
 
             return $stmt->fetchAll();
         } catch (PDOException $e) {
-            // Em caso de erro na consulta
-            // logar_erro($e->getMessage());
             return [];
         }
     }

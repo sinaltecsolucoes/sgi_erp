@@ -2,8 +2,7 @@
 // Define o Catálogo de Ações (Controller@Metodo) e a lógica de checagem. 
 class Acl
 { // Lista completa de todas as ações/métodos (Rotas que precisam de checagem) 
-    private static $catalogo_acoes = [ // Login e Logout são públicos (não precisam estar aqui, mas ajuda na clareza) 
-        // 'LoginController@sair' => 'Acesso para Sair', 
+    private static $catalogo_acoes = [  
         // Rotas Principais (Dashboard) 
         'AppController@index' => 'Visualizar Dashboard',
         'MeuPainelController@index' => 'Visualizar Painel Pessoal',
@@ -75,7 +74,7 @@ class Acl
      * @return bool TRUE se permitido, FALSE caso contrário.     * 
      */
     public static function check($action, $tipo)
-    { // Regra de Ouro: O ADMIN TEM ACESSO TOTAL SEMPRE! 
+    { // O ADMIN TEM ACESSO TOTAL SEMPRE! 
         if ($tipo === 'admin') {
             return true;
         } // Se a ação não está no nosso catálogo, é uma rota que não precisa de checagem (ou está mal configurada), então bloqueamos. 

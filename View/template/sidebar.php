@@ -11,8 +11,6 @@ $current_route = str_replace($base_url, '', $current_url);
 // Função auxiliar para checar se a rota atual corresponde a um link
 function is_active($route, $current_route)
 {
-    // Retorna 'active' se a rota atual começar com a rota do link (ex: /admin/funcionarios/cadastro é ativo em /admin/funcionarios)
-    // O SB Admin usa a classe 'active' também nos colapsos (nav-link) para mantê-los abertos se um sublink estiver ativo.
     return (strpos($current_route, $route) === 0) ? 'active' : '';
 }
 
@@ -84,12 +82,6 @@ function is_group_active($routes_array, $current_route)
                             $is_active = is_active($route, $current_route); ?>
                             <?php if (Acl::check('ProducaoController@massa', $tipo_usuario)): ?>
                                 <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Lançar Prod. em Massa</a>
-                            <?php endif; ?>
-
-                            <?php $route = '/producao/editar-massa';
-                            $is_active = is_active($route, $current_route); ?>
-                            <?php if (Acl::check('ProducaoController@editarMassa', $tipo_usuario)): ?>
-                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Editar Produção em Massa</a>
                             <?php endif; ?>
 
                             <?php $route = '/producao/editar-dia';
@@ -191,12 +183,6 @@ function is_group_active($routes_array, $current_route)
                             $is_active = is_active($route, $current_route); ?>
                             <?php if (Acl::check('RelatorioController@quantidades', $tipo_usuario)): ?>
                                 <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Quantidades Produzidas (Kg)</a>
-                            <?php endif; ?>
-
-                            <?php $route = '/relatorios/servicos';
-                            $is_active = is_active($route, $current_route); ?>
-                            <?php if (Acl::check('RelatorioController@servicos', $tipo_usuario)): ?>
-                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Serviços / Diárias (Apoio)</a>
                             <?php endif; ?>
 
                         </nav>

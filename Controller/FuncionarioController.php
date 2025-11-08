@@ -76,7 +76,6 @@ class FuncionarioController extends AppController
         $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
         $nome = trim(filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_STRING));
         $nome = mb_strtoupper($nome, 'UTF-8'); // Aplica a conversão para maiúsculas
-       // $nome = trim(filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_STRING));
         $cpf_mascarado = trim(filter_input(INPUT_POST, 'cpf', FILTER_SANITIZE_STRING)); // Captura o CPF
 
         // Limpeza da Máscara para salvar APENAS números no banco
@@ -102,10 +101,6 @@ class FuncionarioController extends AppController
         ];
 
         // 2. Salva o Funcionário (INSERT/UPDATE)
-        /*  $funcionario_id = $this->funcionarioModel->salvar($dados_funcionario);
-
-        if ($funcionario_id) {*/
-
         $resultado_salvar = $this->funcionarioModel->salvar($dados_funcionario);
 
         if ($resultado_salvar === 'CPF_DUPLICADO') {

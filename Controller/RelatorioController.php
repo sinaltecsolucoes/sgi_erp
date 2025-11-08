@@ -11,6 +11,7 @@ class RelatorioController extends AppController
     {
         parent::__construct();
         $this->relatorioModel = new RelatorioModel();
+        require_once ROOT_PATH . 'public' . DS . 'libs' . DS . 'dompdf' . DS . 'vendor' . DS . 'autoload.php';
     }
 
     private function coletarFiltro()
@@ -54,7 +55,7 @@ class RelatorioController extends AppController
         $dados = [
             'matriz' => $relatorio['matriz'],
             'detalhes' => $relatorio['detalhes'],
-            'ids' => $relatorio['ids'],           // ESSA LINHA!
+            'ids' => $relatorio['ids'],
             'datas' => $relatorio['datas'],
             'total_por_dia' => $relatorio['total_por_dia'],
             'total_geral' => $relatorio['total_geral'],
@@ -92,8 +93,6 @@ class RelatorioController extends AppController
 
         $updates = $data['updates'];
 
-        // REFINAMENTO: Removido o código de busca por nome. 
-        // Agora, validamos se os IDs necessários (enviados pelo JS) estão presentes.
         foreach ($updates as &$up) {
             // 1. Renomeia 'quantidade_kg' para 'valor' para o Model
             $up['valor'] = $up['quantidade_kg'] ?? 0;
@@ -113,11 +112,7 @@ class RelatorioController extends AppController
             }
             // Se o lançamento é UPDATE (id > 0), o Model só precisa do id e valor. 
             // O Model já está preparado para lidar com IDs nulos/zero, mas é bom ter o func_id/tipo_id.
-
-            // *Opcional: Se for um UPDATE (id>0), não precisamos dos FKs.
-            // Para simplificar, vamos manter a validação mínima (só para novos).
         }
-        // *Note: A variável $up é por referência, então o array $updates agora tem a chave 'valor'.
 
         $result = $this->relatorioModel->atualizarLancamentos($updates);
 
@@ -125,7 +120,7 @@ class RelatorioController extends AppController
             'success' => $result['success'],
             'message' => $result['msg'],
             'errors' => $result['erros'],
-            'novos_ids' => $result['novos_ids'] // *** MUDANÇA AQUI: Repassa a lista de novos IDs ***
+            'novos_ids' => $result['novos_ids'] // *** Repassa a lista de novos IDs ***
         ]);
         exit;
     }
@@ -183,5 +178,192 @@ class RelatorioController extends AppController
         ];
 
         require_once ROOT_PATH . 'View/template/main.php';
+    }
+
+    // === RELATÓRIO DE PRODUTIVIDADE ===
+    public function produtividade()
+    {
+        $hoje = new DateTime();
+        $data_inicio = $_GET['ini'] ?? $hoje->format('Y-m-01');
+        $data_fim = $_GET['fim'] ?? $hoje->format('Y-m-t');
+
+        if (strtotime($data_inicio) > strtotime($data_fim)) {
+            $_SESSION['erro'] = "Data inicial não pode ser maior que data final.";
+            header('Location: /sgi_erp/relatorios/produtividade');
+            exit;
+        }
+
+        // 1. Usa a função que busca o relatório completo (que já calcula a produtividade)
+        $relatorio = $this->relatorioModel->gerarRelatorioCompleto($data_inicio, $data_fim);
+
+        $title = "ANÁLISE DE PRODUTIVIDADE/HORA - PERÍODO: " .
+            date('d/m/Y', strtotime($data_inicio)) . " - " .
+            date('d/m/Y', strtotime($data_fim));
+
+        $content_view = ROOT_PATH . 'View/relatorio_produtividade.php';
+
+        $dados = [
+            // Passa apenas o bloco de produtividade necessário, além das datas de filtro
+            'produtividade' => $relatorio['produtividade'],
+            'data_inicio' => $data_inicio,
+            'data_fim' => $data_fim,
+        ];
+
+        require_once ROOT_PATH . 'View/template/main.php';
+    }
+
+    /**
+     * Gera e envia o relatório em formato PDF ou Excel.
+     * Rota: /relatorios/imprimir
+     */
+    public function imprimir()
+    {
+        // 1. Coleta e valida filtros básicos
+        $data_inicio = $_GET['ini'] ?? date('Y-m-01');
+        $data_fim = $_GET['fim'] ?? date('Y-m-t');
+        $tipo_relatorio = $_GET['tipo'] ?? 'pagamentos'; // 'pagamentos', 'quantidades' ou 'produtividade'
+        $formato = $_GET['formato'] ?? 'pdf'; // 'pdf' ou 'excel'
+
+        if (strtotime($data_inicio) > strtotime($data_fim)) {
+            $_SESSION['erro'] = "Data inicial não pode ser maior que data final.";
+            header('Location: /sgi_erp/relatorios/' . $tipo_relatorio);
+            exit;
+        }
+
+        // 2. Busca os dados com base no tipo de relatório
+        $relatorio = [];
+        $view_path = '';
+        $relatorio_title = '';
+
+        if ($tipo_relatorio === 'pagamentos') {
+            $relatorio = $this->relatorioModel->getValoresFinanceirosDiaADia($data_inicio, $data_fim);
+            $relatorio_title = "RELATÓRIO FINANCEIRO - VALORES A PAGAR";
+            $view_path = ROOT_PATH . 'View/relatorio_pagamento_pdf.php';
+        } elseif ($tipo_relatorio === 'quantidades') {
+            $relatorio = $this->relatorioModel->getQuantidadesDiaADia($data_inicio, $data_fim);
+            $relatorio_title = "RELATÓRIO DE PRODUÇÃO - QUANTIDADES (KG)";
+            $view_path = ROOT_PATH . 'View/relatorio_quantidades_pdf.php';
+        } elseif ($tipo_relatorio === 'produtividade') {
+            // Produtividade usa o método completo para obter a produtividade (kg/h)
+            $relatorio = $this->relatorioModel->gerarRelatorioCompleto($data_inicio, $data_fim);
+            // Renomeia o array principal para 'produtividade' para a View
+            $relatorio['produtividade_data'] = $relatorio['produtividade'];
+            $relatorio_title = "ANÁLISE DE PRODUTIVIDADE/HORA";
+            $view_path = ROOT_PATH . 'View/relatorio_produtividade.php'; // Reusa a view original
+        } else {
+            $_SESSION['erro'] = "Tipo de relatório inválido.";
+            header('Location: /sgi_erp/dashboard');
+            exit;
+        }
+
+        // 3. Monta o array $dados
+        $dados = array_merge($relatorio, [
+            'data_inicio' => $data_inicio,
+            'data_fim' => $data_fim
+        ]);
+        $title = $relatorio_title . " - PERÍODO: " . date('d/m/Y', strtotime($data_inicio)) . " - " . date('d/m/Y', strtotime($data_fim));
+
+        // 4. Processamento da Exportação
+        if ($formato === 'pdf') {
+            $this->gerarPDF($view_path, $title, $dados, $tipo_relatorio);
+        } elseif ($formato === 'excel') {
+            $this->gerarExcel($relatorio, $tipo_relatorio, $data_inicio, $data_fim);
+        } else {
+            $_SESSION['erro'] = "Formato de exportação inválido.";
+            header('Location: /sgi_erp/relatorios/' . $tipo_relatorio);
+            exit;
+        }
+    }
+
+    /**
+     * Função que renderiza e envia o PDF (usando Dompdf).
+     */
+    private function gerarPDF($view_path, $title, $dados, $tipo_relatorio)
+    {
+        // Certifica-se que as variáveis do array $dados estão disponíveis na View
+        extract($dados);
+
+        // 1. Captura o HTML da View
+        ob_start();
+        if ($tipo_relatorio === 'produtividade') {
+            // Produtividade reusa a view original e usa o array 'produtividade_data'
+            $dados['produtividade'] = $dados['produtividade_data'];
+            require ROOT_PATH . 'View/relatorio_produtividade.php';
+        } else {
+            // Pagamentos/Quantidades usam o layout de impressão simplificado
+            require $view_path;
+        }
+        $html = ob_get_clean();
+
+        // 2. Configura e gera o Dompdf
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Arial'); // Fonte simples para garantir compatibilidade
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape'); // Layout paisagem ideal
+        $dompdf->render();
+
+        // 3. Envia o PDF para o navegador
+        $filename = "Relatorio_{$tipo_relatorio}_" . date('Ymd_His') . ".pdf";
+        $dompdf->stream($filename, ["Attachment" => true]);
+        exit;
+    }
+
+    /**
+     * Função que gera e envia a exportação para Excel (via HTML).
+     */
+    private function gerarExcel($relatorio, $tipo_relatorio, $data_inicio, $data_fim)
+    {
+        // 1. Define o caminho da View de impressão com base no tipo
+        if ($tipo_relatorio === 'pagamentos') {
+            $view_path = ROOT_PATH . 'View/relatorio_pagamento_pdf.php';
+            $relatorio_title = "RELATÓRIO FINANCEIRO - VALORES A PAGAR";
+        } elseif ($tipo_relatorio === 'quantidades') {
+            $view_path = ROOT_PATH . 'View/relatorio_quantidades_pdf.php';
+            $relatorio_title = "RELATÓRIO DE PRODUÇÃO - QUANTIDADES (KG)";
+        } elseif ($tipo_relatorio === 'produtividade') {
+            $view_path = ROOT_PATH . 'View/relatorio_produtividade.php';
+            $relatorio['produtividade'] = $relatorio['produtividade_data'];
+            $relatorio_title = "ANÁLISE DE PRODUTIVIDADE/HORA";
+        } else {
+            return;
+        }
+
+        // 2. Prepara variáveis para a View
+        $dados = array_merge($relatorio, [
+            'data_inicio' => $data_inicio,
+            'data_fim' => $data_fim
+        ]);
+        $title = $relatorio_title . " - PERÍODO: " . date('d/m/Y', strtotime($data_inicio)) . " - " . date('d/m/Y', strtotime($data_fim));
+
+        extract($dados);
+
+        // 3. Captura o HTML da View (o mesmo usado para PDF)
+        ob_start();
+        require $view_path;
+        $html = ob_get_clean();
+
+        // 4. Configura os Headers para o Excel entender que o conteúdo é uma tabela
+        header("Content-Type: application/vnd.ms-excel; charset=utf-8");
+        $filename = "Relatorio_{$tipo_relatorio}_" . date('Ymd_His') . ".xls";
+        header("Content-Disposition: attachment; filename=\"$filename\"");
+        header('Cache-Control: max-age=0');
+
+        // 5. Remove tags específicas do HTML que podem quebrar o Excel (como a barra lateral)
+        // E envia apenas o HTML puro da tabela.
+
+        // Se for produtividade, o HTML capturado já contém a tabela simples.
+        if ($tipo_relatorio === 'produtividade') {
+            $tabela_html = $html;
+        } else {
+            // Para pagamentos/quantidades, assumimos que a view de PDF tem a tabela limpa
+            // Se precisar isolar APENAS a tabela, ajuste este trecho:
+            $tabela_html = $html; // No momento, enviamos o HTML completo da view.
+        }
+
+        echo $tabela_html;
+        exit;
     }
 }

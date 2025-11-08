@@ -100,7 +100,7 @@ $(document).ready(function () {
         });
     }
 
-    // === EXCLUSÃO COM SWEETALERT (mantido) ===
+    // === EXCLUSÃO COM SWEETALERT  ===
     window.excluirEquipe = function (equipeId, nomeEquipe) {
         Swal.fire({
             title: `Excluir Equipe **${nomeEquipe}**?`,

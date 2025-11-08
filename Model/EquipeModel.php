@@ -19,45 +19,19 @@ class EquipeModel
    * @param string $nome Nome da equipe.
    * @return int|bool Retorna o ID da nova equipe ou FALSE em caso de falha.
    */
-  /* public function criarEquipe($apontador_id, $nome)
-    {
-        $query = "INSERT INTO {$this->table_equipes} (apontador_id, nome) VALUES (:apontador_id, :nome)";
-
-        try {
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':apontador_id', $apontador_id);
-            $stmt->bindParam(':nome', $nome);
-
-            if ($stmt->execute()) {
-                // Retorna o ID do registro que acabou de ser criado
-                return $this->db->lastInsertId();
-            }
-            return false;
-        } catch (PDOException $e) {
-            // Em caso de erro (ex: nome de equipe duplicado, se tivéssemos UNIQUE)
-            return false;
-        }
-    } */
-
-  /**
-   * Cria uma nova equipe sob a liderança do apontador.
-   * @param int $apontador_id ID do funcionário Apontador.
-   * @param string $nome Nome da equipe.
-   * @return int|bool Retorna o ID da nova equipe ou FALSE em caso de falha.
-   */
   public function criarEquipe($apontador_id, $nome)
   {
-    // NOVO: Usa a data atual para marcar a atividade da equipe
+    // Usa a data atual para marcar a atividade da equipe
     $data_hoje = date('Y-m-d');
 
     $query = "INSERT INTO {$this->table_equipes} (apontador_id, nome, data_atividade) 
-              VALUES (:apontador_id, :nome, :data_atividade)"; // Coluna adicionada
+              VALUES (:apontador_id, :nome, :data_atividade)";
 
     try {
       $stmt = $this->db->prepare($query);
       $stmt->bindParam(':apontador_id', $apontador_id);
       $stmt->bindParam(':nome', $nome);
-      $stmt->bindParam(':data_atividade', $data_hoje); // Bind da data de hoje
+      $stmt->bindParam(':data_atividade', $data_hoje);
 
       if ($stmt->execute()) {
         return $this->db->lastInsertId();
@@ -94,7 +68,6 @@ class EquipeModel
   {
     $hoje = date('Y-m-d');
 
-    // Filtra pela nova coluna data_atividade
     $query = "SELECT 
                 id, 
                 nome 
@@ -233,7 +206,6 @@ class EquipeModel
         return false; // Retorna false se falhar em algum
       }
     }
-
     return true;
   }
 
@@ -370,5 +342,4 @@ class EquipeModel
     $stmt->execute();
     return $stmt->fetchColumn() !== false;
   }
-  
 }

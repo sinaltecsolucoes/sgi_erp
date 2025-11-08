@@ -7,7 +7,7 @@ $erro = $dados['erro'] ?? '';
 $titulo_relatorio = $dados['titulo_relatorio'] ?? 'Relatório de Serviços - Diárias';
 $coluna_principal = $dados['coluna_principal'] ?? 'Valores (R$)';
 
-// Funções Auxiliares de Formatação (Assumindo que são definidas no escopo)
+// Funções Auxiliares de Formatação
 function formatarMoeda($valor)
 {
     return 'R$ ' . number_format($valor, 2, ',', '.');
