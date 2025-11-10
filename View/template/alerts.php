@@ -7,15 +7,13 @@ unset($_SESSION['sucesso']);
 unset($_SESSION['erro']);
 
 // Lógica de exibição com SweetAlert2
-if ($sucesso):
-?>
+if ($sucesso): ?>
     <script>
         Swal.fire({
             icon: 'success',
             title: 'Sucesso!',
             html: '<?php echo str_replace("\n", '<br>', htmlspecialchars($sucesso)); ?>',
-            showConfirmButton: false,
-            timer: 3500
+            showConfirmButton: true 
         });
     </script>
 <?php

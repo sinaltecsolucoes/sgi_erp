@@ -342,4 +342,43 @@ class EquipeModel
     $stmt->execute();
     return $stmt->fetchColumn() !== false;
   }
+
+  /**
+   * Busca a ID da equipe à qual um funcionário está alocado HOJE,
+   * criada pelo apontador logado.
+   * @param int $funcionario_id ID do funcionário.
+   * @param int $apontador_id ID do apontador logado (criador da equipe).
+   * @return int|bool Retorna o ID da equipe ou FALSE.
+   */
+  public function buscarEquipeDoFuncionarioHoje($funcionario_id, $apontador_id)
+  {
+    $hoje = date('Y-m-d');
+
+    // A query busca a equipe_id associada ao funcionario_id
+    // E garante que a equipe está ativa HOJE e foi criada pelo apontador_id
+    $query = "SELECT 
+                      e.id AS equipe_id 
+                    FROM 
+                      {$this->table_assoc} ef
+                    JOIN
+                      {$this->table_equipes} e ON ef.equipe_id = e.id
+                    WHERE
+                      ef.funcionario_id = :funcionario_id 
+                      AND e.data_atividade = :hoje 
+                      AND e.apontador_id = :apontador_id
+                    LIMIT 1";
+
+    try {
+      $stmt = $this->db->prepare($query);
+      $stmt->bindParam(':funcionario_id', $funcionario_id);
+      $stmt->bindParam(':hoje', $hoje);
+      $stmt->bindParam(':apontador_id', $apontador_id);
+      $stmt->execute();
+
+      return $stmt->fetchColumn(); // Retorna apenas o ID da equipe
+    } catch (PDOException $e) {
+      // Em caso de erro de DB, retorna falso
+      return false;
+    }
+  }
 }

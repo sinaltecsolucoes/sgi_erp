@@ -2,7 +2,6 @@
 // View/template/main.php
 // As variáveis $title, $content_view e $dados já devem estar definidas pelo Controller.
 
-// A variável deve apontar para a pasta 'dist'
 $theme_prefix = '/sgi_erp/public/theme/sb-admin-themewagon/dist';
 ?>
 <!DOCTYPE html>
@@ -17,13 +16,18 @@ $theme_prefix = '/sgi_erp/public/theme/sb-admin-themewagon/dist';
 
     <title>SGI ERP - <?php echo htmlspecialchars($title ?? 'Página Principal'); ?></title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- ====== CSS ====== -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="<?php echo $theme_prefix; ?>/css/styles.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="/sgi_erp/public/css/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
+    <!-- Font Awesome -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js" crossorigin="anonymous"></script>
+
+    <!-- SweetAlert2 (carregado no head para alerts.php funcionar) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="sb-nav-fixed">
@@ -31,7 +35,6 @@ $theme_prefix = '/sgi_erp/public/theme/sb-admin-themewagon/dist';
     <?php require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'topbar.php'; ?>
 
     <div id="layoutSidenav">
-
         <?php require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'sidebar.php'; ?>
 
         <div id="layoutSidenav_content">
@@ -43,6 +46,9 @@ $theme_prefix = '/sgi_erp/public/theme/sb-admin-themewagon/dist';
                     } else {
                         echo "<div class='alert alert-danger'>Erro: View <strong>" . htmlspecialchars($content_view) . "</strong> não encontrada.</div>";
                     }
+
+                    // Alertas globais (sucesso/erro/confirmação)
+                    require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'alerts.php';
                     ?>
                 </div>
             </main>
@@ -57,39 +63,68 @@ $theme_prefix = '/sgi_erp/public/theme/sb-admin-themewagon/dist';
                             <a href="#">Termos &amp; Condições</a>
                         </div>
                     </div>
+                </div>
             </footer>
         </div>
     </div>
 
+    <!-- ====== SCRIPTS (tudo no final) ====== -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+    <!-- Bootstrap 5.1.3 Bundle (ÚNICO E OFICIAL) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script src="<?php echo $theme_prefix; ?>/js/scripts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/sgi_erp/public/js/global-scripts.js"></script>
     <script src="/sgi_erp/public/js/presenca-interatividade.js"></script>
     <script src="/sgi_erp/public/js/equipes-interatividade.js"></script>
 
-    <<?php
-        // Carrega scripts específicos por página
-        $pode_editar = $dados['pode_editar'] ?? false;
-        $pagina_atual = $_SERVER['REQUEST_URI'] ?? '';
-        $is_relatorio = strpos($pagina_atual, '/relatorios/') !== false;
-        $is_acoes = strpos($pagina_atual, '/admin/acoes') !== false;
-        ?>
+    <?php
+    $pode_editar = $dados['pode_editar'] ?? false;
+    $pagina_atual = $_SERVER['REQUEST_URI'] ?? '';
+    $is_relatorio = strpos($pagina_atual, '/relatorios/') !== false;
+    $is_acoes = strpos($pagina_atual, '/admin/acoes') !== false;
+    ?>
 
-        <?php if ($pode_editar || $is_acoes): ?>
-        <script src="/sgi_erp/public/js/acao-interatividade.js">
-        </script>
+    <?php if ($pode_editar || $is_acoes): ?>
+        <script src="/sgi_erp/public/js/acao-interatividade.js"></script>
         <script src="/sgi_erp/public/js/valores-interatividade.js"></script>
     <?php endif; ?>
 
     <?php if ($is_relatorio): ?>
         <script src="/sgi_erp/public/js/relatorios-interatividade.js"></script>
     <?php endif; ?>
-    <?php require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'alerts.php'; ?>
-    <?php require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'logout_modal.php'; ?>
+
+    <?php if (strpos($pagina_atual, '/producao/editar-dia') !== false): ?>
+        <script src="/sgi_erp/public/js/producao-editar-dia.js"></script>
+    <?php endif; ?>
+
+    <?php if (strpos($pagina_atual, '/producao/massa') !== false): ?>
+        <script src="/sgi_erp/public/js/producao-massa-interatividade.js"></script>
+    <?php endif; ?>
+
+    <!-- MODAL DE LOGOUT (sempre único no projeto) -->
+    <?php include_once ROOT_PATH . 'View/template/logout_modal.php'; ?>
+
+    <!-- Proteção extra contra clique duplo no "Sair" -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modalEl = document.getElementById('logoutModal');
+            if (modalEl) {
+                modalEl.addEventListener('hidden.bs.modal', function() {
+                    // Remove TODOS os backdrops órfãos
+                    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                    // Remove classes do body
+                    document.body.classList.remove('modal-open');
+                    // Restaura scroll
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

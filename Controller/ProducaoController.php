@@ -117,9 +117,12 @@ class ProducaoController extends AppController
         $funcionario_id = filter_input(INPUT_POST, 'funcionario_id', FILTER_VALIDATE_INT);
         $acao_id = filter_input(INPUT_POST, 'acao_id', FILTER_VALIDATE_INT);
         $tipo_produto_id = filter_input(INPUT_POST, 'tipo_produto_id', FILTER_VALIDATE_INT);
-        $lote_produto = trim(filter_input(INPUT_POST, 'lote_produto', FILTER_SANITIZE_STRING));
-        $hora_inicio = trim(filter_input(INPUT_POST, 'hora_inicio', FILTER_SANITIZE_STRING));
-        $hora_fim = trim(filter_input(INPUT_POST, 'hora_fim', FILTER_SANITIZE_STRING));
+        //$lote_produto = trim(filter_input(INPUT_POST, 'lote_produto', FILTER_SANITIZE_STRING));
+        $lote_produto = filter_input(INPUT_POST, 'lote_produto', FILTER_DEFAULT);
+        //$hora_inicio = trim(filter_input(INPUT_POST, 'hora_inicio', FILTER_SANITIZE_STRING));
+        $hora_inicio = filter_input(INPUT_POST, 'hora_inicio', FILTER_DEFAULT);
+        //$hora_fim = trim(filter_input(INPUT_POST, 'hora_fim', FILTER_SANITIZE_STRING));
+        $hora_fim = filter_input(INPUT_POST, 'hora_fim', FILTER_DEFAULT);
         $quantidade_kg = filter_input(INPUT_POST, 'quantidade_kg', FILTER_VALIDATE_FLOAT);
 
         $apontador_id = $_SESSION['funcionario_id'];
@@ -171,7 +174,7 @@ class ProducaoController extends AppController
      * Exibe a interface de lançamento de produção em massa.
      * Rota: /producao/massa
      */
-    public function massa()
+    /* public function massa()
     {
         $apontador_id = $_SESSION['funcionario_id'];
 
@@ -204,13 +207,57 @@ class ProducaoController extends AppController
         $content_view = ROOT_PATH . 'View' . DS . 'producao_massa.php';
 
         require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
+    } */
+
+    /**
+     * Exibe a interface de lançamento de produção em massa no formato de ABAS.
+     * Rota: /producao/massa
+     */
+    public function massa()
+    {
+        $apontador_id = $_SESSION['funcionario_id'];
+
+        // 1. Buscar TODAS as equipes do apontador
+        $equipes = $this->equipeModel->buscarTodasEquipesDoApontador($apontador_id);
+
+        if (empty($equipes)) {
+            $_SESSION['erro'] = 'Você precisa montar uma equipe primeiro para lançar a produção.';
+            header('Location: /sgi_erp/equipes');
+            exit();
+        }
+
+        // 2. Buscar as opções (Ações e Produtos) para os dropdowns
+        $acoes = $this->acaoModel->buscarTodas();
+        $tipos_produto = $this->tipoProdutoModel->buscarTodos();
+
+        // 3. Estruturar os dados para a View de Abas
+        $equipes_com_membros = [];
+        foreach ($equipes as $equipe) {
+            $membros = $this->equipeModel->buscarFuncionariosDaEquipe($equipe->id);
+            // Armazena a lista de membros diretamente no objeto da equipe
+            $equipe->membros = $membros;
+            $equipes_com_membros[] = $equipe;
+        }
+
+        // 4. Preparar dados para a View
+        $dados = [
+            'equipes_do_apontador' => $equipes_com_membros, // Lista de equipes, cada uma com sua lista de membros
+            'acoes' => $acoes,
+            'tipos_produto' => $tipos_produto
+        ];
+
+        // Variáveis para o Template
+        $title = "Lançamento em Massa por Equipe (Abas)";
+        $content_view = ROOT_PATH . 'View' . DS . 'producao_massa_abas.php';
+
+        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
 
     /**
      * Processa o formulário de lançamento em massa
      * Rota: /producao/massa/salvar
      */
-    public function salvarMassa()
+    /* public function salvarMassa()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: /sgi_erp/producao/massa');
@@ -280,6 +327,104 @@ class ProducaoController extends AppController
             $_SESSION['sucesso'] = "Lançamento em massa concluído! Total de $registros_salvos registros salvos.";
         } elseif ($erros > 0) {
             $_SESSION['erro'] = "Nenhum registro salvo, mas ocorreram $erros erros no processamento.";
+        } else {
+            $_SESSION['erro'] = 'Nenhuma quantidade válida foi inserida.';
+        }
+
+        header('Location: /sgi_erp/producao/massa');
+        exit();
+    } */
+
+    /**
+     * Processa o formulário de lançamento em massa
+     * Rota: /producao/massa/salvar
+     */
+    public function salvarMassa()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /sgi_erp/producao/massa');
+            exit();
+        }
+
+        // 1. Coleta e Valida os dados comuns
+        $acao_id = filter_input(INPUT_POST, 'acao_id', FILTER_VALIDATE_INT);
+        $tipo_produto_id = filter_input(INPUT_POST, 'tipo_produto_id', FILTER_VALIDATE_INT);
+        $lote_produto = filter_input(INPUT_POST, 'lote_produto', FILTER_DEFAULT);
+        $hora_inicio = filter_input(INPUT_POST, 'hora_inicio', FILTER_DEFAULT);
+        $hora_fim = filter_input(INPUT_POST, 'hora_fim', FILTER_DEFAULT);
+        $apontador_id = $_SESSION['funcionario_id'];
+        $quantidades = $_POST['quantidades'] ?? []; // Array associativo: [funcionario_id => quantidade_kg]
+
+        // Usa as propriedades de classe (eliminando a redundância da instanciação manual)
+        $tipoProdutoModel = $this->tipoProdutoModel;
+        $erros_funcionarios = [];
+        $registros_salvos = 0;
+        $erros = 0;
+
+        // 2. Validação Básica dos campos globais
+        if (!$acao_id || !$tipo_produto_id || empty($hora_inicio) || empty($hora_fim)) {
+            $_SESSION['erro'] = 'Erro: Ação, Produto e Horário de Início/Fim são obrigatórios.';
+            header('Location: /sgi_erp/producao/massa');
+            exit();
+        }
+
+        // 3. Validação do Lote: Checar se é obrigatório (usa_lote = TRUE)
+        $tipoProduto = $tipoProdutoModel->buscarPorId($tipo_produto_id);
+
+        if (($tipoProduto->usa_lote ?? 1) && empty($lote_produto)) {
+            $_SESSION['erro'] = 'O Lote do Produto é obrigatório para este tipo de produto/serviço.';
+            header('Location: /sgi_erp/producao/massa');
+            exit();
+        }
+
+        // 4. Itera sobre as quantidades lançadas
+        foreach ($quantidades as $funcionario_id => $quantidade_str) {
+            $quantidade_kg = filter_var($quantidade_str, FILTER_VALIDATE_FLOAT);
+            $funcionario_id = (int)$funcionario_id; // Garante que é inteiro
+
+            if ($quantidade_kg > 0) {
+                // Buscar o ID da equipe correta para este funcionário
+                // Chama o método que deve estar no seu EquipeModel.php
+                $equipe_id = $this->equipeModel->buscarEquipeDoFuncionarioHoje($funcionario_id, $apontador_id);
+
+                if (!$equipe_id) {
+                    // Se o funcionário não estiver em uma equipe do apontador HOJE, registra o erro e pula.
+                    $erros++;
+                    $erros_funcionarios[] = "Funcionário #$funcionario_id (sem equipe válida)";
+                    continue;
+                }
+
+                // 5. Salva o lançamento (agora com o equipe_id correto)
+                if ($this->producaoModel->registrarLancamento(
+                    $funcionario_id,
+                    $acao_id,
+                    $tipo_produto_id,
+                    $lote_produto,
+                    $quantidade_kg,
+                    $equipe_id,
+                    $hora_inicio,
+                    $hora_fim
+                )) {
+                    $registros_salvos++;
+                } else {
+                    $erros++;
+                    $erros_funcionarios[] = "Funcionário #$funcionario_id (falha ao salvar)";
+                }
+            }
+        }
+
+        // 6. Feedback
+        if ($registros_salvos > 0) {
+            $msg = "Lançamento em massa concluído! Total de **$registros_salvos** registros salvos.";
+            if ($erros > 0) {
+                // Usa quebra de linha para o SweetAlert formatar como lista
+                $msg .= "\n\n**Aviso:** $erros registros não foram salvos ou não tinham equipe válida.";
+            }
+            $_SESSION['sucesso'] = $msg;
+        } elseif ($erros > 0) {
+            $msg_erro_detalhado = "Nenhum registro salvo. Ocorreram $erros erros:\n";
+            $msg_erro_detalhado .= implode("\n", array_unique($erros_funcionarios));
+            $_SESSION['erro'] = $msg_erro_detalhado;
         } else {
             $_SESSION['erro'] = 'Nenhuma quantidade válida foi inserida.';
         }
