@@ -266,4 +266,45 @@ class FuncionarioModel
 
     return $stmt->fetch();
   }
+
+  /**
+   * Busca todos os funcionários de produção, marcando se já fizeram a presença hoje.
+   * @return array Lista de objetos/arrays de funcionários com o campo 'esta_presente'.
+   */
+  public function buscarTodosComPresencaHoje()
+  {
+    $hoje = date('Y-m-d');
+    // Assumindo que a coluna 'tipo' é usada para filtrar funcionários de produção (Ex: tipo != 'porteiro' E tipo != 'admin')
+    // E assumindo que a tabela de presenças se chama 'presencas'
+
+    $query = "SELECT 
+                    f.id, 
+                    f.nome, 
+                    f.tipo,
+                    CASE 
+                        WHEN p.data = :hoje THEN 1
+                        ELSE 0
+                    END AS esta_presente 
+                  FROM 
+                    {$this->table_funcionarios} f
+                  LEFT JOIN 
+                    presencas p ON f.id = p.funcionario_id AND p.data = :hoje
+                  WHERE
+                    -- Filtra apenas os funcionários que devem fazer apontamento/presença (excluindo perfis de gestão)
+                    f.tipo != 'porteiro' AND f.tipo != 'admin'
+                  ORDER BY 
+                    f.nome ASC";
+
+    try {
+      $stmt = $this->db->prepare($query);
+      $stmt->bindParam(':hoje', $hoje);
+      $stmt->execute();
+      // Retorna um array de objetos ou arrays, dependendo da configuração PDO
+      return $stmt->fetchAll();
+    } catch (PDOException $e) {
+      // Em caso de erro, retorna um array vazio e registra o erro
+      error_log("Erro ao buscar funcionários para presença: " . $e->getMessage());
+      return [];
+    }
+  }
 }
