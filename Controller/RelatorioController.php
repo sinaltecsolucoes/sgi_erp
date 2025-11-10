@@ -207,6 +207,7 @@ class RelatorioController extends AppController
             'produtividade' => $relatorio['produtividade'],
             'data_inicio' => $data_inicio,
             'data_fim' => $data_fim,
+            'unidade_medida' => 'KG_H',
         ];
 
         require_once ROOT_PATH . 'View/template/main.php';
@@ -364,6 +365,18 @@ class RelatorioController extends AppController
         }
 
         echo $tabela_html;
+        exit;
+    }
+
+    /**
+     * Rota de fallback para /relatorios. Redireciona para o relatório de Quantidades.
+     * Rota: /relatorios
+     */
+    public function index()
+    {
+        // Redireciona para o relatório de quantidades como página padrão de relatórios
+        // O prefixo /sgi_erp/ é mantido para garantir que funcione no seu subdiretório
+        header('Location: /sgi_erp/relatorios/quantidades');
         exit;
     }
 }

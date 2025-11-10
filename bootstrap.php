@@ -22,7 +22,7 @@ $directories = [
 ];
 
 spl_autoload_register(function ($className) use ($directories) {
-    $file = $className . '.php';
+    $file = $className . '.php';    
 
     foreach ($directories as $directory) {
         $path = $directory . $file;
@@ -106,6 +106,7 @@ $routes = [
     '/admin/acoes/salvar' => 'AcaoController@salvar', // Salvar (POST)  
 
     // MÓDULO FINANCEIRO / RELATÓRIOS
+    '/relatorios' => 'RelatorioController@index', // <-- Rota para tratar o fallback
     '/relatorios/pagamentos' => 'RelatorioController@pagamentos', // Pagamento Total 
     '/relatorios/quantidades' => 'RelatorioController@quantidades', // Quantidades Produzidas
     '/relatorios/servicos' => 'RelatorioController@servicos', // Serviços/Diárias

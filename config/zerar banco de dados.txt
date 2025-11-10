@@ -1,0 +1,78 @@
+-- 1. Desativa temporariamente as foreign keys
+SET FOREIGN_KEY_CHECKS = 0;
+SET AUTOCOMMIT = 0;
+
+-- 2. Deleta tudo com DELETE (funciona onde TRUNCATE falha)
+DELETE FROM `usuarios`;
+DELETE FROM `equipe_funcionarios`;
+DELETE FROM `permissoes`;
+DELETE FROM `presencas`;
+DELETE FROM `producao`;
+DELETE FROM `servicos_extras`;
+DELETE FROM `valores_pagamento`;
+DELETE FROM `equipes`;
+DELETE FROM `funcionarios`;
+DELETE FROM `tipos_produto`;
+DELETE FROM `acoes`;
+
+-- 3. Zera todos os contadores manualmente
+ALTER TABLE `acoes` AUTO_INCREMENT = 1;
+ALTER TABLE `equipes` AUTO_INCREMENT = 1;
+ALTER TABLE `funcionarios` AUTO_INCREMENT = 1;
+ALTER TABLE `usuarios` AUTO_INCREMENT = 1;
+ALTER TABLE `permissoes` AUTO_INCREMENT = 1;
+ALTER TABLE `presencas` AUTO_INCREMENT = 1;
+ALTER TABLE `producao` AUTO_INCREMENT = 1;
+ALTER TABLE `servicos_extras` AUTO_INCREMENT = 1;
+ALTER TABLE `tipos_produto` AUTO_INCREMENT = 1;
+ALTER TABLE `valores_pagamento` AUTO_INCREMENT = 1;
+ALTER TABLE `equipe_funcionarios` AUTO_INCREMENT = 1; -- se tiver PK com AUTO_INCREMENT
+
+-- 4. Reativa tudo
+SET FOREIGN_KEY_CHECKS = 1;
+SET AUTOCOMMIT = 1;
+
+-- 5. USUÁRIO ADMIN PADRÃO (login: admin / senha: 123456)
+INSERT INTO funcionarios (nome, cpf, tipo, ativo) VALUES 
+('Administrador', '000.000.000-00', 'admin', 1);
+
+INSERT INTO usuarios (login, senha, funcionario_id) VALUES 
+('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1);
+-- senha acima = password 
+
+-- Permissões completas para admin
+INSERT INTO permissoes (perfil, acao, permitido) VALUES
+('admin','LoginController@index',1),
+('admin','LoginController@logar',1),
+('admin','LoginController@sair',1),
+('admin','AppController@index',1),
+('admin','PerfilController@index',1),
+('admin','PerfilController@salvarSenha',1),
+('admin','PresencaController@index',1),
+('admin','PresencaController@salvar',1),
+('admin','EquipeController@index',1),
+('admin','EquipeController@salvar',1),
+('admin','EquipeController@salvarNova',1),
+('admin','EquipeController@mover',1),
+('admin','EquipeController@excluir',1),
+('admin','ProducaoController@index',1),
+('admin','ProducaoController@salvar',1),
+('admin','ProducaoController@massa',1),
+('admin','ProducaoController@salvarMassa',1),
+('admin','RelatorioController@index',1),
+('admin','RelatorioController@pagamentos',1),
+('admin','RelatorioController@quantidades',1),
+('admin','RelatorioController@servicos',1),
+('admin','RelatorioController@produtividade',1),
+('admin','FuncionarioController@index',1),
+('admin','FuncionarioController@cadastro',1),
+('admin','FuncionarioController@salvar',1),
+('admin','ValoresPagamentoController@index',1),
+('admin','ValoresPagamentoController@cadastro',1),
+('admin','ValoresPagamentoController@salvar',1),
+('admin','TipoProdutoController@index',1),
+('admin','TipoProdutoController@cadastro',1),
+('admin','TipoProdutoController@salvar',1),
+('admin','AcaoController@index',1),
+('admin','AcaoController@cadastro',1),
+('admin','AcaoController@salvar',1);

@@ -1,11 +1,52 @@
 # sgi_erp/.htaccess
 
 <IfModule mod_rewrite.c>
+    # 1. Habilita o motor de reescrita de URLs e define a base
     RewriteEngine On
-    RewriteBase /sgi_erp  
+    RewriteBase /sgi_erp/ 
 
-    # Redireciona tudo que não for arquivo ou diretório existente para o index.php
+    # ----------------------------------------------------------------------
+    # A. REGRA DE SEGURANÇA: Bloquear acesso direto a scripts PHP
+    # Retorna 403 Forbidden para qualquer acesso direto a arquivos PHP.
+    # Exceção para o Front Controller (index.php) e API, se houver.
+    # ----------------------------------------------------------------------
+    RewriteCond %{THE_REQUEST} \.php [NC] 
+    RewriteCond %{REQUEST_URI} !/index\.php$ [NC]
+    RewriteCond %{REQUEST_URI} !/api\.php$ [NC]
+    # O sinalizador [F] retorna 403 Forbidden
+    RewriteRule . - [F] 
+
+    # ----------------------------------------------------------------------
+    # B. REGRA DE ROTEAMENTO: Controlador Frontal
+    # Redireciona tudo o que NÃO for um arquivo ou diretório existente para index.php.
+    # ----------------------------------------------------------------------
+    # Se o que foi requisitado NÃO for um arquivo físico existente
     RewriteCond %{REQUEST_FILENAME} !-f
+    # E NÃO for um diretório existente
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ index.php [L]
+    
+    # Redireciona a requisição para o index.php
+    # [L] = Última regra. [QSA] = Anexa Query String.
+    RewriteRule ^(.*)$ index.php [L,QSA]
+    
+</IfModule>
+
+# ----------------------------------------------------------------------
+# C. OTIMIZAÇÃO: Cache para arquivos estáticos (colocado no final)
+# Configura headers de expiração para ativos estáticos.
+# ----------------------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # Padrão: cache dura 1 mês
+    ExpiresDefault "access 1 month"
+    
+    # CSS e JS: 1 ano
+    ExpiresByType text/css "access 1 year"
+    ExpiresByType application/javascript "access 1 year"
+    
+    # Imagens: 1 ano
+    ExpiresByType image/jpeg "access 1 year"
+    ExpiresByType image/png "access 1 year"
+    ExpiresByType image/gif "access 1 year"
 </IfModule>

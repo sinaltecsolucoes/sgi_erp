@@ -61,7 +61,7 @@ class LoginController
 
             if ($tipo === 'admin') {
                 // Admin vai para Gestão de Permissões
-                $redirect_url = '/sgi_erp/permissoes/gestao';
+                $redirect_url = '/sgi_erp/dashboard';
             } elseif ($tipo === 'financeiro') {
                 $redirect_url = '/sgi_erp/relatorios';
             } elseif ($tipo === 'producao') {

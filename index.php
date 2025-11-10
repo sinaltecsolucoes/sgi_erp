@@ -18,6 +18,13 @@ if (empty($url)) {
     $url = '/';
 }
 
+// Normaliza removendo barra final (exceto se for apenas "/")
+if ($url !== '/' && substr($url, -1) === '/') {
+    $url = rtrim($url, '/');
+}
+
+// Normaliza múltiplas barras consecutivas
+$url = preg_replace('#/+#', '/', $url);
 
 // 4. Procura a rota no mapa
 if (array_key_exists($url, $routes)) {
@@ -28,35 +35,51 @@ if (array_key_exists($url, $routes)) {
 
     // **CHECA ACL: Permissão de Ação (Controller@Metodo)** 
     $action = $controllerName . '@' . $methodName;
-    $tipo_usuario = $_SESSION['funcionario_tipo'] ?? 'convidado';
+
+
+    // =============================================
+    // 1. PRIMEIRO: SE NÃO ESTIVER LOGADO → LOGIN!
+    // =============================================
+    $rotas_publicas = [
+        'LoginController@index',
+        'LoginController@logar',
+        'LoginController@sair'
+    ];
+
+    //$tipo_usuario = $_SESSION['funcionario_tipo'] ?? 'convidado';
 
     // Define se é uma rota de API
     $is_api_route = (strpos($controllerName, 'ApiController') === 0);
 
-    // Não checar ACL para rotas de Login (index, logar) e Logout
-    // if ($action !== 'LoginController@index' && $action !== 'LoginController@logar' && $action !== 'LoginController@sair') {
-    if (!($action === 'LoginController@index' || $action === 'LoginController@logar' || $action === 'LoginController@sair' || $is_api_route)) {
-        if (!Acl::check($action, $tipo_usuario)) {
+    // Se não for rota pública E não for API E não estiver logado → FORA!
+    if (!in_array($action, $rotas_publicas) && !$is_api_route) {
+        if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true) {
+            // Salva a URL que ele tentou acessar (para voltar depois do login)
+            $_SESSION['url_intentada'] = $requestUri;
 
-            // Se o usuário está logado, mas não tem permissão para esta ação/tela http_response_code(403); 
-            // Proibido $_SESSION['erro'] = "Acesso Negado (403). Você não tem permissão para a ação **{$action}**."; 
-            // Redireciona o usuário para o seu painel seguro 
-            $redirect_url = '/sgi_erp/dashboard'; // Padrão 
-            if ($tipo_usuario === 'admin') {
-
-                // Redireciona admin para a sua área de gestão (que criaremos) 
-                $redirect_url = '/sgi_erp/permissoes/gestao';
-            } elseif ($tipo_usuario === 'financeiro') {
-                $redirect_url = '/sgi_erp/relatorios';
-            } elseif ($tipo_usuario === 'producao') {
-                $redirect_url = '/sgi_erp/meu-painel';
-            }
-            header('Location: ' . $redirect_url);
+            header('Location: /sgi_erp/');
             exit();
         }
     }
 
-    // 5. Verifica e Executa o Controller (APENAS SE A PERMISSÃO FOI CONCEDIDA) 
+    // =============================================
+    // 2. SEGUNDO: Se estiver logado, verifica permissão (ACL)
+    // =============================================
+    if (!in_array($action, $rotas_publicas) && !$is_api_route) {
+        $tipo_usuario = $_SESSION['funcionario_tipo'] ?? 'convidado';
+
+        if (!Acl::check($action, $tipo_usuario)) {
+            // Sem permissão → joga no dashboard (ou pode mostrar 403 se preferir)
+            header('Location: /sgi_erp/dashboard');
+            exit();
+        }
+    }
+
+
+    // =============================================
+    // 3. EXECUTA O CONTROLLER (só chega aqui se passou nas duas barreiras)
+    // =============================================
+
     if (class_exists($controllerName)) {
         $controller = new $controllerName();
         if (method_exists($controller, $methodName)) {
