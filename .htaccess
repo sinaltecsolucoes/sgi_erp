@@ -3,7 +3,7 @@
 <IfModule mod_rewrite.c>
     # 1. Habilita o motor de reescrita de URLs e define a base
     RewriteEngine On
-    RewriteBase /sgi_erp/ 
+    RewriteBase /sgi_erp/
 
     # ----------------------------------------------------------------------
     # A. REGRA DE SEGURANÇA: Bloquear acesso direto a scripts PHP
@@ -14,7 +14,7 @@
     RewriteCond %{REQUEST_URI} !/index\.php$ [NC]
     RewriteCond %{REQUEST_URI} !/api\.php$ [NC]
     # O sinalizador [F] retorna 403 Forbidden
-    RewriteRule . - [F] 
+    RewriteRule . - [F]     
 
     # ----------------------------------------------------------------------
     # B. REGRA DE ROTEAMENTO: Controlador Frontal

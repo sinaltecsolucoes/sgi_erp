@@ -22,7 +22,7 @@ $directories = [
 ];
 
 spl_autoload_register(function ($className) use ($directories) {
-    $file = $className . '.php';    
+    $file = $className . '.php';
 
     foreach ($directories as $directory) {
         $path = $directory . $file;
@@ -34,6 +34,8 @@ spl_autoload_register(function ($className) use ($directories) {
     }
 });
 
+// Carrega funções globais de helpers
+require_once ROOT_PATH . 'Core' . DS . 'helpers.php';
 
 // 3. MAPA DE ROTAS (Movido do routes.php)
 // Mapeamento de URL para Controller@Metodo
@@ -74,7 +76,8 @@ $routes = [
     // Rotas API (Para o App Android)
     '/api' => 'ApiController@info',
     '/api/login' => 'ApiController@login',
-    '/api/presenca' => 'ApiController@presenca',
+    '/api/presenca' => 'ApiController@presencaFuncionarios',
+    '/api/presenca/salvar' => 'ApiController@presencaSalvar',
     '/api/equipe/dados' => 'ApiController@equipeDados',
     '/api/lancamento/opcoes' => 'ApiController@lancamentoOpcoes',
     '/api/equipe/salvar' => 'ApiController@equipeSalvar',

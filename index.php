@@ -3,7 +3,7 @@
 // Ponto de entrada único e gerenciador de rotas (Roteador)
 
 // 1. Inicializa o Sistema (Autoload, Sessão e Rotas)
-require_once 'bootstrap.php';
+require_once __DIR__ . '/bootstrap.php';
 // A variável $routes já foi carregada no bootstrap.php
 
 // 2. Obtém a URL solicitada

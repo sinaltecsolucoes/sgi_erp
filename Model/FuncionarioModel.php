@@ -94,6 +94,12 @@ class FuncionarioModel
     return $stmt->fetch();
   }
 
+ /* public function buscarPorTipo($tipo)
+  {
+    $sql = "SELECT id, nome FROM funcionarios WHERE tipo = ? ORDER BY nome";
+    return $this->db->query($sql, [$tipo])->fetchAll();
+  }*/
+
   /**
    * Cria ou atualiza um registro de funcionário.
    * @param array $dados Array associativo com nome, tipo, e-mail, etc.
@@ -126,11 +132,12 @@ class FuncionarioModel
       }
       return false;
     } catch (PDOException $e) {
-      if ($e->getCode() === '23000') {
-        return 'CPF_DUPLICADO';
+      if ($e->getCode() === '23000' && str_contains($e->getMessage(), 'cpf')) {
+        return false;
       } else {
         $_SESSION['erro'] = 'Erro interno ao salvar o funcionário.';
       }
+      error_log("Erro ao salvar funcionarios: " . $e->getMessage());
       return false;
     }
   }
@@ -145,6 +152,8 @@ class FuncionarioModel
 
   public function criarOuAtualizarUsuario($funcionario_id, $login, $senha)
   {
+    $funcionario_id = null;
+
     // 1. Verifica se o login já existe para este funcionário
     $check_query = "SELECT id, login FROM usuarios WHERE funcionario_id = :funcionario_id";
     $check_stmt = $this->db->prepare($check_query);
@@ -258,6 +267,7 @@ class FuncionarioModel
    */
   public function buscarPorCpf($cpf)
   {
+    $cpf = '';
     $query = "SELECT id, nome FROM {$this->table_funcionarios} WHERE cpf = :cpf LIMIT 1";
 
     $stmt = $this->db->prepare($query);
@@ -281,17 +291,14 @@ class FuncionarioModel
                     f.id, 
                     f.nome, 
                     f.tipo,
-                    CASE 
-                        WHEN p.data = :hoje THEN 1
-                        ELSE 0
-                    END AS esta_presente 
+                    COALESCE(p.presente, 0) AS esta_presente
                   FROM 
                     {$this->table_funcionarios} f
                   LEFT JOIN 
                     presencas p ON f.id = p.funcionario_id AND p.data = :hoje
                   WHERE
                     -- Filtra apenas os funcionários que devem fazer apontamento/presença (excluindo perfis de gestão)
-                    f.tipo != 'porteiro' AND f.tipo != 'admin'
+                    f.tipo = 'producao'
                   ORDER BY 
                     f.nome ASC";
 
@@ -300,7 +307,7 @@ class FuncionarioModel
       $stmt->bindParam(':hoje', $hoje);
       $stmt->execute();
       // Retorna um array de objetos ou arrays, dependendo da configuração PDO
-      return $stmt->fetchAll();
+      return $stmt->fetchAll(PDO::FETCH_ASSOC); // Retorna array associativo
     } catch (PDOException $e) {
       // Em caso de erro, retorna um array vazio e registra o erro
       error_log("Erro ao buscar funcionários para presença: " . $e->getMessage());

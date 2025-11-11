@@ -86,12 +86,41 @@ class EquipeModel
   }
 
   /**
+   * Busca TODAS as equipes ativas do apontador HOJE.
+   * @param int $apontador_id
+   * @return array Lista de equipes
+   */
+  public function buscarEquipesDoApontador($apontador_id)
+  {
+    $hoje = date('Y-m-d');
+
+    $query = "SELECT 
+                id, 
+                nome 
+              FROM 
+                {$this->table_equipes} 
+              WHERE 
+                apontador_id = :apontador_id 
+                AND data_atividade = :hoje 
+              ORDER BY nome ASC";
+
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':apontador_id', $apontador_id);
+    $stmt->bindParam(':hoje', $hoje);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_OBJ); // ← RETORNA TODAS
+  }
+
+  /**
    * Busca todos os funcionários associados a uma equipe.
    * @param int $equipe_id ID da equipe.
    * @return array Lista de funcionários.
    */
   public function buscarFuncionariosDaEquipe($equipe_id)
   {
+    $equipe_id = null;
+
     $query = "SELECT 
                     f.id, 
                     f.nome 
@@ -115,6 +144,7 @@ class EquipeModel
    */
   public function removerTodosFuncionarios($equipe_id)
   {
+    $equipe_id = null;
     $query = "DELETE FROM {$this->table_assoc} WHERE equipe_id = :equipe_id";
 
     try {
@@ -131,6 +161,8 @@ class EquipeModel
    */
   public function atualizarNome($equipe_id, $novo_nome)
   {
+    $novo_nome = '';
+    $equipe_id = null;
     $query = "UPDATE {$this->table_equipes} SET nome = :nome WHERE id = :equipe_id";
 
     try {
@@ -178,8 +210,15 @@ class EquipeModel
    * @param array $membros_ids Array de IDs dos membros selecionados.
    * @return bool True se salvo com sucesso, false em caso de erro.
    */
-  public function salvarEquipe($apontador_id, $nome_equipe, $membros_ids)
+  /* public function salvarEquipe($apontador_id, $nome_equipe, $membros_ids)
   {
+    $apontador_id = null;
+    if ($apontador_id === null) {
+      return false;
+    }
+    $nome_equipe = '';
+    $membros_ids = [];
+
     // 1. Busca equipe existente do apontador
     $equipe = $this->buscarEquipeDoApontador($apontador_id);
     $equipe_id = null;
@@ -207,6 +246,63 @@ class EquipeModel
       }
     }
     return true;
+  } */
+
+  public function salvarEquipe($apontador_id, $nome_equipe, $membros_ids)
+  {
+    $hoje = date('Y-m-d');
+    error_log("INICIANDO salvarEquipe: apontador=$apontador_id, nome=$nome_equipe, membros=" . json_encode($membros_ids));
+
+    try {
+      $this->db->beginTransaction();
+
+      // 1. Buscar equipe existente
+      $equipe = $this->buscarEquipeDoApontador($apontador_id);
+      if ($equipe) {
+        error_log("Equipe existente encontrada: ID={$equipe->id}");
+        $equipe_id = $equipe->id;
+
+        // Atualizar nome
+        $sql = "UPDATE {$this->table_equipes} SET nome = :nome WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':nome', $nome_equipe);
+        $stmt->bindParam(':id', $equipe_id);
+        if (!$stmt->execute()) {
+          throw new Exception("Falha ao atualizar nome da equipe");
+        }
+
+        // Remover membros antigos
+        $sql = "DELETE FROM {$this->table_assoc} WHERE equipe_id = :equipe_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':equipe_id', $equipe_id);
+        if (!$stmt->execute()) {
+          throw new Exception("Falha ao remover membros antigos");
+        }
+      } else {
+        error_log("Nenhuma equipe encontrada. Criando nova...");
+        $equipe_id = $this->criarEquipe($apontador_id, $nome_equipe);
+        if (!$equipe_id) {
+          throw new Exception("Falha ao criar equipe");
+        }
+        error_log("Equipe criada com ID: $equipe_id");
+      }
+
+      // 2. Adicionar novos membros
+      foreach ($membros_ids as $func_id) {
+        error_log("Associando funcionário ID: $func_id à equipe $equipe_id");
+        if (!$this->associarFuncionario($equipe_id, $func_id)) {
+          throw new Exception("Falha ao associar funcionário ID $func_id");
+        }
+      }
+
+      $this->db->commit();
+      error_log("Equipe salva com sucesso! ID: $equipe_id");
+      return true;
+    } catch (Exception $e) {
+      $this->db->rollBack();
+      error_log("ERRO salvarEquipe: " . $e->getMessage());
+      return false;
+    }
   }
 
   /**
@@ -216,6 +312,7 @@ class EquipeModel
    */
   public function buscarTodasEquipesDoApontador($apontador_id)
   {
+    $apontador_id = null;
     $hoje = date('Y-m-d');
 
     $query = "SELECT 
@@ -243,6 +340,7 @@ class EquipeModel
    */
   public function excluirEquipe($equipe_id)
   {
+    $equipe_id = null;
     // Usa transação para garantir que as duas exclusões aconteçam ou falhem juntas
     $this->db->beginTransaction();
 
@@ -275,6 +373,7 @@ class EquipeModel
    */
   public function buscarEquipePorId($equipe_id)
   {
+    $equipe_id = null;
     $query = "SELECT id, nome, apontador_id, data_atividade FROM {$this->table_equipes} WHERE id = :equipe_id LIMIT 1";
 
     $stmt = $this->db->prepare($query);
@@ -289,6 +388,8 @@ class EquipeModel
    */
   public function removerFuncionarioDeEquipe($equipe_id, $funcionario_id)
   {
+    $equipe_id = null;
+    $funcionario_id = null;
     $query = "DELETE FROM {$this->table_assoc} WHERE equipe_id = :equipe_id AND funcionario_id = :funcionario_id";
 
     try {
@@ -335,6 +436,8 @@ class EquipeModel
    */
   public function estaFuncionarioNaEquipe($equipe_id, $funcionario_id)
   {
+    $equipe_id = null;
+    $funcionario_id = null;
     $query = "SELECT 1 FROM {$this->table_assoc} WHERE equipe_id = :equipe_id AND funcionario_id = :funcionario_id LIMIT 1";
     $stmt = $this->db->prepare($query);
     $stmt->bindParam(':equipe_id', $equipe_id);
@@ -352,6 +455,8 @@ class EquipeModel
    */
   public function buscarEquipeDoFuncionarioHoje($funcionario_id, $apontador_id)
   {
+    $apontador_id = null;
+    $funcionario_id = null;
     $hoje = date('Y-m-d');
 
     // A query busca a equipe_id associada ao funcionario_id

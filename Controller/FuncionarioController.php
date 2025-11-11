@@ -74,16 +74,16 @@ class FuncionarioController extends AppController
 
         // 1. Coleta e Sanitiza os dados
         $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
-        $nome = trim(filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_STRING));
+        $nome = sanitize($_POST['nome'] ?? '');
         $nome = mb_strtoupper($nome, 'UTF-8'); // Aplica a conversão para maiúsculas
-        $cpf_mascarado = trim(filter_input(INPUT_POST, 'cpf', FILTER_SANITIZE_STRING)); // Captura o CPF
+        $cpf_mascarado = onlyNumbers($_POST['cpf'] ?? ''); // Captura o CPF
 
         // Limpeza da Máscara para salvar APENAS números no banco
-        $cpf = preg_replace('/[^0-9]/', '', $cpf_mascarado);
+        $cpf = onlyNumbers($cpf_mascarado);
 
-        $tipo = filter_input(INPUT_POST, 'tipo', FILTER_SANITIZE_STRING); // admin, apontador, producao, financeiro
+        $tipo = sanitize($_POST['tipo'] ?? ''); // admin, apontador, producao, financeiro
         $ativo = filter_input(INPUT_POST, 'ativo', FILTER_SANITIZE_NUMBER_INT) === '1';
-        $login = trim(filter_input(INPUT_POST, 'login', FILTER_SANITIZE_STRING));
+        $login = sanitize($_POST['login'] ?? '');
         $senha = $_POST['senha'] ?? null; // Senha pode estar vazia (apenas se for edição e não mudar)
 
         if (empty($nome) || empty($tipo) || strlen($cpf) !== 11) {
@@ -136,11 +136,7 @@ class FuncionarioController extends AppController
                 // Se NÃO FORNECER login/senha, apenas o funcionário é salvo
                 $_SESSION['sucesso'] = "Funcionário **{$nome}** salvo com sucesso!";
             }
-        } /*else {
-            // A mensagem de erro de CPF duplicado/erro interno já é setada dentro do Model
-            $_SESSION['erro'] = $_SESSION['erro'] ?? 'Erro interno ao salvar o registro do funcionário.';
-        }*/
-
+        }
         header('Location: /sgi_erp/admin/funcionarios');
         exit();
     }
