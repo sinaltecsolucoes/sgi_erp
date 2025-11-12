@@ -175,12 +175,12 @@ class ApiController
     // ==========================================
     // DADOS DA EQUIPE (apontador ou admin)
     // ==========================================
+    
     public function equipeDados()
     {
         $data = json_decode(file_get_contents('php://input'), true);
         $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? null);
 
-        // Bloco try-catch para capturar qualquer falha no banco
         try {
             $apontador_id = $data['apontador_id'] ?? null;
             $hoje = date('Y-m-d');
@@ -193,60 +193,76 @@ class ApiController
             $funcionarioModel = new FuncionarioModel();
             $equipeModel = new EquipeModel();
 
-            // === 1. BUSCAR EQUIPES DO APONTADOR ===
-            $equipes = $equipeModel->buscarEquipesDoApontador($apontador_id);
-            if (!$equipes) {
-                $equipes = [];
+            // 1) Buscar equipes (stdClass) e converter para arrays associativos com membros
+            $equipes_raw = $equipeModel->buscarEquipesDoApontador($apontador_id) ?? [];
+
+            $equipes = [];
+            foreach ($equipes_raw as $eq) {
+                // membros_raw pode vir em modo default (BOTH); vamos mapear para assoc
+                $membros_raw = $equipeModel->buscarFuncionariosDaEquipe($eq->id) ?? [];
+                $membros = array_map(function ($m) {
+                    // garantir acesso por índice associativo
+                    // se vier como objeto, convertemos; se vier como array, usamos direto
+                    if (is_object($m)) {
+                        return ['id' => (int) $m->id, 'nome' => $m->nome];
+                    } else {
+                        return ['id' => (int) $m['id'], 'nome' => $m['nome']];
+                    }
+                }, $membros_raw);
+
+                $equipes[] = [
+                    'id' => (int) $eq->id,
+                    'nome' => $eq->nome,
+                    'membros' => $membros,
+                ];
             }
 
-            // Adicionar membros a cada equipe
-            foreach ($equipes as &$eq) {
-                $eq['membros'] = $equipeModel->buscarFuncionariosDaEquipe($eq->id);
-            }
+            // 2) Presentes e alocados
+            $presentes = $funcionarioModel->buscarPresentesHoje($hoje); // stdClass[]
+            $alocadosIds = $equipeModel->buscarFuncionariosAlocadosHoje(); // int[]
 
-            // === 2. BUSCAR FUNCIONÁRIOS PRESENTES HOJE ===
-            $presentes = $funcionarioModel->buscarPresentesHoje($hoje);
-
-            // === 3. BUSCAR FUNCIONÁRIOS ALOCADOS HOJE (TODAS AS EQUIPES) ===
-            $alocadosIds = $equipeModel->buscarFuncionariosAlocadosHoje();
-
-            // === 4. MONTAR LISTA DE DISPONÍVEIS ===
+            // 3) IDs dos membros das minhas equipes
             $meusMembrosIds = [];
             foreach ($equipes as $eq) {
                 foreach ($eq['membros'] as $m) {
-                    $meusMembrosIds[] = $m['id'];
+                    $meusMembrosIds[] = (int) $m['id'];
                 }
             }
 
+            // 4) Disponíveis: presente hoje e não alocado em outra equipe,
+            // ou já na minha equipe (liberado para edição)
             $disponiveis = [];
             foreach ($presentes as $p) {
-                if ($p->esta_presente == 1) {
-                    $id = (int)$p->id;
-                    if (!in_array($id, $alocadosIds) || in_array($id, $meusMembrosIds)) {
+                if ((int) $p->esta_presente === 1) {
+                    $id = (int) $p->id;
+                    if (!in_array($id, $alocadosIds, true) || in_array($id, $meusMembrosIds, true)) {
                         $disponiveis[] = [
                             'id' => $id,
                             'nome' => $p->nome,
                             'presente' => 1,
-                            'na_minha_equipe' => in_array($id, $meusMembrosIds),
+                            'na_minha_equipe' => in_array($id, $meusMembrosIds, true),
                         ];
                     }
                 }
             }
 
-            // === 5. FORMATO PARA O APP (adaptado para uma equipe só, se necessário) ===
-            // Como o app espera 'equipe_atual', pegamos a primeira equipe ou null
-            $equipe_atual = !empty($equipes) ? $equipes[0] : null;
-            $membros_equipe_ids = $equipe_atual ? array_column($equipe_atual['membros'], 'id') : [];
+            // 5) Equipe atual = primeira, e lista de IDs de seus membros
+            $primeira_equipe = !empty($equipes) ? $equipes[0] : null;
+            $membros_equipe_ids = $primeira_equipe ? array_column($primeira_equipe['membros'], 'id') : [];
 
+            // Debug opcional
+            error_log("DEBUG equipeDados → apontador_id=$apontador_id");
+            error_log("Equipes encontradas: " . json_encode($equipes));
+            error_log("Disponíveis: " . json_encode($disponiveis));
+
+            // 6) Resposta final já em arrays associativos (compatível com Flutter)
             echo json_encode([
                 'success' => true,
                 'data' => [
-                    'funcionarios_producao' => $disponiveis, // Apenas disponíveis + os da própria equipe
+                    'funcionarios_producao' => $disponiveis,
                     'membros_equipe_ids' => $membros_equipe_ids,
-                    'equipe_atual' => $equipe_atual ? [
-                        'id' => $equipe_atual['id'],
-                        'nome' => $equipe_atual['nome']
-                    ] : null
+                    'equipes_do_apontador' => $equipes,
+                    'equipe_atual' => $primeira_equipe,
                 ]
             ]);
         } catch (\Throwable $th) {
@@ -254,6 +270,7 @@ class ApiController
             echo json_encode(['success' => false, 'message' => 'Erro interno.']);
         }
     }
+
 
     // ==========================================
     // SALVAR EQUIPE
@@ -266,22 +283,34 @@ class ApiController
         $apontador_id = $data['apontador_id'] ?? null;
         $nome_equipe = $data['nome_equipe'] ?? 'Equipe Padrão';
         $membros_ids = $data['membros_ids'] ?? [];
+        $equipe_id = $data['equipe_id'] ?? null; 
 
-        // 1. Validação
         if (!$apontador_id || empty($membros_ids)) {
             echo json_encode(['success' => false, 'message' => 'Apontador ID e membros são obrigatórios.']);
             return;
         }
 
-        // 2. Salvar usando o EquipeModel
         $equipeModel = new EquipeModel();
-        if ($equipeModel->salvarEquipe($apontador_id, $nome_equipe, $membros_ids)) {
-            echo json_encode([
-                'success' => true,
-                'message' => 'Equipe salva com sucesso!'
-            ]);
+
+        if ($equipe_id) {
+            // EDITAR equipe existente
+            $equipeModel->atualizarNome($equipe_id, $nome_equipe);
+            $equipeModel->removerTodosFuncionarios($equipe_id);
+            foreach ($membros_ids as $func_id) {
+                $equipeModel->associarFuncionario($equipe_id, $func_id);
+            }
+            echo json_encode(['success' => true, 'message' => 'Equipe atualizada com sucesso!']);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Erro ao salvar a equipe.']);
+            // CRIAR nova equipe
+            $nova_id = $equipeModel->criarEquipe($apontador_id, $nome_equipe);
+            if ($nova_id) {
+                foreach ($membros_ids as $func_id) {
+                    $equipeModel->associarFuncionario($nova_id, $func_id);
+                }
+                echo json_encode(['success' => true, 'message' => 'Equipe criada com sucesso!', 'equipe_id' => $nova_id]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Erro ao criar equipe.']);
+            }
         }
     }
 
@@ -322,7 +351,7 @@ class ApiController
             'membros' => array_map(fn($m) => ['id' => $m->id, 'nome' => $m->nome], $membros),
             'acoes' => array_map(fn($a) => ['id' => $a->id, 'nome' => $a->nome], $acoes),
             // Passa o flag usa_lote para o JS
-            'produtos' => array_map(fn($p) => ['id' => $p->id, 'nome' => $p->nome, 'usa_lote' => (int)$p->usa_lote], $tipos_produto),
+            'produtos' => array_map(fn($p) => ['id' => $p->id, 'nome' => $p->nome, 'usa_lote' => (int) $p->usa_lote], $tipos_produto),
         ]);
     }
 
@@ -361,15 +390,17 @@ class ApiController
             }
 
             // Salva no banco (use seu Model)
-            if ($producaoModel->registrarLancamento(
-                $funcionario_id,
-                $acao_id,
-                $produto_id,
-                $lote,
-                $quantidade_kg,
-                $hora_inicio,
-                $hora_fim
-            )) {
+            if (
+                $producaoModel->registrarLancamento(
+                    $funcionario_id,
+                    $acao_id,
+                    $produto_id,
+                    $lote,
+                    $quantidade_kg,
+                    $hora_inicio,
+                    $hora_fim
+                )
+            ) {
                 $successCount++;
             } else {
                 $errors[] = "Erro ao salvar para funcionário $funcionario_id";

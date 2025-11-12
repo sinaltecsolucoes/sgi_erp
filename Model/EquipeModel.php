@@ -29,7 +29,7 @@ class EquipeModel
 
     try {
       $stmt = $this->db->prepare($query);
-      $stmt->bindParam(':apontador_id', $apontador_id);
+      $stmt->bindParam(':apontador_id', $apontador_id, PDO::PARAM_INT);
       $stmt->bindParam(':nome', $nome);
       $stmt->bindParam(':data_atividade', $data_hoje);
 
@@ -119,8 +119,6 @@ class EquipeModel
    */
   public function buscarFuncionariosDaEquipe($equipe_id)
   {
-    $equipe_id = null;
-
     $query = "SELECT 
                     f.id, 
                     f.nome 
@@ -133,7 +131,7 @@ class EquipeModel
                   ORDER BY f.nome ASC";
 
     $stmt = $this->db->prepare($query);
-    $stmt->bindParam(':equipe_id', $equipe_id);
+    $stmt->bindParam(':equipe_id', $equipe_id, PDO::PARAM_INT);
     $stmt->execute();
 
     return $stmt->fetchAll();
@@ -144,12 +142,11 @@ class EquipeModel
    */
   public function removerTodosFuncionarios($equipe_id)
   {
-    $equipe_id = null;
     $query = "DELETE FROM {$this->table_assoc} WHERE equipe_id = :equipe_id";
 
     try {
       $stmt = $this->db->prepare($query);
-      $stmt->bindParam(':equipe_id', $equipe_id);
+      $stmt->bindParam(':equipe_id', $equipe_id, PDO::PARAM_INT);
       return $stmt->execute();
     } catch (PDOException $e) {
       return false;
@@ -161,14 +158,12 @@ class EquipeModel
    */
   public function atualizarNome($equipe_id, $novo_nome)
   {
-    $novo_nome = '';
-    $equipe_id = null;
     $query = "UPDATE {$this->table_equipes} SET nome = :nome WHERE id = :equipe_id";
 
     try {
       $stmt = $this->db->prepare($query);
-      $stmt->bindParam(':nome', $novo_nome);
-      $stmt->bindParam(':equipe_id', $equipe_id);
+      $stmt->bindParam(':nome', $novo_nome, PDO::PARAM_STR);
+      $stmt->bindParam(':equipe_id', $equipe_id, PDO::PARAM_INT);
       return $stmt->execute();
     } catch (PDOException $e) {
       return false;
@@ -210,44 +205,6 @@ class EquipeModel
    * @param array $membros_ids Array de IDs dos membros selecionados.
    * @return bool True se salvo com sucesso, false em caso de erro.
    */
-  /* public function salvarEquipe($apontador_id, $nome_equipe, $membros_ids)
-  {
-    $apontador_id = null;
-    if ($apontador_id === null) {
-      return false;
-    }
-    $nome_equipe = '';
-    $membros_ids = [];
-
-    // 1. Busca equipe existente do apontador
-    $equipe = $this->buscarEquipeDoApontador($apontador_id);
-    $equipe_id = null;
-
-    if (!$equipe) {
-      // 2. Cria nova equipe se não existir
-      $equipe_id = $this->criarEquipe($apontador_id, $nome_equipe);
-      if (!$equipe_id) {
-        return false;
-      }
-    } else {
-      // 2b. Usa ID existente e atualiza nome
-      $equipe_id = $equipe->id;
-      $this->atualizarNome($equipe_id, $nome_equipe);
-    }
-
-    // 3. Remove todos os membros antigos
-    $this->removerTodosFuncionarios($equipe_id);
-
-    // 4. Adiciona os novos membros
-    foreach ($membros_ids as $funcionario_id) {
-      $id = (int)$funcionario_id; // Garante que é inteiro
-      if (!$this->associarFuncionario($equipe_id, $id)) {
-        return false; // Retorna false se falhar em algum
-      }
-    }
-    return true;
-  } */
-
   public function salvarEquipe($apontador_id, $nome_equipe, $membros_ids)
   {
     $hoje = date('Y-m-d');
@@ -312,7 +269,6 @@ class EquipeModel
    */
   public function buscarTodasEquipesDoApontador($apontador_id)
   {
-    $apontador_id = null;
     $hoje = date('Y-m-d');
 
     $query = "SELECT 
@@ -326,7 +282,7 @@ class EquipeModel
                 nome ASC";
 
     $stmt = $this->db->prepare($query);
-    $stmt->bindParam(':apontador_id', $apontador_id);
+    $stmt->bindParam(':apontador_id', $apontador_id, PDO::PARAM_INT);
     $stmt->bindParam(':hoje', $hoje);
     $stmt->execute();
 
@@ -340,7 +296,6 @@ class EquipeModel
    */
   public function excluirEquipe($equipe_id)
   {
-    $equipe_id = null;
     // Usa transação para garantir que as duas exclusões aconteçam ou falhem juntas
     $this->db->beginTransaction();
 
@@ -354,7 +309,7 @@ class EquipeModel
       // 2. Remove a equipe principal (tabela equipes)
       $query_equipe = "DELETE FROM {$this->table_equipes} WHERE id = :equipe_id";
       $stmt_equipe = $this->db->prepare($query_equipe);
-      $stmt_equipe->bindParam(':equipe_id', $equipe_id);
+      $stmt_equipe->bindParam(':equipe_id', $equipe_id, PDO::PARAM_INT);
       $stmt_equipe->execute();
 
       $this->db->commit();
@@ -373,11 +328,10 @@ class EquipeModel
    */
   public function buscarEquipePorId($equipe_id)
   {
-    $equipe_id = null;
     $query = "SELECT id, nome, apontador_id, data_atividade FROM {$this->table_equipes} WHERE id = :equipe_id LIMIT 1";
 
     $stmt = $this->db->prepare($query);
-    $stmt->bindParam(':equipe_id', $equipe_id);
+    $stmt->bindParam(':equipe_id', $equipe_id, PDO::PARAM_INT);
     $stmt->execute();
 
     return $stmt->fetch();
@@ -388,14 +342,12 @@ class EquipeModel
    */
   public function removerFuncionarioDeEquipe($equipe_id, $funcionario_id)
   {
-    $equipe_id = null;
-    $funcionario_id = null;
     $query = "DELETE FROM {$this->table_assoc} WHERE equipe_id = :equipe_id AND funcionario_id = :funcionario_id";
 
     try {
       $stmt = $this->db->prepare($query);
-      $stmt->bindParam(':equipe_id', $equipe_id);
-      $stmt->bindParam(':funcionario_id', $funcionario_id);
+      $stmt->bindParam(':equipe_id', $equipe_id, PDO::PARAM_INT);
+      $stmt->bindParam(':funcionario_id', $funcionario_id, PDO::PARAM_INT);
       return $stmt->execute();
     } catch (PDOException $e) {
       // Logar erro
@@ -436,12 +388,10 @@ class EquipeModel
    */
   public function estaFuncionarioNaEquipe($equipe_id, $funcionario_id)
   {
-    $equipe_id = null;
-    $funcionario_id = null;
     $query = "SELECT 1 FROM {$this->table_assoc} WHERE equipe_id = :equipe_id AND funcionario_id = :funcionario_id LIMIT 1";
     $stmt = $this->db->prepare($query);
-    $stmt->bindParam(':equipe_id', $equipe_id);
-    $stmt->bindParam(':funcionario_id', $funcionario_id);
+    $stmt->bindParam(':equipe_id', $equipe_id, PDO::PARAM_INT);
+    $stmt->bindParam(':funcionario_id', $funcionario_id, PDO::PARAM_INT);
     $stmt->execute();
     return $stmt->fetchColumn() !== false;
   }
@@ -455,8 +405,6 @@ class EquipeModel
    */
   public function buscarEquipeDoFuncionarioHoje($funcionario_id, $apontador_id)
   {
-    $apontador_id = null;
-    $funcionario_id = null;
     $hoje = date('Y-m-d');
 
     // A query busca a equipe_id associada ao funcionario_id
@@ -475,9 +423,9 @@ class EquipeModel
 
     try {
       $stmt = $this->db->prepare($query);
-      $stmt->bindParam(':funcionario_id', $funcionario_id);
+      $stmt->bindParam(':funcionario_id', $funcionario_id, PDO::PARAM_INT);
       $stmt->bindParam(':hoje', $hoje);
-      $stmt->bindParam(':apontador_id', $apontador_id);
+      $stmt->bindParam(':apontador_id', $apontador_id, PDO::PARAM_INT);
       $stmt->execute();
 
       return $stmt->fetchColumn(); // Retorna apenas o ID da equipe
