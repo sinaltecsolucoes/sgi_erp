@@ -136,6 +136,13 @@ class FuncionarioController extends AppController
                 // Se NÃO FORNECER login/senha, apenas o funcionário é salvo
                 $_SESSION['sucesso'] = "Funcionário **{$nome}** salvo com sucesso!";
             }
+        } else {
+            // TRATAMENTO DE ERRO GENÉRICO NO SALVAR
+            // Se $resultado_salvar é FALSE (outros erros do PDO ou falha no execute)
+            // O Model já deve ter definido $_SESSION['erro']. Se não, definimos um genérico.
+            if (!isset($_SESSION['erro'])) {
+                $_SESSION['erro'] = 'Falha desconhecida ao salvar o cadastro do funcionário.';
+            }
         }
         header('Location: /sgi_erp/admin/funcionarios');
         exit();

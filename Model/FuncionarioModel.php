@@ -94,16 +94,10 @@ class FuncionarioModel
     return $stmt->fetch();
   }
 
- /* public function buscarPorTipo($tipo)
-  {
-    $sql = "SELECT id, nome FROM funcionarios WHERE tipo = ? ORDER BY nome";
-    return $this->db->query($sql, [$tipo])->fetchAll();
-  }*/
-
   /**
    * Cria ou atualiza um registro de funcionário.
    * @param array $dados Array associativo com nome, tipo, e-mail, etc.
-   * @return int|bool Retorna o ID do funcionário ou FALSE em caso de erro.
+   * @return int|string|bool Retorna o ID, a string 'CPF_DUPLICADO' ou FALSE.
    */
   public function salvar($dados)
   {
@@ -132,8 +126,9 @@ class FuncionarioModel
       }
       return false;
     } catch (PDOException $e) {
+      // CORREÇÃO 1: Retorna a string 'CPF_DUPLICADO' para o Controller
       if ($e->getCode() === '23000' && str_contains($e->getMessage(), 'cpf')) {
-        return false;
+        return 'CPF_DUPLICADO'; 
       } else {
         $_SESSION['erro'] = 'Erro interno ao salvar o funcionário.';
       }
@@ -152,8 +147,7 @@ class FuncionarioModel
 
   public function criarOuAtualizarUsuario($funcionario_id, $login, $senha)
   {
-    $funcionario_id = null;
-
+    
     // 1. Verifica se o login já existe para este funcionário
     $check_query = "SELECT id, login FROM usuarios WHERE funcionario_id = :funcionario_id";
     $check_stmt = $this->db->prepare($check_query);
@@ -267,7 +261,6 @@ class FuncionarioModel
    */
   public function buscarPorCpf($cpf)
   {
-    $cpf = '';
     $query = "SELECT id, nome FROM {$this->table_funcionarios} WHERE cpf = :cpf LIMIT 1";
 
     $stmt = $this->db->prepare($query);
