@@ -42,7 +42,8 @@ class Acl
         'TipoProdutoController@index' => 'Visualizar Tipos de Produto',
         'TipoProdutoController@cadastro' => 'Visualizar Cadastro Tipo Prod.',
         'TipoProdutoController@salvar' => 'Salvar Tipo de Produto',
-
+        'TipoProdutoController@excluir' => 'Excluir Tipo de Produto',
+        
         // MÓDULO FINANCEIRO (Relatórios) 
         'RelatorioController@pagamentos' => 'Visualizar Relatório de Pagamentos',
         'RelatorioController@quantidades' => 'Visualizar Relatório de Quantidades',
@@ -56,6 +57,7 @@ class Acl
         'ValoresPagamentoController@index' => 'Visualizar Valores Pagamento',
         'ValoresPagamentoController@cadastro' => 'Visualizar Cadastro Valor',
         'ValoresPagamentoController@salvar' => 'Salvar Valor Pagamento',
+        'ValoresPagamentoController@excluir' => 'Excluir Valor Pagamento',
     ];
 
     // Model de Permissão será usado na checagem 

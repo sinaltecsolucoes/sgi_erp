@@ -22,9 +22,21 @@ function confirmarExclusaoValor(id, nome) {
         cancelButtonColor: '#3085d6',
         confirmButtonText: 'Sim, excluir!',
         cancelButtonText: 'Cancelar'
-    }).then((result) => {
+    }).then(result => {
         if (result.isConfirmed) {
-            window.location.href = `/sgi_erp/admin/valores-pagamento/excluir?id=${id}`;
+            fetch('/sgi_erp/admin/valores-pagamento/excluir', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'id=' + id
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Excluído!', data.message, 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Erro!', data.message, 'error');
+                    }
+                });
         }
     });
 }

@@ -50,13 +50,29 @@ $tipos_validos = ['admin', 'apontador', 'porteiro', 'producao', 'financeiro'];
                                     style="text-transform: uppercase;"> <label for="nome">Nome Completo</label>
                             </div>
 
-                            <div class="form-floating mb-3">
-                                <input type="text"
-                                    class="form-control"
-                                    id="cpf" name="cpf" required
-                                    value="<?php echo htmlspecialchars($cpf); ?>"
-                                    placeholder="CPF" maxlength="14">
+                            <!-- Tipo Documento -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Tipo de Documento</label>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="tipo_documento" id="doc_cpf" value="cpf" <?php echo (!$is_editing || $funcionario->cpf) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="doc_cpf">CPF</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="tipo_documento" id="doc_rg" value="rg" <?php echo ($is_editing && $funcionario->rg) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="doc_rg">RG</label>
+                                </div>
+                            </div>
+
+                            <!-- Campo CPF -->
+                            <div id="campo_cpf" class="form-floating mb-3" style="display: <?php echo (!$is_editing || $funcionario->cpf) ? 'block' : 'none'; ?>;">
+                                <input type="text" class="form-control" id="cpf" name="cpf" value="<?php echo $funcionario->cpf ?? ''; ?>" placeholder="000.000.000-00" maxlength="14">
                                 <label for="cpf">CPF</label>
+                            </div>
+
+                            <!-- Campo RG -->
+                            <div id="campo_rg" class="form-floating mb-3" style="display: <?php echo ($is_editing && $funcionario->rg) ? 'block' : 'none'; ?>;">
+                                <input type="text" class="form-control" id="rg" name="rg" value="<?php echo $funcionario->rg ?? ''; ?>" placeholder="Digite o RG" maxlength="20">
+                                <label for="rg">RG</label>
                             </div>
 
                             <div class="mb-3">

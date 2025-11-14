@@ -74,14 +74,20 @@ $routes = [
     '/producao/salvar-massa-edit'  => 'ProducaoController@salvarMassaEdit',
 
     // Rotas API (Para o App Android)
-    '/api' => 'ApiController@info',
-    '/api/login' => 'ApiController@login',
-    '/api/presenca' => 'ApiController@presencaFuncionarios',
-    '/api/presenca/salvar' => 'ApiController@presencaSalvar',
-    '/api/equipe/dados' => 'ApiController@equipeDados',
-    '/api/lancamento/opcoes' => 'ApiController@lancamentoOpcoes',
-    '/api/equipe/salvar' => 'ApiController@equipeSalvar',
-    '/api/lancamento/salvar' => 'ApiController@lancamentoSalvar',
+    '/api'                                  => 'ApiController@info',
+    '/api/login'                            => 'ApiController@login',
+    '/api/presenca'                         => 'ApiController@presencaFuncionarios',
+    '/api/presenca/salvar'                  => 'ApiController@presencaSalvar',
+    '/api/equipe/dados'                     => 'ApiController@equipeDados',
+    '/api/equipe/salvar'                    => 'ApiController@equipeSalvar',
+    '/api/equipes/outros'                   => 'ApiController@buscarEquipesOutros',
+    '/api/equipes/mover-membro'             => 'ApiController@moverMembro',
+    '/api/equipes/retirar-membro'           => 'ApiController@retirarMembro',
+    '/api/equipes/editar'                   => 'ApiController@editarEquipe',
+    '/api/equipes/funcionarios-disponiveis' => 'ApiController@buscarFuncionariosDisponiveis',
+    '/api/lancamento/opcoes'                => 'ApiController@lancamentoOpcoes',
+    '/api/lancamento/salvar'                => 'ApiController@lancamentoSalvar',
+    
 
     // MÓDULO DE GESTÃO DE PERMISSÕES
     '/permissoes/gestao' => 'PermissaoController@index',
@@ -102,6 +108,7 @@ $routes = [
     '/admin/tipos-produto' => 'TipoProdutoController@index', // Listagem
     '/admin/tipos-produto/cadastro' => 'TipoProdutoController@cadastro', // Formulário (GET)
     '/admin/tipos-produto/salvar' => 'TipoProdutoController@salvar', // Salvar (POST)
+    '/admin/tipos-produto/excluir' => 'TipoProdutoController@excluir',
 
     // MÓDULO DE CADASTRO DE AÇÕES DE PRODUÇÃO
     '/admin/acoes' => 'AcaoController@index', // Listagem

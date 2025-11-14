@@ -85,4 +85,31 @@ class TipoProdutoController extends AppController
         header('Location: /sgi_erp/admin/tipos-produto');
         exit();
     }
+
+    /**
+     * Exclui um tipo de produto (via AJAX)
+     * Rota: /admin/tipos-produto/excluir (POST)
+     */
+    public function excluir()
+    {
+        // Protege contra acesso direto
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit();
+        }
+
+        $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
+            exit();
+        }
+
+        if ($this->tipoProdutoModel->excluir($id)) {
+            echo json_encode(['success' => true, 'message' => 'Tipo de produto excluído com sucesso.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => $_SESSION['erro'] ?? 'Erro ao excluir.']);
+            unset($_SESSION['erro']);
+        }
+        exit();
+    }
 }

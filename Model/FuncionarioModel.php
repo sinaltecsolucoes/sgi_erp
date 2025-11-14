@@ -21,7 +21,8 @@ class FuncionarioModel
     $query = "SELECT 
                     f.id, 
                     f.nome, 
-                    f.cpf, 
+                    f.cpf,
+                    f.rg, 
                     f.tipo,
                     f.ativo,
                     u.login    
@@ -78,7 +79,7 @@ class FuncionarioModel
     $query = "SELECT 
                     f.*, 
                     u.login, 
-                    u.id as usuario_id 
+                    u.id as usuario_id, f.rg 
                   FROM 
                     {$this->table_funcionarios} f
                   LEFT JOIN
@@ -97,42 +98,57 @@ class FuncionarioModel
   /**
    * Cria ou atualiza um registro de funcionário.
    * @param array $dados Array associativo com nome, tipo, e-mail, etc.
-   * @return int|string|bool Retorna o ID, a string 'CPF_DUPLICADO' ou FALSE.
+   * @return int|string|bool Retorna o ID (int), 'CPF_DUPLICADO' ou FALSE.
    */
   public function salvar($dados)
   {
+    $tipo_doc = $dados['tipo_documento'] ?? 'cpf'; // 'cpf' ou 'rg'
+    $cpf = $tipo_doc === 'cpf' ? $dados['cpf'] : null;
+    $rg = $tipo_doc === 'rg' ? $dados['rg'] : null;
+
+    // Validação básica
+    if ($tipo_doc === 'cpf' && (empty($cpf) || strlen(onlyNumbers($cpf)) !== 11)) {
+      $_SESSION['erro'] = 'CPF deve ter 11 dígitos.';
+      return false;
+    }
+    if ($tipo_doc === 'rg' && empty($rg)) {
+      $_SESSION['erro'] = 'RG é obrigatório quando selecionado.';
+      return false;
+    }
+
+    // Prepara query
     if (isset($dados['id']) && $dados['id'] > 0) {
-      // Lógica de UPDATE
       $query = "UPDATE {$this->table_funcionarios}
-                      SET nome = :nome, cpf = :cpf, tipo = :tipo, ativo = :ativo
-                      WHERE id = :id";
+                  SET nome = :nome, cpf = :cpf, rg = :rg, tipo = :tipo, ativo = :ativo
+                  WHERE id = :id";
       $stmt = $this->db->prepare($query);
       $stmt->bindParam(':id', $dados['id']);
     } else {
-      // Lógica de INSERT
-      $query = "INSERT INTO {$this->table_funcionarios} (nome, cpf, tipo, ativo) 
-                      VALUES (:nome, :cpf, :tipo, :ativo)";
+      $query = "INSERT INTO {$this->table_funcionarios} 
+                  (nome, cpf, rg, tipo, ativo) 
+                  VALUES (:nome, :cpf, :rg, :tipo, :ativo)";
       $stmt = $this->db->prepare($query);
     }
 
     try {
       $stmt->bindParam(':nome', $dados['nome']);
-      $stmt->bindParam(':cpf', $dados['cpf']);
+      $stmt->bindParam(':cpf', $cpf);
+      $stmt->bindParam(':rg', $rg);
       $stmt->bindParam(':tipo', $dados['tipo']);
       $stmt->bindParam(':ativo', $dados['ativo'], PDO::PARAM_BOOL);
 
       if ($stmt->execute()) {
-        return $dados['id'] ?? $this->db->lastInsertId();
+        return !empty($dados['id']) ? (int)$dados['id'] : $this->db->lastInsertId();
       }
       return false;
     } catch (PDOException $e) {
-      // CORREÇÃO 1: Retorna a string 'CPF_DUPLICADO' para o Controller
-      if ($e->getCode() === '23000' && str_contains($e->getMessage(), 'cpf')) {
-        return 'CPF_DUPLICADO'; 
-      } else {
-        $_SESSION['erro'] = 'Erro interno ao salvar o funcionário.';
+      $msg = $e->getMessage();
+      if ($e->getCode() === '23000') {
+        if (stripos($msg, 'cpf') !== false) return 'CPF_DUPLICADO';
+        if (stripos($msg, 'rg') !== false) return 'RG_DUPLICADO';
       }
-      error_log("Erro ao salvar funcionarios: " . $e->getMessage());
+      $_SESSION['erro'] = 'Erro ao salvar funcionário.';
+      error_log("Erro: " . $msg);
       return false;
     }
   }
@@ -147,7 +163,7 @@ class FuncionarioModel
 
   public function criarOuAtualizarUsuario($funcionario_id, $login, $senha)
   {
-    
+
     // 1. Verifica se o login já existe para este funcionário
     $check_query = "SELECT id, login FROM usuarios WHERE funcionario_id = :funcionario_id";
     $check_stmt = $this->db->prepare($check_query);
@@ -268,6 +284,24 @@ class FuncionarioModel
     $stmt->execute();
 
     return $stmt->fetch();
+  }
+
+  public function buscarPorRg($rg)
+  {
+    $query = "SELECT id, nome FROM {$this->table_funcionarios} WHERE rg = :rg LIMIT 1";
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':rg', $rg);
+    $stmt->execute();
+    return $stmt->fetch();
+  }
+
+  public function buscarNomePorId($id)
+  {
+    $query = "SELECT nome FROM {$this->table_funcionarios} WHERE id = :id";
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchColumn() ?: 'Desconhecido';
   }
 
   /**

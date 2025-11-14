@@ -105,6 +105,14 @@ $theme_prefix = '/sgi_erp/public/theme/sb-admin-themewagon/dist';
         <script src="/sgi_erp/public/js/producao-massa-interatividade.js"></script>
     <?php endif; ?>
 
+    <!-- === Funcionário Cadastro === -->
+    <?php $is_funcionario_cadastro = strpos($pagina_atual, '/admin/funcionarios/cadastro') !== false;
+    ?>
+
+    <?php if ($is_funcionario_cadastro): ?>
+        <script src="/sgi_erp/public/js/funcionario-interatividade.js"></script>
+    <?php endif; ?>
+
     <!-- MODAL DE LOGOUT (sempre único no projeto) -->
     <?php include_once ROOT_PATH . 'View/template/logout_modal.php'; ?>
 

@@ -105,15 +105,50 @@ class ValoresPagamentoModel
   }
 
   /**
-   * Exclui um valor
+   * Exclui um valor com segurança
    * @param int $id
    * @return bool
    */
   public function excluir($id)
   {
-    $query = "DELETE FROM {$this->table} WHERE id = :id";
-    $stmt = $this->db->prepare($query);
-    $stmt->bindParam(':id', $id);
-    return $stmt->execute();
+    try {
+      // 1. Pegue tipo_produto_id e acao_id do valor
+      $query_get = "SELECT tipo_produto_id, acao_id FROM {$this->table} WHERE id = :id LIMIT 1";
+      $stmt_get = $this->db->prepare($query_get);
+      $stmt_get->bindParam(':id', $id);
+      $stmt_get->execute();
+      $valor = $stmt_get->fetch(PDO::FETCH_OBJ);
+
+      if (!$valor) {
+        $_SESSION['erro'] = 'Valor não encontrado.';
+        return false;
+      }
+
+      // 2. Verifica se está em uso na producao
+      $query_check = "SELECT COUNT(*) FROM producao 
+                        WHERE tipo_produto_id = :tipo_produto_id 
+                          AND acao_id = :acao_id";
+      $stmt_check = $this->db->prepare($query_check);
+      $stmt_check->bindParam(':tipo_produto_id', $valor->tipo_produto_id);
+      $stmt_check->bindParam(':acao_id', $valor->acao_id);
+      $stmt_check->execute();
+      $em_uso = $stmt_check->fetchColumn() > 0;
+
+      if ($em_uso) {
+        $_SESSION['erro'] = 'Não é possível excluir: este valor está sendo usado em lançamentos de produção.';
+        return false;
+      }
+
+      // 3. Exclui
+      $query = "DELETE FROM {$this->table} WHERE id = :id";
+      $stmt = $this->db->prepare($query);
+      $stmt->bindParam(':id', $id);
+      $stmt->execute();
+      return $stmt->rowCount() > 0;
+    } catch (PDOException $e) {
+      $_SESSION['erro'] = 'Erro no banco de dados: ' . $e->getMessage();
+      error_log("Erro excluir valor: " . $e->getMessage());
+      return false;
+    }
   }
 }

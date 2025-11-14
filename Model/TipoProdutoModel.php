@@ -38,9 +38,9 @@ class TipoProdutoModel
         $query = "SELECT id, nome, usa_lote FROM {$this->table_produtos} WHERE id = :id LIMIT 1";
         try {
             $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':id', $id); 
+            $stmt->bindParam(':id', $id);
             $stmt->execute();
-            
+
             return $stmt->fetch();
         } catch (PDOException $e) {
             // Em caso de erro na consulta
@@ -79,6 +79,39 @@ class TipoProdutoModel
             return true;
         } catch (PDOException $e) {
             $_SESSION['erro'] = 'Erro ao salvar Tipo de Produto. Nome duplicado?';
+            return false;
+        }
+    }
+
+    /**
+     * Exclui um tipo de produto
+     * @param int $id
+     * @return bool
+     */
+    public function excluir($id)
+    {
+        // 1. Verifica se o tipo está sendo usado em produções
+        $query_check = "SELECT COUNT(*) FROM producao WHERE tipo_produto_id = :id";
+        $stmt_check = $this->db->prepare($query_check);
+        $stmt_check->bindParam(':id', $id);
+        $stmt_check->execute();
+        $em_uso = $stmt_check->fetchColumn() > 0;
+
+        if ($em_uso) {
+            $_SESSION['erro'] = 'Não é possível excluir: este tipo está sendo usado em lançamentos de produção.';
+            return false;
+        }
+
+        // 2. Exclui
+        $query = "DELETE FROM {$this->table_produtos} WHERE id = :id";
+        try {
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            $_SESSION['erro'] = 'Erro ao excluir tipo de produto.';
+            error_log("Erro excluir tipo: " . $e->getMessage());
             return false;
         }
     }

@@ -117,19 +117,33 @@ class ValoresPagamentoController extends AppController
         exit();
     }
 
+
     /**
-     * Exclui um valor
-     * Rota: /admin/valores-pagamento/excluir?id=X
+     * Exclui um valor via AJAX
+     * Rota: /admin/valores-pagamento/excluir (POST)
      */
     public function excluir()
     {
-        $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-        if (!$id || !$this->valPagModel->excluir($id)) {
-            $_SESSION['erro'] = 'Erro ao excluir o valor.';
-        } else {
-            $_SESSION['sucesso'] = 'Valor excluído com sucesso.';
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido.']);
+            exit();
         }
-        header('Location: /sgi_erp/admin/valores-pagamento');
+
+        $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
+            exit();
+        }
+
+        if ($this->valPagModel->excluir($id)) {
+            echo json_encode(['success' => true, 'message' => 'Valor excluído com sucesso.']);
+        } else {
+            $mensagem = $_SESSION['erro'] ?? 'Erro ao excluir o valor.';
+            unset($_SESSION['erro']);
+            echo json_encode(['success' => false, 'message' => $mensagem]);
+        }
         exit();
     }
 }

@@ -5,16 +5,18 @@ class ApiController
 {
     private $usuarioModel;
     private $funcionarioModel;
+    private $equipeModel;
 
     public function __construct()
     {
         $this->usuarioModel = new UsuarioModel();
         $this->funcionarioModel = new FuncionarioModel();
+        $this->equipeModel = new EquipeModel();
         header('Content-Type: application/json');
     }
 
     // ==========================================
-    // CHECAGEM DE PERMISSÃO (ADMIN + TIPO ESPECÍFICO)
+    // CHECAGEM DE PERMISSÃO
     // ==========================================
     private function checkPermission($requiredType, $providedType, $funcionarioId)
     {
@@ -36,13 +38,11 @@ class ApiController
     }
 
     // ==========================================
-    // LOGIN
+    // 1. LOGIN
     // ==========================================
     public function login()
     {
-        $json_data = file_get_contents('php://input');
-        $data = json_decode($json_data, true);
-
+        $data = json_decode(file_get_contents('php://input'), true);
         $login = $data['login'] ?? '';
         $senha = $data['senha'] ?? '';
 
@@ -52,11 +52,9 @@ class ApiController
         }
 
         $usuario = $this->usuarioModel->logar($login, $senha);
-
         if ($usuario) {
             echo json_encode([
                 'success' => true,
-                'message' => 'Login efetuado!',
                 'funcionario_id' => $usuario->funcionario_id,
                 'funcionario_nome' => $usuario->funcionario_nome,
                 'funcionario_tipo' => $usuario->funcionario_tipo,
@@ -67,247 +65,131 @@ class ApiController
     }
 
     // ==========================================
-    // LISTA PARA CHAMADA (só porteiro ou admin)
+    // 2. DADOS DA EQUIPE
     // ==========================================
-
-    public function presencaFuncionarios()
+    /* public function equipeDados()
     {
         $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
 
-        // Permite porteiro OU admin
-        $tipoRequerido = 'porteiro';
-        $tipoUsuario = $data['funcionario_tipo'] ?? '';
-        $funcionarioId = $data['funcionario_id'] ?? null;
-
-        if ($tipoUsuario !== 'admin' && $tipoUsuario !== $tipoRequerido) {
-            echo json_encode(['success' => false, 'message' => 'Acesso negado.']);
+        $apontadorId = (int)($data['apontador_id'] ?? 0);
+        if (!$apontadorId) {
+            echo json_encode(['success' => false, 'message' => 'ID do apontador inválido.']);
             return;
         }
 
-        if (empty($funcionarioId)) {
-            echo json_encode(['success' => false, 'message' => 'Usuário não identificado.']);
-            return;
+        $equipesRaw = $this->equipeModel->buscarEquipesDoApontador($apontadorId);
+        $equipes = [];
+
+        foreach ($equipesRaw as $e) {
+            $membros = $this->equipeModel->buscarFuncionariosDaEquipe($e->id);
+            $equipes[] = [
+                'id' => (int)$e->id,
+                'nome' => $e->nome,
+                'membros' => $membros
+            ];
         }
 
-        $funcionarioModel = new FuncionarioModel();
+        echo json_encode(['success' => true, 'data' => $equipes]);
+    }*/
 
-        // BUSCA APENAS FUNCIONÁRIOS DO TIPO 'producao'
-        $funcionarios = $funcionarioModel->buscarTodosComPresencaHoje();
-
-        echo json_encode([
-            'success' => true,
-            'funcionarios' => $funcionarios ?? []
-        ]);
-    }
-
-    // ==========================================
-    // SALVAR CHAMADA
-    // ==========================================
-    public function presencaSalvar()
-    {
-        $data = json_decode(file_get_contents('php://input'), true);
-
-        // === VALIDAÇÃO DE PERMISSÃO ===
-        $this->checkPermission('porteiro', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? null);
-
-        $presentesIds = $data['presentes_ids'] ?? [];
-
-        // Validação básica
-        if (!is_array($presentesIds)) {
-            echo json_encode(['success' => false, 'message' => 'Formato inválido: presentes_ids deve ser um array.']);
-            return;
-        }
-
-        $hoje = date('Y-m-d');
-        $funcionarioModel = new FuncionarioModel();
-        $presencaModel = new PresencaModel(); // ← Certifique-se que existe
-
-        // === BUSCAR TODOS OS FUNCIONÁRIOS DE PRODUÇÃO (mesmo filtro da lista) ===
-        $todosProducao = $funcionarioModel->buscarTodosComPresencaHoje(); // Reutiliza o método!
-        $idsValidos = array_column($todosProducao, 'id'); // [10, 11, 12, ...]
-
-        $sucessos = 0;
-        $falhas = 0;
-        $erros = [];
-
-        foreach ($idsValidos as $funcionarioId) {
-            $estaPresente = in_array($funcionarioId, $presentesIds);
-
-            try {
-                if ($estaPresente) {
-                    // Registrar presença
-                    if ($presencaModel->registrarPresenca($funcionarioId, $hoje)) {
-                        $sucessos++;
-                    } else {
-                        $falhas++;
-                        $erros[] = "Falha ao registrar presença para ID $funcionarioId";
-                    }
-                } else {
-                    // Remover presença (se existir)
-                    if ($presencaModel->removerPresenca($funcionarioId, $hoje)) {
-                        // Não conta como sucesso, mas operação OK
-                    } else {
-                        $falhas++;
-                        $erros[] = "Falha ao remover presença para ID $funcionarioId";
-                    }
-                }
-            } catch (Exception $e) {
-                $falhas++;
-                $erros[] = "Erro inesperado para ID $funcionarioId: " . $e->getMessage();
-            }
-        }
-
-        // === RESPOSTA FINAL ===
-        if ($falhas === 0) {
-            echo json_encode([
-                'success' => true,
-                'message' => "Chamada registrada com sucesso! ($sucessos presentes)"
-            ]);
-        } else {
-            echo json_encode([
-                'success' => false,
-                'message' => "Chamada registrada com $falhas erros.",
-                'erros' => $erros
-            ]);
-        }
-    }
-
-    // ==========================================
-    // DADOS DA EQUIPE (apontador ou admin)
-    // ==========================================
-    
     public function equipeDados()
     {
         $data = json_decode(file_get_contents('php://input'), true);
-        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? null);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
 
-        try {
-            $apontador_id = $data['apontador_id'] ?? null;
-            $hoje = date('Y-m-d');
-
-            if (empty($apontador_id)) {
-                echo json_encode(['success' => false, 'message' => 'ID do Apontador é obrigatório.']);
-                return;
-            }
-
-            $funcionarioModel = new FuncionarioModel();
-            $equipeModel = new EquipeModel();
-
-            // 1) Buscar equipes (stdClass) e converter para arrays associativos com membros
-            $equipes_raw = $equipeModel->buscarEquipesDoApontador($apontador_id) ?? [];
-
-            $equipes = [];
-            foreach ($equipes_raw as $eq) {
-                // membros_raw pode vir em modo default (BOTH); vamos mapear para assoc
-                $membros_raw = $equipeModel->buscarFuncionariosDaEquipe($eq->id) ?? [];
-                $membros = array_map(function ($m) {
-                    // garantir acesso por índice associativo
-                    // se vier como objeto, convertemos; se vier como array, usamos direto
-                    if (is_object($m)) {
-                        return ['id' => (int) $m->id, 'nome' => $m->nome];
-                    } else {
-                        return ['id' => (int) $m['id'], 'nome' => $m['nome']];
-                    }
-                }, $membros_raw);
-
-                $equipes[] = [
-                    'id' => (int) $eq->id,
-                    'nome' => $eq->nome,
-                    'membros' => $membros,
-                ];
-            }
-
-            // 2) Presentes e alocados
-            $presentes = $funcionarioModel->buscarPresentesHoje($hoje); // stdClass[]
-            $alocadosIds = $equipeModel->buscarFuncionariosAlocadosHoje(); // int[]
-
-            // 3) IDs dos membros das minhas equipes
-            $meusMembrosIds = [];
-            foreach ($equipes as $eq) {
-                foreach ($eq['membros'] as $m) {
-                    $meusMembrosIds[] = (int) $m['id'];
-                }
-            }
-
-            // 4) Disponíveis: presente hoje e não alocado em outra equipe,
-            // ou já na minha equipe (liberado para edição)
-            $disponiveis = [];
-            foreach ($presentes as $p) {
-                if ((int) $p->esta_presente === 1) {
-                    $id = (int) $p->id;
-                    if (!in_array($id, $alocadosIds, true) || in_array($id, $meusMembrosIds, true)) {
-                        $disponiveis[] = [
-                            'id' => $id,
-                            'nome' => $p->nome,
-                            'presente' => 1,
-                            'na_minha_equipe' => in_array($id, $meusMembrosIds, true),
-                        ];
-                    }
-                }
-            }
-
-            // 5) Equipe atual = primeira, e lista de IDs de seus membros
-            $primeira_equipe = !empty($equipes) ? $equipes[0] : null;
-            $membros_equipe_ids = $primeira_equipe ? array_column($primeira_equipe['membros'], 'id') : [];
-
-            // Debug opcional
-            error_log("DEBUG equipeDados → apontador_id=$apontador_id");
-            error_log("Equipes encontradas: " . json_encode($equipes));
-            error_log("Disponíveis: " . json_encode($disponiveis));
-
-            // 6) Resposta final já em arrays associativos (compatível com Flutter)
-            echo json_encode([
-                'success' => true,
-                'data' => [
-                    'funcionarios_producao' => $disponiveis,
-                    'membros_equipe_ids' => $membros_equipe_ids,
-                    'equipes_do_apontador' => $equipes,
-                    'equipe_atual' => $primeira_equipe,
-                ]
-            ]);
-        } catch (\Throwable $th) {
-            error_log("Erro em equipeDados: " . $th->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Erro interno.']);
+        $apontadorId = (int)($data['apontador_id'] ?? 0);
+        if (!$apontadorId) {
+            echo json_encode(['success' => false, 'message' => 'ID do apontador inválido.']);
+            return;
         }
+
+        $equipesRaw = $this->equipeModel->buscarEquipesDoApontador($apontadorId);
+        $equipes = [];
+
+        foreach ($equipesRaw as $e) {
+            $membros = $this->equipeModel->buscarFuncionariosDaEquipe($e->id);
+            $equipes[] = [
+                'id' => (int)$e->id,
+                'nome' => $e->nome,
+                'membros' => $membros
+            ];
+        }
+
+        echo json_encode(['success' => true, 'data' => $equipes]);
     }
 
-
     // ==========================================
-    // SALVAR EQUIPE
+    // 3. SALVAR EQUIPE (CRIAR/EDITAR)
     // ==========================================
-    public function equipeSalvar()
+    /*public function equipeSalvar()
     {
         $data = json_decode(file_get_contents('php://input'), true);
-        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? null);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
 
-        $apontador_id = $data['apontador_id'] ?? null;
+        $apontador_id = $data['apontador_id'] ?? 0;
         $nome_equipe = $data['nome_equipe'] ?? 'Equipe Padrão';
         $membros_ids = $data['membros_ids'] ?? [];
-        $equipe_id = $data['equipe_id'] ?? null; 
+        $equipe_id = $data['equipe_id'] ?? null;
 
         if (!$apontador_id || empty($membros_ids)) {
             echo json_encode(['success' => false, 'message' => 'Apontador ID e membros são obrigatórios.']);
             return;
         }
 
-        $equipeModel = new EquipeModel();
-
         if ($equipe_id) {
-            // EDITAR equipe existente
-            $equipeModel->atualizarNome($equipe_id, $nome_equipe);
-            $equipeModel->removerTodosFuncionarios($equipe_id);
+            // EDITAR
+            $this->equipeModel->atualizarNome($equipe_id, $nome_equipe);
+            $this->equipeModel->removerTodosFuncionarios($equipe_id);
             foreach ($membros_ids as $func_id) {
-                $equipeModel->associarFuncionario($equipe_id, $func_id);
+                $this->equipeModel->associarFuncionario($equipe_id, $func_id);
             }
             echo json_encode(['success' => true, 'message' => 'Equipe atualizada com sucesso!']);
         } else {
-            // CRIAR nova equipe
-            $nova_id = $equipeModel->criarEquipe($apontador_id, $nome_equipe);
+            // CRIAR
+            $nova_id = $this->equipeModel->criarEquipe($apontador_id, $nome_equipe);
             if ($nova_id) {
                 foreach ($membros_ids as $func_id) {
-                    $equipeModel->associarFuncionario($nova_id, $func_id);
+                    $this->equipeModel->associarFuncionario($nova_id, $func_id);
                 }
-                echo json_encode(['success' => true, 'message' => 'Equipe criada com sucesso!', 'equipe_id' => $nova_id]);
+                echo json_encode(['success' => true, 'message' => 'Equipe criada!', 'equipe_id' => $nova_id]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Erro ao criar equipe.']);
+            }
+        }
+    }*/
+
+    public function equipeSalvar()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $apontador_id = $data['apontador_id'] ?? 0;
+        $nome_equipe = $data['nome_equipe'] ?? 'Equipe Padrão';
+        $membros_ids = $data['membros_ids'] ?? [];
+        $equipe_id = $data['equipe_id'] ?? null;
+
+        if (!$apontador_id || empty($membros_ids)) {
+            echo json_encode(['success' => false, 'message' => 'Dados obrigatórios ausentes.']);
+            return;
+        }
+
+        if ($equipe_id) {
+            // Editar
+            $this->equipeModel->atualizarNome($equipe_id, $nome_equipe);
+            $this->equipeModel->removerTodosFuncionarios($equipe_id); // Remove todos atuais
+            foreach ($membros_ids as $func_id) {
+                $this->equipeModel->associarFuncionario($equipe_id, $func_id);
+            }
+            echo json_encode(['success' => true, 'message' => 'Equipe atualizada!']);
+        } else {
+            // Criar nova
+            $nova_id = $this->equipeModel->criarEquipe($apontador_id, $nome_equipe);
+            if ($nova_id) {
+                foreach ($membros_ids as $func_id) {
+                    $this->equipeModel->associarFuncionario($nova_id, $func_id);
+                }
+                echo json_encode(['success' => true, 'message' => 'Equipe criada!', 'equipe_id' => $nova_id]);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Erro ao criar equipe.']);
             }
@@ -315,115 +197,342 @@ class ApiController
     }
 
     // ==========================================
-    // OPÇÕES DE LANÇAMENTO
+    // 4. EQUIPES DE OUTROS APONTADORES
     // ==========================================
-    public function lancamentoOpcoes()
+    /*  public function buscarEquipesOutros()
     {
         $data = json_decode(file_get_contents('php://input'), true);
-        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? null);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
 
-        $apontador_id = $data['apontador_id'] ?? null;
+        $apontadorId = (int)($data['funcionario_id'] ?? 0);
 
-        if (empty($apontador_id)) {
-            echo json_encode(['success' => false, 'message' => 'ID do Apontador é obrigatório.']);
-            return;
-        }
+        $todas = $this->equipeModel->buscarTodasEquipesAtivasHoje();
+        $outras = array_filter($todas, fn($e) => (int)$e->apontador_id !== $apontadorId);
 
-        $equipeModel = new EquipeModel();
-        $acaoModel = new AcaoModel();
-        $tipoProdutoModel = new TipoProdutoModel();
 
-        // 1. Buscar membros da equipe
-        $equipe = $equipeModel->buscarEquipeDoApontador($apontador_id);
-        if (!$equipe) {
-            echo json_encode(['success' => false, 'message' => 'Nenhuma equipe encontrada. Monte sua equipe primeiro.']);
-            return;
-        }
-        $membros = $equipeModel->buscarFuncionariosDaEquipe($equipe->id);
-
-        // 2. Buscar opções de Ação e Produto (incluindo usa_lote)
-        $acoes = $acaoModel->buscarTodas();
-        $tipos_produto = $tipoProdutoModel->buscarTodos();
+        $resultado = array_map(fn($e) => [
+            'id' => (int)$e->id,
+            'nome' => $e->nome,
+            'apontador_nome' => $this->funcionarioModel->buscarNomePorId((int)$e->apontador_id)
+        ], $outras);
 
         echo json_encode([
             'success' => true,
-            'equipe_id' => $equipe->id,
-            'membros' => array_map(fn($m) => ['id' => $m->id, 'nome' => $m->nome], $membros),
-            'acoes' => array_map(fn($a) => ['id' => $a->id, 'nome' => $a->nome], $acoes),
-            // Passa o flag usa_lote para o JS
-            'produtos' => array_map(fn($p) => ['id' => $p->id, 'nome' => $p->nome, 'usa_lote' => (int) $p->usa_lote], $tipos_produto),
+            'equipes' => array_values($resultado)
         ]);
-    }
+    }*/
 
-    // ==========================================
-    // SALVAR LANÇAMENTO EM MASSA (apontador/admin)
-    // ==========================================
-    public function lancamentoSalvarMassa()
+    /* public function buscarEquipesOutros()
     {
         $data = json_decode(file_get_contents('php://input'), true);
-        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? null);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
 
-        $lancamentos = $data['lancamentos'] ?? [];  // Array de lançamentos [{funcionario_id, acao_id, produto_id, lote, quantidade_kg, hora_inicio, hora_fim}]
-
-        if (empty($lancamentos)) {
-            echo json_encode(['success' => false, 'message' => 'Nenhum lançamento fornecido.']);
+        $apontadorId = (int)($data['funcionario_id'] ?? 0);
+        if (!$apontadorId) {
+            echo json_encode(['success' => false, 'message' => 'ID do apontador inválido.']);
             return;
         }
 
-        $producaoModel = new ProducaoModel();
-        $errors = [];
-        $successCount = 0;
+        $todas = $this->equipeModel->buscarTodasEquipesAtivasHoje();
+        $outras = array_filter($todas, fn($e) => (int)$e->apontador_id !== $apontadorId);
 
-        foreach ($lancamentos as $lanc) {
-            $funcionario_id = $lanc['funcionario_id'];
-            $acao_id = $lanc['acao_id'];
-            $produto_id = $lanc['produto_id'];
-            $lote = $lanc['lote'] ?? '';
-            $quantidade_kg = $lanc['quantidade_kg'];
-            $hora_inicio = $lanc['hora_inicio'];
-            $hora_fim = $lanc['hora_fim'];
+        $resultado = array_map(fn($e) => [
+            'id' => (int)$e->id,
+            'nome' => $e->nome,
+            'apontador_nome' => $e->apontador_nome
+        ], $outras);
 
-            // Validação básica
-            if (empty($funcionario_id) || empty($acao_id) || empty($produto_id) || $quantidade_kg <= 0) {
-                $errors[] = "Dados inválidos para funcionário $funcionario_id";
-                continue;
-            }
+        echo json_encode([
+            'success' => true,
+            'equipes' => array_values($resultado)
+        ]);
+    }*/
 
-            // Salva no banco (use seu Model)
-            if (
-                $producaoModel->registrarLancamento(
-                    $funcionario_id,
-                    $acao_id,
-                    $produto_id,
-                    $lote,
-                    $quantidade_kg,
-                    $hora_inicio,
-                    $hora_fim
-                )
-            ) {
-                $successCount++;
-            } else {
-                $errors[] = "Erro ao salvar para funcionário $funcionario_id";
-            }
+    /*  public function buscarEquipesOutros()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $apontadorId = (int)($data['funcionario_id'] ?? 0);
+
+        $todas = $this->equipeModel->buscarTodasEquipesAtivasHoje();
+        $outras = array_filter($todas, fn($e) => (int)$e->apontador_id !== $apontadorId);
+
+        $resultado = array_map(fn($e) => [
+            'id' => (int)$e->id,
+            'nome' => $e->nome,
+            'apontador_nome' => $e->apontador_nome
+        ], $outras);
+
+        echo json_encode(['success' => true, 'equipes' => array_values($resultado)]);
+    }*/
+
+    public function buscarEquipesOutros()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $apontadorId = (int)($data['funcionario_id'] ?? 0);
+
+        $todas = $this->equipeModel->buscarTodasEquipesAtivasHoje();
+
+        // CORREÇÃO AQUI (Linha 259 original): Verifica se a propriedade existe antes de acessá-la
+        $outras = array_filter($todas, fn($e) => property_exists($e, 'apontador_id') && (int)$e->apontador_id !== $apontadorId);
+
+        // A linha 262 também pode falhar se $e->apontador_nome não existir
+        $resultado = array_map(fn($e) => [
+            'id' => (int)$e->id,
+            'nome' => $e->nome,
+            // CORREÇÃO: Usa um valor padrão se a propriedade não existir
+            'apontador_nome' => property_exists($e, 'apontador_nome') ? $e->apontador_nome : 'Desconhecido'
+        ], $outras);
+
+        echo json_encode(['success' => true, 'equipes' => array_values($resultado)]);
+    }
+
+    // ==========================================
+    // 5. MOVER MEMBRO
+    // ==========================================
+    /* public function moverMembro()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $membroId = (int)($data['membro_id'] ?? 0);
+        $origemId = (int)($data['equipe_origem_id'] ?? 0);
+        $destinoId = (int)($data['equipe_destino_id'] ?? 0);
+
+        if (!$membroId || !$origemId || !$destinoId) {
+            echo json_encode(['success' => false, 'message' => 'Dados inválidos.']);
+            return;
         }
 
-        if (empty($errors)) {
-            echo json_encode(['success' => true, 'message' => 'Todos os lançamentos salvos com sucesso!']);
+        if (!$this->equipeModel->estaFuncionarioNaEquipe($origemId, $membroId)) {
+            echo json_encode(['success' => false, 'message' => 'Funcionário não está na origem.']);
+            return;
+        }
+
+        $sucesso = $this->equipeModel->removerFuncionarioDeEquipe($origemId, $membroId) &&
+            $this->equipeModel->associarFuncionario($destinoId, $membroId);
+
+        echo json_encode([
+            'success' => $sucesso,
+            'message' => $sucesso ? 'Movido!' : 'Erro ao mover.'
+        ]);
+    }*/
+
+    public function moverMembro()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $membroId = (int)($data['membro_id'] ?? 0);
+        $origemId = (int)($data['equipe_origem_id'] ?? 0);
+        $destinoId = (int)($data['equipe_destino_id'] ?? 0);
+
+        if (!$membroId || !$origemId || !$destinoId) {
+            echo json_encode(['success' => false, 'message' => 'Dados inválidos.']);
+            return;
+        }
+
+        if (
+            $this->equipeModel->removerFuncionarioDeEquipe($origemId, $membroId) &&
+            $this->equipeModel->associarFuncionario($destinoId, $membroId)
+        ) {
+            echo json_encode(['success' => true, 'message' => 'Movido!']);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Alguns erros ocorreram', 'errors' => $errors]);
+            echo json_encode(['success' => false, 'message' => 'Erro ao mover.']);
         }
     }
 
     // ==========================================
-    // INFO / TESTE
+    // 6. RETIRAR MEMBRO
     // ==========================================
-    public function info()
+    /*public function retirarMembro()
     {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $equipeId = (int)($data['equipe_id'] ?? 0);
+        $membroId = (int)($data['membro_id'] ?? 0);
+
+        if (!$equipeId || !$membroId) {
+            echo json_encode(['success' => false, 'message' => 'Dados inválidos.']);
+            return;
+        }
+
+        $sucesso = $this->equipeModel->removerFuncionarioDeEquipe($equipeId, $membroId);
         echo json_encode([
-            'status' => 'online',
-            'service' => 'SGI ERP API',
-            'message' => 'API rodando perfeitamente!',
-            'timestamp' => date('Y-m-d H:i:s')
+            'success' => $sucesso,
+            'message' => $sucesso ? 'Membro retirado.' : 'Membro não encontrado.'
         ]);
+    }*/
+
+    public function retirarMembro()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $equipeId = (int)($data['equipe_id'] ?? 0);
+        $membroId = (int)($data['membro_id'] ?? 0);
+
+        if (!$equipeId || !$membroId) {
+            echo json_encode(['success' => false, 'message' => 'Dados inválidos.']);
+            return;
+        }
+
+        if ($this->equipeModel->removerFuncionarioDeEquipe($equipeId, $membroId)) {
+            echo json_encode(['success' => true, 'message' => 'Membro retirado.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Erro ao retirar.']);
+        }
+    }
+
+    // ==========================================
+    // 7. EDITAR EQUIPE
+    // ==========================================
+    /* public function editarEquipe()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $equipeId = (int)($data['equipe_id'] ?? 0);
+        $novoNome = trim($data['novo_nome'] ?? '');
+        $novosMembros = $data['novos_membros_ids'] ?? [];
+
+        if (!$equipeId || empty($novoNome)) {
+            echo json_encode(['success' => false, 'message' => 'Nome obrigatório.']);
+            return;
+        }
+
+        $sucesso = $this->equipeModel->atualizarNome($equipeId, $novoNome);
+        if ($sucesso) {
+            foreach ($novosMembros as $mid) {
+                $mid = (int)$mid;
+                if (!$this->equipeModel->estaFuncionarioNaEquipe($equipeId, $mid)) {
+                    $this->equipeModel->associarFuncionario($equipeId, $mid);
+                }
+            }
+        }
+
+        echo json_encode([
+            'success' => $sucesso,
+            'message' => $sucesso ? 'Equipe atualizada.' : 'Erro ao salvar.'
+        ]);
+    }*/
+
+    public function editarEquipe()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $equipeId = (int)($data['equipe_id'] ?? 0);
+        $novoNome = trim($data['novo_nome'] ?? '');
+        $novosMembros = $data['novos_membros_ids'] ?? [];
+
+        if (!$equipeId || empty($novoNome)) {
+            echo json_encode(['success' => false, 'message' => 'Nome obrigatório.']);
+            return;
+        }
+
+        $sucesso = $this->equipeModel->atualizarNome($equipeId, $novoNome);
+        if ($sucesso) {
+            foreach ($novosMembros as $mid) {
+                $mid = (int)$mid;
+                $this->equipeModel->associarFuncionario($equipeId, $mid);
+            }
+        }
+
+        echo json_encode([
+            'success' => $sucesso,
+            'message' => $sucesso ? 'Equipe atualizada.' : 'Erro ao salvar.'
+        ]);
+    }
+
+    // ==========================================
+    // 8. FUNCIONÁRIOS DISPONÍVEIS
+    // ==========================================
+    /* public function buscarFuncionariosDisponiveis()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $hoje = date('Y-m-d');
+        $alocados = $this->equipeModel->buscarFuncionariosAlocadosHoje();
+        $presentes = $this->funcionarioModel->buscarPresentesHoje($hoje);
+
+        $disponiveis = array_filter($presentes, fn($f) => !in_array($f['id'], $alocados));
+
+        // Converte para array associativo
+        $disponiveis = array_map(fn($f) => [
+            'id' => $f->id,
+            'nome' => $f->nome,
+            // outros campos se necessário
+        ], $disponiveis);
+
+        echo json_encode(['success' => true, 'funcionarios' => array_values($disponiveis)]);
+    }*/
+
+    public function buscarFuncionariosDisponiveis()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('apontador', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $hoje = date('Y-m-d');
+        $alocados = $this->equipeModel->buscarFuncionariosAlocadosHoje();
+        $presentes = $this->funcionarioModel->buscarPresentesHoje($hoje);
+
+        $disponiveis = array_filter($presentes, fn($f) => !in_array($f->id, $alocados));
+
+        $disponiveis = array_map(fn($f) => [
+            'id' => $f->id,
+            'nome' => $f->nome,
+        ], $disponiveis);
+
+        echo json_encode(['success' => true, 'funcionarios' => array_values($disponiveis)]);
+    }
+
+    // ==========================================
+    // 9. LISTA PARA CHAMADA
+    // ==========================================
+    public function presencaFuncionarios()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('porteiro', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $funcionarios = $this->funcionarioModel->buscarTodosComPresencaHoje();
+        echo json_encode(['success' => true, 'funcionarios' => $funcionarios ?? []]);
+    }
+
+    // ==========================================
+    // 10. SALVAR CHAMADA
+    // ==========================================
+    public function presencaSalvar()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $this->checkPermission('porteiro', $data['funcionario_tipo'] ?? '', $data['funcionario_id'] ?? 0);
+
+        $presentesIds = $data['presentes_ids'] ?? [];
+        if (!is_array($presentesIds)) {
+            echo json_encode(['success' => false, 'message' => 'Formato inválido.']);
+            return;
+        }
+
+        $hoje = date('Y-m-d');
+        $presencaModel = new PresencaModel();
+        $todosProducao = $this->funcionarioModel->buscarTodosComPresencaHoje();
+        $idsValidos = array_column($todosProducao, 'id');
+
+        $sucessos = 0;
+        foreach ($idsValidos as $id) {
+            $estaPresente = in_array($id, $presentesIds);
+            if ($estaPresente) {
+                $presencaModel->registrarPresenca($id, $hoje) ? $sucessos++ : null;
+            } else {
+                $presencaModel->removerPresenca($id, $hoje);
+            }
+        }
+
+        echo json_encode(['success' => true, 'message' => "Chamada registrada ($sucessos presentes)"]);
     }
 }

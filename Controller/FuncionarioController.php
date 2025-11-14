@@ -65,7 +65,7 @@ class FuncionarioController extends AppController
      * Rota: /admin/funcionarios/salvar (via POST)
      * Permitido: Admin (checa no ACL)
      */
-    public function salvar()
+    /* public function salvar()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: /sgi_erp/admin/funcionarios');
@@ -76,10 +76,14 @@ class FuncionarioController extends AppController
         $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
         $nome = sanitize($_POST['nome'] ?? '');
         $nome = mb_strtoupper($nome, 'UTF-8'); // Aplica a conversão para maiúsculas
-        $cpf_mascarado = onlyNumbers($_POST['cpf'] ?? ''); // Captura o CPF
+        $tipo_documento = sanitize($_POST['tipo_documento'] ?? 'cpf');
+        //$cpf_mascarado = onlyNumbers($_POST['cpf'] ?? ''); // Captura o CPF
+        $cpf_mascarado = $tipo_documento === 'cpf' ? ($_POST['cpf'] ?? '') : '';
+        $rg = $tipo_documento === 'rg' ? sanitize($_POST['rg'] ?? '') : '';
 
         // Limpeza da Máscara para salvar APENAS números no banco
-        $cpf = onlyNumbers($cpf_mascarado);
+        //$cpf = onlyNumbers($cpf_mascarado);
+        $cpf = $tipo_documento === 'cpf' ? onlyNumbers($cpf_mascarado) : null;
 
         $tipo = sanitize($_POST['tipo'] ?? ''); // admin, apontador, producao, financeiro
         $ativo = filter_input(INPUT_POST, 'ativo', FILTER_SANITIZE_NUMBER_INT) === '1';
@@ -131,6 +135,9 @@ class FuncionarioController extends AppController
                 } else {
                     // Se falhar (ex: login duplicado), usa a mensagem de erro do Model
                     //  $_SESSION['erro'] = $_SESSION['erro'] ?? 'Erro desconhecido ao salvar o login.';
+                    if (!isset($_SESSION['erro'])) {
+                        $_SESSION['erro'] = 'Funcionário cadastrado, mas o login falhou por motivo desconhecido.';
+                    }
                 }
             } else {
                 // Se NÃO FORNECER login/senha, apenas o funcionário é salvo
@@ -146,5 +153,123 @@ class FuncionarioController extends AppController
         }
         header('Location: /sgi_erp/admin/funcionarios');
         exit();
+    } */
+
+    public function salvar()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /sgi_erp/admin/funcionarios');
+            exit();
+        }
+
+        // 1. Coleta e Sanitiza
+        $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+        $nome = sanitize($_POST['nome'] ?? '');
+        $nome = mb_strtoupper($nome, 'UTF-8');
+        $tipo_documento = sanitize($_POST['tipo_documento'] ?? 'cpf'); // 'cpf' ou 'rg'
+
+        $cpf_mascarado = $tipo_documento === 'cpf' ? ($_POST['cpf'] ?? '') : '';
+        $rg = $tipo_documento === 'rg' ? sanitize($_POST['rg'] ?? '') : '';
+
+        $cpf = $tipo_documento === 'cpf' ? onlyNumbers($cpf_mascarado) : null;
+
+        $tipo = sanitize($_POST['tipo'] ?? '');
+        $ativo = filter_input(INPUT_POST, 'ativo', FILTER_SANITIZE_NUMBER_INT) === '1';
+        $login = sanitize($_POST['login'] ?? '');
+        $senha = $_POST['senha'] ?? null;
+
+        // === VALIDAÇÃO DINÂMICA POR TIPO DE DOCUMENTO ===
+        if (empty($nome) || empty($tipo)) {
+            $_SESSION['erro'] = 'Nome e Tipo são obrigatórios.';
+            $this->redirectCadastro($id);
+        }
+
+        if ($tipo_documento === 'cpf') {
+            if (strlen($cpf) !== 11) {
+                $_SESSION['erro'] = 'CPF deve ter 11 dígitos.';
+                $this->redirectCadastro($id);
+            }
+        } elseif ($tipo_documento === 'rg') {
+            if (empty($rg)) {
+                $_SESSION['erro'] = 'RG é obrigatório quando selecionado.';
+                $this->redirectCadastro($id);
+            }
+            // Opcional: limite de tamanho
+            if (strlen($rg) > 20) {
+                $_SESSION['erro'] = 'RG deve ter no máximo 20 caracteres.';
+                $this->redirectCadastro($id);
+            }
+        }
+
+        // === MONTA DADOS PARA O MODEL ===
+        $dados_funcionario = [
+            'id' => $id,
+            'nome' => $nome,
+            'cpf' => $cpf,
+            'rg' => $rg,
+            'tipo' => $tipo,
+            'ativo' => $ativo,
+            'tipo_documento' => $tipo_documento // necessário no Model
+        ];
+
+        // === SALVA FUNCIONÁRIO ===
+        $resultado_salvar = $this->funcionarioModel->salvar($dados_funcionario);
+
+        // === TRATAMENTO DE DUPLICIDADE (CPF OU RG) ===
+        if ($resultado_salvar === 'CPF_DUPLICADO') {
+            $this->tratarDuplicidade('cpf', $cpf_mascarado, $cpf);
+        } elseif ($resultado_salvar === 'RG_DUPLICADO') {
+            $this->tratarDuplicidade('rg', $rg, $rg);
+        } elseif ($resultado_salvar !== false && $resultado_salvar > 0) {
+            // === SUCESSO ===
+            $funcionario_id = $resultado_salvar;
+
+            if (!empty($login) || !empty($senha)) {
+                if ($this->funcionarioModel->criarOuAtualizarUsuario($funcionario_id, $login, $senha)) {
+                    $_SESSION['sucesso'] = "Funcionário **{$nome}** e login salvos com sucesso!";
+                } else {
+                    if (!isset($_SESSION['erro'])) {
+                        $_SESSION['erro'] = 'Funcionário salvo, mas falha ao criar login.';
+                    }
+                }
+            } else {
+                $_SESSION['sucesso'] = "Funcionário **{$nome}** salvo com sucesso!";
+            }
+        } else {
+            // Erro genérico
+            if (!isset($_SESSION['erro'])) {
+                $_SESSION['erro'] = 'Falha ao salvar funcionário.';
+            }
+        }
+
+        header('Location: /sgi_erp/admin/funcionarios');
+        exit();
+    }
+
+    // === MÉTODOS AUXILIARES (adicione no final da classe) ===
+
+    private function redirectCadastro($id = null)
+    {
+        header('Location: /sgi_erp/admin/funcionarios/cadastro' . ($id ? "?id={$id}" : ''));
+        exit();
+    }
+
+    private function tratarDuplicidade($tipo, $valor_mascarado, $valor_limpo)
+    {
+        $buscarMetodo = $tipo === 'cpf' ? 'buscarPorCpf' : 'buscarPorRg';
+        $funcionario_existente = $this->funcionarioModel->$buscarMetodo($valor_limpo);
+
+        if ($funcionario_existente) {
+            $documento_formatado = $tipo === 'cpf'
+                ? mask($valor_limpo, '###.###.###-##')
+                : $valor_mascarado;
+
+            $_SESSION['confirm_action'] = [
+                'message' => "O " . strtoupper($tipo) . " **{$documento_formatado}** já está cadastrado para **{$funcionario_existente->nome}**. Deseja editar?",
+                'confirm_url' => "/sgi_erp/admin/funcionarios/cadastro?id={$funcionario_existente->id}"
+            ];
+        } else {
+            $_SESSION['erro'] = "Erro: O " . strtoupper($tipo) . " já existe, mas não foi encontrado.";
+        }
     }
 }

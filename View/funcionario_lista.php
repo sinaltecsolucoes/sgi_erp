@@ -32,7 +32,7 @@ $base_url = '/sgi_erp'; // Definição da base URL
                         <tr>
                             <th class="text-center align-middle">ID</th>
                             <th class="text-center align-middle">Nome</th>
-                            <th class="text-center align-middle">CPF</th>
+                            <th class="text-center align-middle">Documento</th>
                             <th class="text-center align-middle">Tipo</th>
                             <th class="text-center align-middle">Login</th>
                             <th class="text-center align-middle">Status</th>
@@ -45,26 +45,33 @@ $base_url = '/sgi_erp'; // Definição da base URL
                     <tbody>
                         <?php if (empty($funcionarios)): ?>
                             <tr>
-                                <td colspan="6" class="text-center">Nenhum funcionário cadastrado.</td>
+                                <td colspan="7" class="text-center">Nenhum funcionário cadastrado.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($funcionarios as $f):
-                                // Definir $is_ativo no escopo do loop
                                 $is_ativo = (int)($f->ativo ?? 0);
                             ?>
                                 <tr class="<?php echo $is_ativo ? '' : 'table-danger'; ?>">
                                     <td class="text-center align-middle"><?php echo htmlspecialchars($f->id); ?></td>
                                     <td class="align-middle"><?php echo htmlspecialchars($f->nome); ?></td>
-                                    <td class="align-middle"><?php echo $f->cpf ? htmlspecialchars(substr($f->cpf, 0, 3) . '.' . substr($f->cpf, 3, 3) . '.' . substr($f->cpf, 6, 3) . '-' . substr($f->cpf, 9, 2)) : 'N/A'; ?></td>
-                                    <td class="align-middle"><?php echo ucfirst(htmlspecialchars($f->tipo)); ?></td>
+                                    <td class="align-middle">
+                                        <?php if (!empty($f->cpf)): ?>
+                                            <small class="text-muted">CPF:</small>
+                                            <?php echo mask($f->cpf, '###.###.###-##'); ?>
+                                        <?php elseif (!empty($f->rg)): ?>
+                                            <small class="text-muted">RG:</small>
+                                            <?php echo htmlspecialchars($f->rg); ?>
+                                        <?php else: ?>
+                                            <em class="text-muted">N/D</em>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center align-middle"><?php echo ucfirst(htmlspecialchars($f->tipo)); ?></td>
                                     <td class="text-center align-middle"><?php echo htmlspecialchars($f->login ?? 'N/A'); ?></td>
-
                                     <td class="text-center align-middle">
                                         <span class="badge <?php echo $is_ativo ? 'bg-success' : 'bg-danger'; ?>">
                                             <?php echo $is_ativo ? 'Ativo' : 'Inativo'; ?>
                                         </span>
                                     </td>
-
                                     <?php if ($pode_cadastrar_editar): ?>
                                         <td class="text-center align-middle">
                                             <a href="<?php echo $base_url; ?>/admin/funcionarios/cadastro?id=<?php echo $f->id; ?>"
@@ -130,7 +137,7 @@ $base_url = '/sgi_erp'; // Definição da base URL
                         {
                             select: 6,
                             sortable: false
-                        }
+                        } // Ações
                     ]
                 };
 
