@@ -113,7 +113,6 @@ class EquipeController extends AppController
      * Processa a EDIÇÃO/Atualização de uma equipe existente.
      * Rota: /equipes/salvar
      */
-
     public function salvar()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -126,13 +125,21 @@ class EquipeController extends AppController
         $feedback_message = '';
         $erros = 0;
 
-        if (!$equipe_id || empty($nome_equipe)) {
-            $_SESSION['erro'] = 'Dados inválidos para salvar equipe.';
+        // === VALIDAÇÃO INICIAL ===
+        if (!$equipe_id) {
+            $_SESSION['erro'] = 'Equipe inválida.';
             header('Location: /sgi_erp/equipes');
             exit();
         }
 
-        // === 1. EDIÇÃO DE NOME (sempre acontece) ===
+        // Só exige nome se não for remoção/adição
+        if (empty($nome_equipe) && !isset($_POST['remover_membros']) && !isset($_POST['acao_edicao'])) {
+            $_SESSION['erro'] = 'Nome da equipe não informado.';
+            header('Location: /sgi_erp/equipes');
+            exit();
+        }
+
+        // === 1. EDIÇÃO DE NOME (se informado) ===
         $equipe_atual = $this->equipeModel->buscarEquipePorId($equipe_id);
         if (!$equipe_atual) {
             $_SESSION['erro'] = 'Equipe não encontrada.';
@@ -140,7 +147,7 @@ class EquipeController extends AppController
             exit();
         }
 
-        if ($nome_equipe !== $equipe_atual->nome) {
+        if (!empty($nome_equipe) && $nome_equipe !== $equipe_atual->nome) {
             if ($this->equipeModel->atualizarNome($equipe_id, $nome_equipe)) {
                 $feedback_message .= "Nome alterado para '{$nome_equipe}'. ";
             } else {
@@ -204,37 +211,6 @@ class EquipeController extends AppController
         exit();
     }
 
-
-
-    /**
-     * Processa a exclusão de uma equipe.
-     * Rota: /equipes/excluir?id={id}
-     */
-    public function excluir()
-    {
-        // Espera um ID via GET (vindo do JavaScript)
-        $equipe_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-
-        if (!$equipe_id) {
-            $_SESSION['erro'] = 'ID da equipe não fornecido ou inválido para exclusão.';
-            header('Location: /sgi_erp/equipes');
-            exit();
-        }
-
-        // Regra de segurança: Apenas administradores e o próprio apontador que criou podem excluir.
-        // Assumindo que a ACL já protege o método, verificamos se o apontador atual é o criador da equipe.
-        // Para simplificar no MVP: Apenas permite a exclusão se o ID do Apontador logado estiver correto.
-
-        if ($this->equipeModel->excluirEquipe($equipe_id)) {
-            $_SESSION['sucesso'] = "Equipe excluída com sucesso!";
-        } else {
-            $_SESSION['erro'] = 'Erro interno ao excluir a equipe e suas associações.';
-        }
-
-        header('Location: /sgi_erp/equipes');
-        exit();
-    }
-
     /**
      * Processa a movimentação de um funcionário de uma equipe para outra.
      * Rota: /equipes/mover (via POST do Modal Mover Membro)
@@ -279,6 +255,35 @@ class EquipeController extends AppController
             $_SESSION['sucesso'] = 'Funcionário movido com sucesso!';
         } else {
             $_SESSION['erro'] = 'Erro ao mover funcionário. Tente novamente.';
+        }
+
+        header('Location: /sgi_erp/equipes');
+        exit();
+    }
+
+    /**
+     * Processa a exclusão de uma equipe.
+     * Rota: /equipes/excluir?id={id}
+     */
+    public function excluir()
+    {
+        // Espera um ID via GET (vindo do JavaScript)
+        $equipe_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+
+        if (!$equipe_id) {
+            $_SESSION['erro'] = 'ID da equipe não fornecido ou inválido para exclusão.';
+            header('Location: /sgi_erp/equipes');
+            exit();
+        }
+
+        // Regra de segurança: Apenas administradores e o próprio apontador que criou podem excluir.
+        // Assumindo que a ACL já protege o método, verificamos se o apontador atual é o criador da equipe.
+        // Para simplificar no MVP: Apenas permite a exclusão se o ID do Apontador logado estiver correto.
+
+        if ($this->equipeModel->excluirEquipe($equipe_id)) {
+            $_SESSION['sucesso'] = "Equipe excluída com sucesso!";
+        } else {
+            $_SESSION['erro'] = 'Erro interno ao excluir a equipe e suas associações.';
         }
 
         header('Location: /sgi_erp/equipes');

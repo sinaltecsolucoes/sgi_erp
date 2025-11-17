@@ -115,7 +115,7 @@ class ProducaoModel
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$id]);
     }
-
+    
     public function buscarLancamentoUnico($data, $funcionario_id, $acao_id, $tipo_produto_id)
     {
         $sql = "SELECT id, quantidade_kg 

@@ -113,6 +113,33 @@ class EquipeModel
   }
 
   /**
+   * Busca TODAS as equipes ativas do apontador hoje.
+   * @param int $apontador_id ID do funcionário Apontador.
+   * @return array Lista de equipes.
+   */
+  public function buscarTodasEquipesDoApontador($apontador_id)
+  {
+    $hoje = date('Y-m-d');
+
+    $query = "SELECT 
+                id, 
+                nome 
+              FROM 
+                {$this->table_equipes} 
+              WHERE 
+                apontador_id = :apontador_id AND data_atividade = :hoje 
+              ORDER BY 
+                nome ASC";
+
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':apontador_id', $apontador_id, PDO::PARAM_INT);
+    $stmt->bindParam(':hoje', $hoje);
+    $stmt->execute();
+
+    return $stmt->fetchAll();
+  }
+
+  /**
    * Busca todos os funcionários associados a uma equipe.
    * @param int $equipe_id ID da equipe.
    * @return array Lista de funcionários.
@@ -135,6 +162,34 @@ class EquipeModel
     $stmt->execute();
 
     return $stmt->fetchAll();
+  }
+
+  /**
+   * Busca os IDs dos funcionários que já estão em alguma equipe HOJE.
+   * (Retorna TODOS os alocados, incluindo os do apontador que está chamando)
+   * @return array IDs dos funcionários alocados.
+   */
+  public function buscarFuncionariosAlocadosHoje()
+  {
+    $hoje = date('Y-m-d');
+
+    $query = "SELECT 
+                ef.funcionario_id 
+              FROM 
+                {$this->table_assoc} ef
+              JOIN
+                {$this->table_equipes} e ON ef.equipe_id = e.id
+              WHERE
+                e.data_atividade = :hoje -- Filtra pela data de atividade
+              GROUP BY
+                ef.funcionario_id";
+
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':hoje', $hoje);
+    $stmt->execute();
+
+    // Retorna um array simples de IDs (inteiros)
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN, 0));
   }
 
   /**
@@ -168,34 +223,6 @@ class EquipeModel
     } catch (PDOException $e) {
       return false;
     }
-  }
-
-  /**
-   * Busca os IDs dos funcionários que já estão em alguma equipe HOJE.
-   * (Retorna TODOS os alocados, incluindo os do apontador que está chamando)
-   * @return array IDs dos funcionários alocados.
-   */
-  public function buscarFuncionariosAlocadosHoje()
-  {
-    $hoje = date('Y-m-d');
-
-    $query = "SELECT 
-                ef.funcionario_id 
-              FROM 
-                {$this->table_assoc} ef
-              JOIN
-                {$this->table_equipes} e ON ef.equipe_id = e.id
-              WHERE
-                e.data_atividade = :hoje -- Filtra pela data de atividade
-              GROUP BY
-                ef.funcionario_id";
-
-    $stmt = $this->db->prepare($query);
-    $stmt->bindParam(':hoje', $hoje);
-    $stmt->execute();
-
-    // Retorna um array simples de IDs (inteiros)
-    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN, 0));
   }
 
   /**
@@ -260,33 +287,6 @@ class EquipeModel
       error_log("ERRO salvarEquipe: " . $e->getMessage());
       return false;
     }
-  }
-
-  /**
-   * Busca TODAS as equipes ativas do apontador hoje.
-   * @param int $apontador_id ID do funcionário Apontador.
-   * @return array Lista de equipes.
-   */
-  public function buscarTodasEquipesDoApontador($apontador_id)
-  {
-    $hoje = date('Y-m-d');
-
-    $query = "SELECT 
-                id, 
-                nome 
-              FROM 
-                {$this->table_equipes} 
-              WHERE 
-                apontador_id = :apontador_id AND data_atividade = :hoje 
-              ORDER BY 
-                nome ASC";
-
-    $stmt = $this->db->prepare($query);
-    $stmt->bindParam(':apontador_id', $apontador_id, PDO::PARAM_INT);
-    $stmt->bindParam(':hoje', $hoje);
-    $stmt->execute();
-
-    return $stmt->fetchAll();
   }
 
   /**

@@ -72,16 +72,10 @@ function is_group_active($routes_array, $current_route)
                                 <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Montar Equipes</a>
                             <?php endif; ?>
 
-                            <?php $route = '/producao';
-                            $is_active = is_active($route, $current_route); ?>
-                            <?php if (Acl::check('ProducaoController@index', $tipo_usuario)): ?>
-                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Lançar Produção (Individual)</a>
-                            <?php endif; ?>
-
                             <?php $route = '/producao/massa';
                             $is_active = is_active($route, $current_route); ?>
                             <?php if (Acl::check('ProducaoController@massa', $tipo_usuario)): ?>
-                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Lançar Prod. em Massa</a>
+                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Lançar Produção</a>
                             <?php endif; ?>
 
                             <?php $route = '/producao/editar-dia';

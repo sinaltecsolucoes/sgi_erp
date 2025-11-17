@@ -109,5 +109,3 @@
         </div>
     </div>
 </div>
-
-<script src="/sgi_erp/public/js/producao-editar-dia.js"></script>
