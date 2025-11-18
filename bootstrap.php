@@ -47,30 +47,30 @@ $routes = [
     '/logout'    => 'LoginController@sair',      // Finaliza a sessão
 
     // MÓDULO DE PERFIL
-    '/meu-perfil' => 'PerfilController@index', // Visualização e Edição do perfil
+    '/meu-perfil'              => 'PerfilController@index', // Visualização e Edição do perfil
     '/meu-perfil/salvar-senha' => 'PerfilController@salvarSenha',
 
     // Rota para Pagina Principal
     '/dashboard' => 'AppController@index',       // Página principal da aplicação
 
     // Rotas da Aplicação (Após o Login)
-    '/presenca'  => 'PresencaController@index',  // Chamada de Presença (GET para exibir)
+    '/presenca'        => 'PresencaController@index',  // Chamada de Presença (GET para exibir)
     '/presenca/salvar' => 'PresencaController@salvar', // Chamada de Presença (POST para salvar)
 
     // Rotas de Equipes
-    '/equipes'  => 'EquipeController@index',
-    '/equipes/salvar' => 'EquipeController@salvar',
+    '/equipes'             => 'EquipeController@index',
+    '/equipes/salvar'      => 'EquipeController@salvar',
     '/equipes/salvar-nova' => 'EquipeController@salvarNova',
-    '/equipes/mover' => 'EquipeController@mover',
-    '/equipes/excluir' => 'EquipeController@excluir',
+    '/equipes/mover'       => 'EquipeController@mover',
+    '/equipes/excluir'     => 'EquipeController@excluir',
 
     // Rotas de Produção
-    '/producao'  => 'ProducaoController@index',
-    '/producao/salvar' => 'ProducaoController@salvar',
-    '/producao/massa'  => 'ProducaoController@massa',
-    '/producao/massa/salvar' => 'ProducaoController@salvarMassa',
-    '/producao/editar-massa' => 'ProducaoController@editarMassa',
-    '/producao/editar-dia' => 'ProducaoController@editarDia',
+    '/producao'                    => 'ProducaoController@index',
+    '/producao/salvar'             => 'ProducaoController@salvar',
+    '/producao/massa'              => 'ProducaoController@massa',
+    '/producao/massa/salvar'       => 'ProducaoController@salvarMassa',
+    '/producao/editar-massa'       => 'ProducaoController@editarMassa',
+    '/producao/editar-dia'         => 'ProducaoController@editarDia',
     '/producao/salvar-massa-edit'  => 'ProducaoController@salvarMassaEdit',
 
     // Rotas API (Para o App Android)
@@ -82,46 +82,51 @@ $routes = [
     '/api/equipe/salvar'                    => 'ApiController@equipeSalvar',
     '/api/equipes/outros'                   => 'ApiController@buscarEquipesOutros',
     '/api/equipes/mover-membro'             => 'ApiController@moverMembro',
+    '/api/equipes/todas-ativas'             => 'ApiController@equipesTodasAtivas',
     '/api/equipes/retirar-membro'           => 'ApiController@retirarMembro',
     '/api/equipes/editar'                   => 'ApiController@editarEquipe',
+    '/api/equipes/excluir'                  => 'ApiController@excluirEquipe',
     '/api/equipes/funcionarios-disponiveis' => 'ApiController@buscarFuncionariosDisponiveis',
-    '/api/lancamento/opcoes'                => 'ApiController@lancamentoOpcoes',
+    //'/api/lancamento/opcoes'                => 'ApiController@lancamentoOpcoes',
+    '/api/lancamento/opcoes-completo'       => 'ApiController@lancamentoOpcoesCompleto',
+    '/api/lancamento/membros-equipe'        => 'ApiController@getMembrosEquipe',
     '/api/lancamento/salvar'                => 'ApiController@lancamentoSalvar',
-    
+    '/api/lancamento/salvar-massa'          => 'ApiController@salvarLancamentoMassa',
+
 
     // MÓDULO DE GESTÃO DE PERMISSÕES
     '/permissoes/gestao' => 'PermissaoController@index',
     '/permissoes/salvar' => 'PermissaoController@salvar',
 
     // MÓDULO DE CADASTRO DE FUNCIONÁRIOS
-    '/admin/funcionarios' => 'FuncionarioController@index', // Listagem
+    '/admin/funcionarios'          => 'FuncionarioController@index', // Listagem
     '/admin/funcionarios/cadastro' => 'FuncionarioController@cadastro', // Formulário (GET)
-    '/admin/funcionarios/salvar' => 'FuncionarioController@salvar', // Salvar (POST)
+    '/admin/funcionarios/salvar'   => 'FuncionarioController@salvar', // Salvar (POST)
 
     // MÓDULO DE VALORES DE PAGAMENTO
-    '/admin/valores-pagamento' => 'ValoresPagamentoController@index', // Listagem
+    '/admin/valores-pagamento'          => 'ValoresPagamentoController@index', // Listagem
     '/admin/valores-pagamento/cadastro' => 'ValoresPagamentoController@cadastro', // Formulário (GET)
-    '/admin/valores-pagamento/salvar' => 'ValoresPagamentoController@salvar', // Salvar (POST)
+    '/admin/valores-pagamento/salvar'   => 'ValoresPagamentoController@salvar', // Salvar (POST)
     '/admin/valores-pagamento/excluir'  => 'ValoresPagamentoController@excluir',
 
     // MÓDULO DE CADASTRO DE TIPOS DE PRODUTO
-    '/admin/tipos-produto' => 'TipoProdutoController@index', // Listagem
+    '/admin/tipos-produto'          => 'TipoProdutoController@index', // Listagem
     '/admin/tipos-produto/cadastro' => 'TipoProdutoController@cadastro', // Formulário (GET)
-    '/admin/tipos-produto/salvar' => 'TipoProdutoController@salvar', // Salvar (POST)
-    '/admin/tipos-produto/excluir' => 'TipoProdutoController@excluir',
+    '/admin/tipos-produto/salvar'   => 'TipoProdutoController@salvar', // Salvar (POST)
+    '/admin/tipos-produto/excluir'  => 'TipoProdutoController@excluir',
 
     // MÓDULO DE CADASTRO DE AÇÕES DE PRODUÇÃO
-    '/admin/acoes' => 'AcaoController@index', // Listagem
+    '/admin/acoes'          => 'AcaoController@index', // Listagem
     '/admin/acoes/cadastro' => 'AcaoController@cadastro', // Formulário (GET)
-    '/admin/acoes/salvar' => 'AcaoController@salvar', // Salvar (POST)  
+    '/admin/acoes/salvar'   => 'AcaoController@salvar', // Salvar (POST)  
 
     // MÓDULO FINANCEIRO / RELATÓRIOS
-    '/relatorios' => 'RelatorioController@index', // <-- Rota para tratar o fallback
-    '/relatorios/pagamentos' => 'RelatorioController@pagamentos', // Pagamento Total 
-    '/relatorios/quantidades' => 'RelatorioController@quantidades', // Quantidades Produzidas
-    '/relatorios/servicos' => 'RelatorioController@servicos', // Serviços/Diárias
-    '/relatorios/produtividade' => 'RelatorioController@produtividade', // Produtividade/Hora
-    '/relatorios/imprimir' => 'RelatorioController@imprimir', // Layout PDF
+    '/relatorios'                    => 'RelatorioController@index', // <-- Rota para tratar o fallback
+    '/relatorios/pagamentos'         => 'RelatorioController@pagamentos', // Pagamento Total 
+    '/relatorios/quantidades'        => 'RelatorioController@quantidades', // Quantidades Produzidas
+    '/relatorios/servicos'           => 'RelatorioController@servicos', // Serviços/Diárias
+    '/relatorios/produtividade'      => 'RelatorioController@produtividade', // Produtividade/Hora
+    '/relatorios/imprimir'           => 'RelatorioController@imprimir', // Layout PDF
     '/relatorios/atualizar-producao' => 'RelatorioController@atualizarProducao',
     '/relatorios/excluir-producao'   => 'RelatorioController@excluirProducao',
 
