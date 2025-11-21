@@ -68,10 +68,15 @@ $routes = [
     '/producao'                    => 'ProducaoController@index',
     '/producao/salvar'             => 'ProducaoController@salvar',
     '/producao/massa'              => 'ProducaoController@massa',
+    '/producao/extras'             => 'ProducaoController@extras',
     '/producao/massa/salvar'       => 'ProducaoController@salvarMassa',
     '/producao/editar-massa'       => 'ProducaoController@editarMassa',
     '/producao/editar-dia'         => 'ProducaoController@editarDia',
     '/producao/salvar-massa-edit'  => 'ProducaoController@salvarMassaEdit',
+
+    // Rotas para Diárias e Serviços Extras ===
+    '/servicos-extras'         => 'ServicosExtrasController@index',
+    '/servicos-extras/salvar'  => 'ServicosExtrasController@salvar',
 
     // Rotas API (Para o App Android)
     '/api'                                  => 'ApiController@info',
@@ -87,11 +92,12 @@ $routes = [
     '/api/equipes/editar'                   => 'ApiController@editarEquipe',
     '/api/equipes/excluir'                  => 'ApiController@excluirEquipe',
     '/api/equipes/funcionarios-disponiveis' => 'ApiController@buscarFuncionariosDisponiveis',
-    //'/api/lancamento/opcoes'                => 'ApiController@lancamentoOpcoes',
     '/api/lancamento/opcoes-completo'       => 'ApiController@lancamentoOpcoesCompleto',
     '/api/lancamento/membros-equipe'        => 'ApiController@getMembrosEquipe',
     '/api/lancamento/salvar'                => 'ApiController@lancamentoSalvar',
     '/api/lancamento/salvar-massa'          => 'ApiController@salvarLancamentoMassa',
+    '/api/producao/editar-dia'              => 'ApiController@getLancamentosDoDiaApontador',
+    '/api/producao/atualizar'               => 'ApiController@atualizarLancamento',
 
 
     // MÓDULO DE GESTÃO DE PERMISSÕES

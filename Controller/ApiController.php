@@ -512,4 +512,64 @@ class ApiController
             'falhas' => $falhas
         ]);
     }
+
+    // ==========================================
+    // BUSCAR LANÇAMENTOS DO DIA DO APONTADOR (PARA O APP)
+    // ==========================================
+    public function getLancamentosDoDiaApontador()
+    {
+        $dataInput = json_decode(file_get_contents('php://input'), true);
+
+        // Verifica permissão (apontador ou admin)
+        $this->checkPermission('apontador', $dataInput['funcionario_tipo'] ?? '', $dataInput['funcionario_id'] ?? 0);
+
+        $data = $dataInput['data'] ?? date('Y-m-d');
+
+        // Valida formato da data
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data)) {
+            $data = date('Y-m-d');
+        }
+
+        $apontador_id = $dataInput['funcionario_id'];
+
+        $producaoModel = new ProducaoModel();
+        $lancamentos = $producaoModel->buscarLancamentosDoDiaDoApontador($data, $apontador_id);
+
+        echo json_encode([
+            'success' => true,
+            'lancamentos' => $lancamentos
+        ]);
+    }
+
+    // ==========================================
+    // ATUALIZAR LANÇAMENTO (APP)
+    // ==========================================
+    public function atualizarLancamento()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        // Permissão
+        $this->checkPermission('apontador', $input['funcionario_tipo'] ?? '', $input['funcionario_id'] ?? 0);
+
+        $id             = (int)($input['id'] ?? 0);
+        $acao_id        = (int)($input['acao_id'] ?? 0);
+        $produto_id     = (int)($input['produto_id'] ?? 0);
+        $quantidade     = (float)($input['quantidade_kg'] ?? 0);
+        $lote           = $input['lote_produto'] ?? null;
+        $hora_inicio    = $input['hora_inicio'] ?? null;
+        $hora_fim       = $input['hora_fim'] ?? null;
+
+        if ($id <= 0 || $acao_id <= 0 || $produto_id <= 0 || $quantidade <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
+            return;
+        }
+
+        $producaoModel = new ProducaoModel();
+        $ok = $producaoModel->atualizarLancamentoApp($id, $acao_id, $produto_id, $quantidade, $lote, $hora_inicio, $hora_fim);
+
+        echo json_encode([
+            'success' => $ok,
+            'message' => $ok ? 'Lançamento atualizado com sucesso!' : 'Erro ao salvar'
+        ]);
+    }
 }

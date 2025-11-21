@@ -117,11 +117,8 @@ class ProducaoController extends AppController
         $funcionario_id = filter_input(INPUT_POST, 'funcionario_id', FILTER_VALIDATE_INT);
         $acao_id = filter_input(INPUT_POST, 'acao_id', FILTER_VALIDATE_INT);
         $tipo_produto_id = filter_input(INPUT_POST, 'tipo_produto_id', FILTER_VALIDATE_INT);
-        //$lote_produto = trim(filter_input(INPUT_POST, 'lote_produto', FILTER_SANITIZE_STRING));
         $lote_produto = filter_input(INPUT_POST, 'lote_produto', FILTER_DEFAULT);
-        //$hora_inicio = trim(filter_input(INPUT_POST, 'hora_inicio', FILTER_SANITIZE_STRING));
         $hora_inicio = filter_input(INPUT_POST, 'hora_inicio', FILTER_DEFAULT);
-        //$hora_fim = trim(filter_input(INPUT_POST, 'hora_fim', FILTER_SANITIZE_STRING));
         $hora_fim = filter_input(INPUT_POST, 'hora_fim', FILTER_DEFAULT);
         $quantidade_kg = filter_input(INPUT_POST, 'quantidade_kg', FILTER_VALIDATE_FLOAT);
 
@@ -208,7 +205,7 @@ class ProducaoController extends AppController
         ];
 
         // Variáveis para o Template
-        $title = "Lançamento em Massa por Equipe (Abas)";
+        $title = "Lançamento de Produção por Equipe (Abas)";
         $content_view = ROOT_PATH . 'View' . DS . 'producao_massa_abas.php';
 
         require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
@@ -312,144 +309,6 @@ class ProducaoController extends AppController
         exit();
     }
 
-    /* public function editarMassa()
-    {
-        $data_selecionada = $_GET['data'] ?? date('Y-m-d');
-
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data_selecionada)) {
-            $_SESSION['erro'] = 'Data inválida.';
-            header('Location: /sgi_erp/producao/massa');
-            exit;
-        }
-
-        // Busca lançamentos existentes na data
-        $lancamentos_existentes = $this->producaoModel->buscarLancamentosPorData($data_selecionada);
-
-        // Opções dos selects
-        $acoes = $this->acaoModel->buscarTodas();
-        $tipos_produto = $this->tipoProdutoModel->buscarTodos();
-
-        // Equipe atual
-        $apontador_id = $_SESSION['funcionario_id'];
-        $equipe = $this->equipeModel->buscarEquipeDoApontador($apontador_id);
-        if (!$equipe) {
-            $_SESSION['erro'] = 'Você não tem equipe montada.';
-            header('Location: /sgi_erp/equipes');
-            exit;
-        }
-        $membros = $this->equipeModel->buscarFuncionariosDaEquipe($equipe->id);
-
-        // Preenche valores globais (se já tiver lançamento)
-        $acao_global = '';
-        $produto_global = '';
-        $lote_global = '';
-        $hora_inicio = '';
-        $hora_fim = '';
-        $preenchidos = [];
-
-        if (!empty($lancamentos_existentes)) {
-            $primeiro = $lancamentos_existentes[0];
-            $acao_global = $primeiro['acao_id'];
-            $produto_global = $primeiro['tipo_produto_id'];
-            $lote_global = $primeiro['lote_produto'] ?? '';
-            $hora_inicio = $primeiro['hora_inicio'] ?? '';
-            $hora_fim = $primeiro['hora_fim'] ?? '';
-
-            foreach ($lancamentos_existentes as $l) {
-                $preenchidos[$l['funcionario_id']] = $l['quantidade_kg'];
-            }
-        }
-
-        $title = "EDIÇÃO EM MASSA - " . date('d/m/Y', strtotime($data_selecionada));
-
-        $dados = compact(
-            'data_selecionada',
-            'equipe',
-            'membros',
-            'acoes',
-            'tipos_produto',
-            'preenchidos',
-            'acao_global',
-            'produto_global',
-            'lote_global',
-            'hora_inicio',
-            'hora_fim'
-        );
-
-        $content_view = ROOT_PATH . 'View/producao_editar_massa.php';
-        require_once ROOT_PATH . 'View/template/main.php';
-    } */
-
-    /* public function salvarMassaEdit()
-    {
-        $data = $_POST['data'] ?? '';
-        $acao_id = $_POST['acao_id'] ?? 0;
-        $tipo_produto_id = $_POST['tipo_produto_id'] ?? 0;
-        $lote_produto = $_POST['lote_produto'] ?? '';
-        $hora_inicio = !empty($_POST['hora_inicio']) ? $_POST['hora_inicio'] : null;
-        $hora_fim = !empty($_POST['hora_fim']) ? $_POST['hora_fim'] : null;
-        $quantidades = $_POST['quantidades'] ?? [];
-
-        if (empty($data) || empty($acao_id) || empty($tipo_produto_id)) {
-            $_SESSION['erro'] = 'Preencha todos os campos obrigatórios.';
-            header('Location: /sgi_erp/producao/editar-massa?data=' . $data);
-            exit;
-        }
-
-        // Busca equipe
-        $apontador_id = $_SESSION['funcionario_id'];
-        $equipe = $this->equipeModel->buscarEquipeDoApontador($apontador_id);
-        $equipe_id = $equipe->id ?? null;
-
-        $salvos = 0;
-        $atualizados = 0;
-        $removidos = 0;
-
-        foreach ($quantidades as $funcionario_id => $qtd_str) {
-            $qtd = (float)str_replace(['.', ','], ['', '.'], $qtd_str);
-
-            // Busca se já existe lançamento deste funcionário na data + ação + produto
-            $existente = $this->producaoModel->buscarLancamentoUnico($data, $funcionario_id, $acao_id, $tipo_produto_id);
-
-            if ($qtd > 0) {
-                if ($existente) {
-                    // UPDATE
-                    $this->producaoModel->atualizarLancamento(
-                        $existente['id'],
-                        $qtd,
-                        $lote_produto,
-                        $hora_inicio,
-                        $hora_fim
-                    );
-                    $atualizados++;
-                } else {
-                    // INSERT
-                    $this->producaoModel->registrarLancamento(
-                        $funcionario_id,
-                        $acao_id,
-                        $tipo_produto_id,
-                        $lote_produto,
-                        $qtd,
-                        $equipe_id,
-                        $hora_inicio,
-                        $hora_fim
-                    );
-                    $salvos++;
-                }
-            } else {
-                // REMOVE se existia e agora é zero
-                if ($existente) {
-                    $this->producaoModel->excluirLancamento($existente['id']);
-                    $removidos++;
-                }
-            }
-        }
-
-        $_SESSION['sucesso'] = "Edição concluída! Salvos: $salvos | Atualizados: $atualizados | Removidos: $removidos";
-        header('Location: /sgi_erp/producao/editar-massa?data=' . $data);
-        exit;
-    } */
-
     public function editarDia()
     {
         // 1. Pega a data da URL ou usa a data atual (Y-m-d)
@@ -499,4 +358,6 @@ class ProducaoController extends AppController
         $content_view = ROOT_PATH . 'View/producao_editar_dia.php';
         require_once ROOT_PATH . 'View/template/main.php';
     }
+
+    
 }

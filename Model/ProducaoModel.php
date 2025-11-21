@@ -115,7 +115,7 @@ class ProducaoModel
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$id]);
     }
-    
+
     public function buscarLancamentoUnico($data, $funcionario_id, $acao_id, $tipo_produto_id)
     {
         $sql = "SELECT id, quantidade_kg 
@@ -182,5 +182,72 @@ class ProducaoModel
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$data]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function buscarLancamentosDoDiaDoApontador($data, $apontador_id)
+    {
+        $sql = "
+        SELECT 
+            p.id,
+            p.funcionario_id,
+            f.nome as funcionario_nome,
+            p.acao_id,
+            a.nome as acao_nome,
+            p.tipo_produto_id,
+            tp.nome as produto_nome,
+            p.quantidade_kg,
+            p.lote_produto,
+            p.hora_inicio,
+            p.hora_fim,
+            e.nome as equipe_nome
+        FROM producao p
+        JOIN funcionarios f ON p.funcionario_id = f.id
+        JOIN acoes a ON p.acao_id = a.id
+        JOIN tipos_produto tp ON p.tipo_produto_id = tp.id
+        JOIN equipes e ON p.equipe_id = e.id
+        WHERE DATE(p.data_hora) = ?
+          AND e.apontador_id = ?
+        ORDER BY f.nome, p.hora_inicio
+    ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$data, $apontador_id]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erro ao buscar lançamentos do apontador: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Atualiza um lançamento de produção já existente
+     */
+    public function atualizarLancamentoApp($id, $acao_id, $tipo_produto_id, $quantidade_kg, $lote_produto, $hora_inicio, $hora_fim)
+    {
+        $sql = "UPDATE producao SET
+                    acao_id         = :acao_id,
+                    tipo_produto_id = :tipo_produto_id,
+                    quantidade_kg   = :quantidade_kg,
+                    lote_produto    = :lote_produto,
+                    hora_inicio     = :hora_inicio,
+                    hora_fim        = :hora_fim
+                WHERE id = :id";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                ':id'             => $id,
+                ':acao_id'        => $acao_id,
+                ':tipo_produto_id' => $tipo_produto_id,
+                ':quantidade_kg'  => $quantidade_kg,
+                ':lote_produto'   => $lote_produto ?: null,
+                ':hora_inicio'    => $hora_inicio,
+                ':hora_fim'       => $hora_fim
+            ]);
+        } catch (PDOException $e) {
+            error_log("Erro ao atualizar lançamento ID $id: " . $e->getMessage());
+            return false;
+        }
     }
 }

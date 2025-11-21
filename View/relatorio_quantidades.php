@@ -44,23 +44,24 @@
                                 <?php foreach ($dados['datas'] as $d): ?>
                                     <th class="text-center"><?= date('d/m', strtotime($d)) ?></th>
                                 <?php endforeach; ?>
-                                <th class="text-end">TOTAL</th>
+                                <th class="text-center coluna-total">TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($dados['matriz'] as $nome => $linha): ?>
                                 <tr class="funcionario-linha" style="cursor: pointer; background: #f8f9fa;">
-                                    <td>
+                                    <td class="nome-funcionario">
                                         <i class="fas fa-plus-circle text-primary me-2 icon-expand"></i>
                                         <strong><?= htmlspecialchars($nome) ?></strong>
                                     </td>
+
                                     <?php foreach ($dados['datas'] as $d): ?>
                                         <?php $kg = $linha[$d] ?? 0; ?>
-                                        <td class="text-end <?= $kg > 0 ? 'text-success fw-bold' : '' ?>" data-data="<?= $d ?>">
+                                        <td class="text-center <?= $kg > 0 ? 'text-success fw-bold' : '' ?>valor-celula" data-data="<?= $d ?>">
                                             <?= $kg > 0 ? number_format($kg, 3, ',', '.') : '' ?>
                                         </td>
                                     <?php endforeach; ?>
-                                    <td class="text-end fw-bold table-success total-funcionario">
+                                    <td class="text-center fw-bold table-success total-funcionario valor-celula">
                                         <?= number_format($linha['total'], 3, ',', '.') ?>
                                     </td>
                                 </tr>
@@ -96,7 +97,7 @@
                                                         <?php foreach ($dados['datas'] as $d): ?>
                                                             <th class="text-center"><?= date('d/m', strtotime($d)) ?></th>
                                                         <?php endforeach; ?>
-                                                        <th>Ação</th>
+                                                        <th class="coluna-acao">Ação</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="corpo-edicao">
@@ -154,11 +155,11 @@
                             <tr>
                                 <th>TOTAL GERAL</th>
                                 <?php foreach ($dados['datas'] as $d): ?>
-                                    <th class="text-end total-dia">
+                                    <th class="text-center align-items-center total-dia valor-celula">
                                         <?= number_format($dados['total_por_dia'][$d], 3, ',', '.') ?>
                                     </th>
                                 <?php endforeach; ?>
-                                <th class="text-end" id="total-geral">
+                                <th class="text-center align-items-center coluna-total valor-celula" id="total-geral">
                                     <?= number_format($dados['total_geral'], 3, ',', '.') ?>
                                 </th>
                             </tr>

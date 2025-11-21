@@ -41,9 +41,63 @@ function is_group_active($routes_array, $current_route)
                     Página Inicial
                 </a>
 
+                <!-- ================= CADASTROS ================= -->
+
+                <?php
+                $admin_routes = ['/admin/funcionarios', '/admin/tipos-produto', '/admin/acoes', '/admin/valores-pagamento', '/permissoes/gestao'];
+                $admin_is_active = is_group_active($admin_routes, $current_route);
+
+                if (Acl::check('FuncionarioController@index', $tipo_usuario) || Acl::check('PermissaoController@index', $tipo_usuario)):
+                ?>
+                    <div class="sb-sidenav-menu-heading">ADMINISTRAÇÃO / CADASTROS</div>
+
+                    <a class="nav-link collapsed <?php echo $admin_is_active; ?>" href="#" data-bs-toggle="collapse" data-bs-target="#collapseCadastros" aria-expanded="false" aria-controls="collapseCadastros">
+                        <div class="sb-nav-link-icon"><i class="fas fa-boxes"></i></div>
+                        Cadastros
+                        <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                    </a>
+
+                    <div class="collapse <?php echo $admin_is_active; ?>" id="collapseCadastros" aria-labelledby="headingCadastros" data-bs-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+
+                            <?php $route = '/admin/funcionarios';
+                            $is_active = is_active($route, $current_route); ?>
+                            <?php if (Acl::check('FuncionarioController@index', $tipo_usuario)): ?>
+                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Gerenciar Funcionários</a>
+                            <?php endif; ?>
+
+                            <?php $route = '/admin/acoes';
+                            $is_active = is_active($route, $current_route);
+                            if (Acl::check('AcaoController@index', $tipo_usuario)): ?>
+                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Gerenciar Ações</a>
+                            <?php endif; ?>
+
+                            <?php $route = '/admin/tipos-produto';
+                            $is_active = is_active($route, $current_route);
+                            if (Acl::check('TipoProdutoController@index', $tipo_usuario)): ?>
+                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Gerenciar Tipos de Produto</a>
+                            <?php endif; ?>
+
+                            <?php $route = '/admin/valores-pagamento';
+                            $is_active = is_active($route, $current_route); ?>
+                            <?php if (Acl::check('ValoresPagamentoController@index', $tipo_usuario)): ?>
+                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Gerenciar Valores Pagto</a>
+                            <?php endif; ?>
+
+                            <?php $route = '/permissoes/gestao';
+                            $is_active = is_active($route, $current_route); ?>
+                            <?php if (Acl::check('PermissaoController@index', $tipo_usuario)): ?>
+                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Gestão de Permissões (ACL)</a>
+                            <?php endif; ?>
+                        </nav>
+                    </div>
+                    <hr class="sidebar-divider">
+                <?php endif; ?>
+
+                <!-- ================= OPERACIONAIS ================= -->
                 <?php
                 // Rotas do grupo Operacional para checagem de "ativo"
-                $op_routes = ['/presenca', '/equipes', '/producao'];
+                $op_routes = ['/presenca', '/equipes', '/producao', '/servicos-extras'];
                 $op_is_active = is_group_active($op_routes, $current_route);
 
                 // Checa se pelo menos uma permissão do grupo existe
@@ -78,72 +132,24 @@ function is_group_active($routes_array, $current_route)
                                 <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Lançar Produção</a>
                             <?php endif; ?>
 
+                            <?php $route = '/servicos-extras';
+                            $is_active = is_active($route, $current_route); ?>
+                            <?php if (Acl::check('ServicosExtrasController@index', $tipo_usuario)): ?>
+                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Diárias e Serviços Extras</a>
+                            <?php endif; ?>
+
                             <?php $route = '/producao/editar-dia';
                             $is_active = is_active($route, $current_route); ?>
                             <?php if (Acl::check('ProducaoController@editarDia', $tipo_usuario)): ?>
                                 <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Editar Produção do Dia</a>
                             <?php endif; ?>
-
                         </nav>
                     </div>
 
                     <hr class="sidebar-divider">
                 <?php endif; ?>
 
-
-                <?php
-                $admin_routes = ['/admin/funcionarios', '/admin/tipos-produto', '/admin/acoes', '/admin/valores-pagamento', '/permissoes/gestao'];
-                $admin_is_active = is_group_active($admin_routes, $current_route);
-
-                if (Acl::check('FuncionarioController@index', $tipo_usuario) || Acl::check('PermissaoController@index', $tipo_usuario)):
-                ?>
-                    <div class="sb-sidenav-menu-heading">ADMINISTRAÇÃO / CADASTROS</div>
-
-                    <a class="nav-link collapsed <?php echo $admin_is_active; ?>" href="#" data-bs-toggle="collapse" data-bs-target="#collapseCadastros" aria-expanded="false" aria-controls="collapseCadastros">
-                        <div class="sb-nav-link-icon"><i class="fas fa-boxes"></i></div>
-                        Cadastros
-                        <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
-                    </a>
-
-                    <div class="collapse <?php echo $admin_is_active; ?>" id="collapseCadastros" aria-labelledby="headingCadastros" data-bs-parent="#sidenavAccordion">
-                        <nav class="sb-sidenav-menu-nested nav">
-
-                            <?php $route = '/admin/funcionarios';
-                            $is_active = is_active($route, $current_route); ?>
-                            <?php if (Acl::check('FuncionarioController@index', $tipo_usuario)): ?>
-                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Gerenciar Funcionários</a>
-                            <?php endif; ?>
-
-                            <?php $route = '/admin/tipos-produto';
-                            $is_active = is_active($route, $current_route);
-                            if (Acl::check('TipoProdutoController@index', $tipo_usuario)): ?>
-                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Gerenciar Tipos de Produto</a>
-                            <?php endif; ?>
-
-                            <?php $route = '/admin/acoes';
-                            $is_active = is_active($route, $current_route);
-                            if (Acl::check('AcaoController@index', $tipo_usuario)): ?>
-                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Gerenciar Ações</a>
-                            <?php endif; ?>
-
-                            <?php $route = '/admin/valores-pagamento';
-                            $is_active = is_active($route, $current_route); ?>
-                            <?php if (Acl::check('ValoresPagamentoController@index', $tipo_usuario)): ?>
-                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Gerenciar Valores Pagto</a>
-                            <?php endif; ?>
-
-                            <?php $route = '/permissoes/gestao';
-                            $is_active = is_active($route, $current_route); ?>
-                            <?php if (Acl::check('PermissaoController@index', $tipo_usuario)): ?>
-                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Gestão de Permissões (ACL)</a>
-                            <?php endif; ?>
-
-                        </nav>
-                    </div>
-                    <hr class="sidebar-divider">
-                <?php endif; ?>
-
-
+                <!-- ================= RELATÓRIOS ================= -->
                 <?php
                 $rel_routes = ['/relatorios', '/relatorios/produtividade', '/relatorios/quantidades', '/relatorios/servicos'];
                 $rel_is_active = is_group_active($rel_routes, $current_route);
@@ -161,10 +167,10 @@ function is_group_active($routes_array, $current_route)
                     <div class="collapse <?php echo $rel_is_active; ?>" id="collapseRelatorios" aria-labelledby="headingRelatorios" data-bs-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
 
-                            <?php $route = '/relatorios/pagamentos';
+                            <?php $route = '/relatorios/quantidades';
                             $is_active = is_active($route, $current_route); ?>
-                            <?php if (Acl::check('RelatorioController@pagamentos', $tipo_usuario)): ?>
-                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Pagamento Total (R$)</a>
+                            <?php if (Acl::check('RelatorioController@quantidades', $tipo_usuario)): ?>
+                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Quantidades Produzidas (Kg)</a>
                             <?php endif; ?>
 
                             <?php $route = '/relatorios/produtividade';
@@ -173,11 +179,12 @@ function is_group_active($routes_array, $current_route)
                                 <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Análise Produtividade/Hora</a>
                             <?php endif; ?>
 
-                            <?php $route = '/relatorios/quantidades';
+                            <?php $route = '/relatorios/pagamentos';
                             $is_active = is_active($route, $current_route); ?>
-                            <?php if (Acl::check('RelatorioController@quantidades', $tipo_usuario)): ?>
-                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Quantidades Produzidas (Kg)</a>
+                            <?php if (Acl::check('RelatorioController@pagamentos', $tipo_usuario)): ?>
+                                <a class="nav-link <?php echo $is_active; ?>" href="<?php echo $base_url . $route; ?>">Pagamento Total (R$)</a>
                             <?php endif; ?>
+
 
                         </nav>
                     </div>

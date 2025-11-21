@@ -115,4 +115,12 @@ class TipoProdutoModel
             return false;
         }
     }
+
+    public function buscarSemLote()
+    {
+        $query = "SELECT id, nome FROM tipos_produto WHERE usa_lote = 0 ORDER BY nome ASC";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
 }

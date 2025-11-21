@@ -2,10 +2,10 @@
 // Define o Catálogo de Ações (Controller@Metodo) e a lógica de checagem. 
 class Acl
 { // Lista completa de todas as ações/métodos (Rotas que precisam de checagem) 
-    private static $catalogo_acoes = [  
+    private static $catalogo_acoes = [
         // Rotas Principais (Dashboard) 
         'AppController@index' => 'Visualizar Dashboard',
-        'MeuPainelController@index' => 'Visualizar Painel Pessoal',
+        //'MeuPainelController@index' => 'Visualizar Painel Pessoal',
 
         // MÓDULO DE FLUXO DE PRODUÇÃO (Apontador, Porteiro) 
         'PresencaController@index' => 'Visualizar Chamada',
@@ -20,18 +20,23 @@ class Acl
         'ProducaoController@index' => 'Visualizar Lançamento de Produção',
         'ProducaoController@salvar' => 'Salvar Lançamento de Produção',
 
-        // Rotas de Lançamento em Massa 
-        'ProducaoController@massa' => 'Visualizar Lançamento em Massa',
-        'ProducaoController@salvarMassa' => 'Salvar Lançamento em Massa',
+        // Rotas de Lançamento Produção 
+        'ProducaoController@massa' => 'Tela Lançamentos Produção',
+        'ProducaoController@salvarMassa' => 'Salvar Lançamentos Produção',
         'ProducaoController@editarDia' => 'Editar Produção do Dia',
 
         // MÓDULO ADMINISTRATIVO (Gestão de Permissões e Cadastros) 
         'PermissaoController@index' => 'Visualizar Gestão de Permissões', // Tela Admin 
         'PermissaoController@salvar' => 'Salvar Permissões de Perfis', // Ação Admin 
+
         'FuncionarioController@index' => 'Visualizar Lista de Funcionários',
         'FuncionarioController@cadastro' => 'Visualizar Formulário de Cadastro',
         'FuncionarioController@salvar' => 'Criar/Editar Funcionário',
         'FuncionarioController@excluir' => 'Excluir Funcionário',
+
+        'ServicosExtrasController@index' => 'Visualizar Tela de Extras',
+        'ServicosExtrasController@salvar' => 'Lançamento de Diárias e Serviços Extras',
+
 
         // MÓDULO DE CADASTRO DE AÇÕES
         'AcaoController@index' => 'Visualizar Lista de Ações',
@@ -43,13 +48,13 @@ class Acl
         'TipoProdutoController@cadastro' => 'Visualizar Cadastro Tipo Prod.',
         'TipoProdutoController@salvar' => 'Salvar Tipo de Produto',
         'TipoProdutoController@excluir' => 'Excluir Tipo de Produto',
-        
+
         // MÓDULO FINANCEIRO (Relatórios) 
         'RelatorioController@pagamentos' => 'Visualizar Relatório de Pagamentos',
         'RelatorioController@quantidades' => 'Visualizar Relatório de Quantidades',
-        'RelatorioController@servicos' => 'Visualizar Relatório de Serviços',
+        //'RelatorioController@servicos' => 'Visualizar Relatório de Serviços',
         'RelatorioController@produtividade' => 'Visualizar Produtividade/Hora',
-        'RelatorioController@producaoGeral' => 'Visualizar Produção Geral',
+        // 'RelatorioController@producaoGeral' => 'Visualizar Produção Geral',
         'RelatorioController@atualizarProducao' => 'Editar Lançamentos nos Relatórios',
         'RelatorioController@excluirProducao'   => 'Excluir Lançamentos nos Relatórios',
 

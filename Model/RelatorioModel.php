@@ -181,7 +181,7 @@ class RelatorioModel
     return $datas;
   }
 
-  public function getQuantidadesDiaADia($data_inicio, $data_fim)
+   public function getQuantidadesDiaADia($data_inicio, $data_fim)
   {
     $data_fim_sql = $data_fim . ' 23:59:59';
 
@@ -204,10 +204,12 @@ class RelatorioModel
     $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Estrutura final
-    $matriz = [];        // funcionário → data → total
-    $detalhes = [];      // funcionário → data → [produto => kg]
-    $ids = [];           // funcionário → data → [produto => id_lancamento]
+    $matriz = [];              // funcionário → data → total
+    $detalhes = [];            // funcionário → data → [produto => kg]
+    $ids = [];                 // funcionário → data → [produto => id_lancamento]
     $datas = [];
+    $total_por_dia = [];
+    $totais_funcionarios = []; // totais por funcionário
 
     foreach ($resultados as $r) {
       $data = $r['data'];
@@ -223,7 +225,9 @@ class RelatorioModel
         $matriz[$nome][$data] = 0;
       }
       $matriz[$nome][$data] += $kg;
-      $matriz[$nome]['total'] = ($matriz[$nome]['total'] ?? 0) + $kg;
+
+      // Mantém os totais em um array separado
+      $totais_funcionarios[$nome] = ($totais_funcionarios[$nome] ?? 0) + $kg;
 
       // Detalhe por produto
       $detalhes[$nome][$data][$produto] = $kg;
@@ -232,27 +236,70 @@ class RelatorioModel
       $ids[$nome][$data][$produto] = $id_lancamento;
     }
 
+    // Se não houver nenhuma data com lançamentos, retorna vazio
+    if (empty($datas)) {
+      return [
+        'matriz' => [],
+        'detalhes' => [],
+        'ids' => [],
+        'datas' => [],
+        'total_por_dia' => [],
+        'total_geral' => 0,
+        'totais_funcionarios' => []
+      ];
+    }
+
+    // Ordena apenas as datas que realmente tiveram lançamentos
     sort($datas);
 
-    // Total por dia
+    // Total por dia (somente datas existentes)
     $total_por_dia = array_fill_keys($datas, 0);
     foreach ($matriz as $nome => $dias) {
       foreach ($dias as $data => $kg) {
-        if ($data !== 'total') {
+        if (isset($total_por_dia[$data])) {
           $total_por_dia[$data] += $kg;
         }
       }
     }
 
+    // ============================================================
+    // === SOMAR SERVIÇOS EXTRAS / DIÁRIAS NO RELATÓRIO DE QUANTIDADES ===
+    // ============================================================
+
+    $servicosExtras = $this->getServicosExtrasValor($data_inicio, $data_fim);
+
+    foreach ($servicosExtras as $nome => $valores) {
+      if (!isset($matriz[$nome])) {
+        $matriz[$nome] = array_fill_keys($datas, 0.0);
+      }
+
+      foreach ($valores as $data => $valor) {
+        if ($data === 'total') {
+          $totais_funcionarios[$nome] = ($totais_funcionarios[$nome] ?? 0) + $valor;
+          continue;
+        }
+
+        if (isset($matriz[$nome][$data])) {
+          $matriz[$nome][$data] += $valor;
+          $total_por_dia[$data] += $valor;
+          $totais_funcionarios[$nome] = ($totais_funcionarios[$nome] ?? 0) + $valor;
+        }
+      }
+    }
+
+    unset($matriz['total'], $matriz['totais'], $matriz['detalhes']);
+    
     return [
       'matriz' => $matriz,
       'detalhes' => $detalhes,
-      'ids' => $ids,                    // IDs pra edição
+      'ids' => $ids,
       'datas' => $datas,
       'total_por_dia' => $total_por_dia,
-      'total_geral' => array_sum($total_por_dia)
+      'total_geral' => array_sum($total_por_dia),
+      'totais_funcionarios' => $totais_funcionarios
     ];
   }
+
 
   public function atualizarLancamentos($updates)
   {
@@ -401,7 +448,16 @@ class RelatorioModel
   {
     $data_fim_sql = $data_fim . ' 23:59:59';
 
-    // Busca quantidades + valor por quilo
+    // Gera todas as datas do período
+    $datas = [];
+    $inicio = new DateTime($data_inicio);
+    $fim = new DateTime($data_fim);
+    while ($inicio <= $fim) {
+      $datas[] = $inicio->format('Y-m-d');
+      $inicio->modify('+1 day');
+    }
+
+    // PRODUÇÃO
     $sql = "SELECT 
                 DATE(p.data_hora) as data,
                 f.id as funcionario_id,
@@ -417,22 +473,19 @@ class RelatorioModel
             JOIN acoes a ON p.acao_id = a.id
             WHERE p.data_hora BETWEEN ? AND ?
             GROUP BY DATE(p.data_hora), f.id, tp.id, a.id
-            ORDER BY f.nome, data, tp.nome";
+            ORDER BY f.nome, data";
 
     $stmt = $this->db->prepare($sql);
     $stmt->execute([$data_inicio, $data_fim_sql]);
     $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Instancia o model de valores
     $valPagModel = new ValoresPagamentoModel();
 
-    // Estrutura final (igual ao de quantidades)
-    $matriz = [];        // funcionário → data → valor_total
-    $detalhes = [];      // funcionário → data → [produto => valor]
-    $ids = [];           // funcionário → data → [produto => id_lancamento]
-    $datas = [];
+    $matriz = [];
+    $detalhes = [];
+    $ids = [];
     $funcionario_ids = [];
-    $tipo_produto_ids = $this->getAllTipoProdutoIds();
+    $tipo_produto_ids = [];
 
     foreach ($resultados as $r) {
       $data = $r['data'];
@@ -443,31 +496,28 @@ class RelatorioModel
       $tipo_id = (int)$r['tipo_produto_id'];
       $acao_id = (int)$r['acao_id'];
 
-      // BUSCA O VALOR POR QUILO
       $valor_por_kg = $valPagModel->buscarValorPorQuilo($tipo_id, $acao_id);
       $valor_total = $kg * $valor_por_kg;
 
-      if (!in_array($data, $datas)) $datas[] = $data;
+      if (!isset($matriz[$nome])) {
+        $matriz[$nome] = array_fill_keys($datas, 0.0);
+        $matriz[$nome]['total'] = 0.0;
+      }
 
-      // Total por funcionário/dia
-      if (!isset($matriz[$nome][$data])) $matriz[$nome][$data] = 0;
       $matriz[$nome][$data] += $valor_total;
-      $matriz[$nome]['total'] = ($matriz[$nome]['total'] ?? 0) + $valor_total;
+      $matriz[$nome]['total'] += $valor_total;
 
-      // Detalhe por produto
       $detalhes[$nome][$data][$produto] = $valor_total;
-
-      // ID do lançamento
       $ids[$nome][$data][$produto] = $id_lancamento;
 
-      // IDs para edição
       $funcionario_ids[$nome] = $r['funcionario_id'];
+      $tipo_produto_ids[$produto] = $tipo_id;
     }
 
     sort($datas);
 
-    // Total por dia
-    $total_por_dia = array_fill_keys($datas, 0);
+    // Totais por dia da produção
+    $total_por_dia = array_fill_keys($datas, 0.0);
     foreach ($matriz as $nome => $dias) {
       foreach ($dias as $data => $valor) {
         if ($data !== 'total') {
@@ -476,15 +526,119 @@ class RelatorioModel
       }
     }
 
+    // SERVIÇOS EXTRAS
+    $extras = $this->getServicosExtrasValor($data_inicio, $data_fim);
+    $servicosExtras = $extras['totais'];
+    $detalhesExtras = $extras['detalhes'];
+
+    foreach ($servicosExtras as $nome => $valores) {
+      if (!isset($matriz[$nome])) {
+        $matriz[$nome] = array_fill_keys($datas, 0.0);
+        $matriz[$nome]['total'] = 0.0;
+
+        if (!isset($funcionario_ids[$nome])) {
+          $stmt = $this->db->prepare("SELECT id FROM funcionarios WHERE nome = ? LIMIT 1");
+          $stmt->execute([$nome]);
+          $id = $stmt->fetchColumn();
+          if ($id) $funcionario_ids[$nome] = (int)$id;
+        }
+      }
+
+      foreach ($valores as $data => $valor) {
+        if ($data === 'total') {
+          $matriz[$nome]['total'] += $valor;
+          continue;
+        }
+
+        $matriz[$nome][$data] += $valor;
+        $total_por_dia[$data] += $valor;
+
+        // adiciona nos detalhes usando o nome da ação
+        if (!isset($detalhes[$nome][$data])) {
+          $detalhes[$nome][$data] = [];
+        }
+        foreach ($detalhesExtras[$nome][$data] ?? [] as $acaoNome => $valorExtra) {
+          $detalhes[$nome][$data][$acaoNome] = $valorExtra;
+          $ids[$nome][$data][$acaoNome] = 0; // sem ID de produção
+
+        }
+      }
+    }
+
+    $total_geral = array_sum($total_por_dia);
+
     return [
       'matriz' => $matriz,
       'detalhes' => $detalhes,
       'ids' => $ids,
       'datas' => $datas,
       'total_por_dia' => $total_por_dia,
-      'total_geral' => array_sum($total_por_dia),
+      'total_geral' => $total_geral,
       'funcionario_ids' => $funcionario_ids,
       'tipo_produto_ids' => $tipo_produto_ids
     ];
+  }
+
+  public function getServicosExtrasValor($data_inicio, $data_fim)
+  {
+    $model = new ServicosExtrasModel();
+    $servicos = $model->buscarPorPeriodo($data_inicio, $data_fim);
+
+    $totais = [];
+    $detalhesExtras = [];
+
+    foreach ($servicos as $s) {
+      $nome = $s->funcionario_nome;
+      $data = $s->data_servico;
+      $acaoNome = $s->descricao; // nome da ação cadastrada
+
+      if (!isset($totais[$nome])) {
+        $totais[$nome] = array_fill_keys($this->getDatasArray($data_inicio, $data_fim), 0.0);
+        $totais[$nome]['total'] = 0.0;
+      }
+
+      $totais[$nome][$data] += (float)$s->valor;
+      $totais[$nome]['total'] += (float)$s->valor;
+
+      // guarda também os detalhes
+      if (!isset($detalhesExtras[$nome][$data])) {
+        $detalhesExtras[$nome][$data] = [];
+      }
+      $detalhesExtras[$nome][$data][$acaoNome] = (float)$s->valor;
+    }
+
+    return ['totais' => $totais, 'detalhes' => $detalhesExtras];
+  }
+
+
+  private function getDatasArray($inicio, $fim)
+  {
+    $datas = [];
+    $atual = new DateTime($inicio);
+    $final = new DateTime($fim);
+    while ($atual <= $final) {
+      $datas[] = $atual->format('Y-m-d');
+      $atual->modify('+1 day');
+    }
+    return $datas;
+  }
+
+  public function getServicosExtrasPorPeriodo($data_inicio, $data_fim)
+  {
+    $model = new ServicosExtrasModel();
+    $servicos = $model->buscarPorPeriodo($data_inicio, $data_fim);
+
+    $resultado = [];
+    foreach ($servicos as $s) {
+      $nome = $s->funcionario_nome;
+      $data = $s->data_servico;
+
+      if (!isset($resultado[$nome])) {
+        $resultado[$nome] = ['total' => 0];
+      }
+      $resultado[$nome][$data] = ($resultado[$nome][$data] ?? 0) + (float)$s->valor;
+      $resultado[$nome]['total'] += (float)$s->valor;
+    }
+    return $resultado;
   }
 }

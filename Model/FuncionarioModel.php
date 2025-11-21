@@ -14,7 +14,7 @@ class FuncionarioModel
 
   /**
    * Busca todos os funcionários ativos (do tipo 'producao').
-   * @return array Lista de objetos de funcionário.
+   * @return array Lista de objetos de funcionário
    */
   public function buscarTodos()
   {
@@ -340,5 +340,31 @@ class FuncionarioModel
       error_log("Erro ao buscar funcionários para presença: " . $e->getMessage());
       return [];
     }
+  }
+
+  /**
+   * Busca apenas os funcionários de produção que estão PRESENTES HOJE.
+   * Ideal para lançamentos em massa (produção, diárias, etc.)
+   */
+  public function buscarApenasPresentesHoje()
+  {
+    $hoje = date('Y-m-d');
+
+    $query = "SELECT 
+                f.id, 
+                f.nome
+              FROM funcionarios f
+              INNER JOIN presencas p ON f.id = p.funcionario_id
+              WHERE f.tipo = 'producao'
+                AND f.ativo = 1
+                AND p.data = :hoje 
+                AND p.presente = 1
+              ORDER BY f.nome ASC";
+
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':hoje', $hoje, PDO::PARAM_STR);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC); // Retorna array com ['id' => x, 'nome' => 'João']
   }
 }

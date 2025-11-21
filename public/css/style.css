@@ -201,3 +201,30 @@ body {
 .text-danger {
     color: var(--danger) !important;
 }
+
+.sticky-top {
+    top: 0;
+    z-index: 10;
+}
+
+.money-mask {
+    font-size: 0.95rem;
+}
+
+.nome-funcionario {
+    white-space: nowrap;
+}
+
+.valor-celula {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 80px;
+}
+
+.coluna-total,
+.coluna-acao {
+    width: 120px; /* Ajustar tamanho se necessário */
+    text-align: center;
+    white-space: nowrap;
+}

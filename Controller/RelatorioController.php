@@ -174,7 +174,7 @@ class RelatorioController extends AppController
             'data_fim' => $data_fim,
             'pode_editar' => true,
             'funcionario_ids' => $relatorio['funcionario_ids'],
-            'tipo_produto_ids' => $relatorio['tipo_produto_ids']
+            'tipo_produto_id' => $relatorio['tipo_produto_ids']
         ];
 
         require_once ROOT_PATH . 'View/template/main.php';
