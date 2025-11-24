@@ -98,6 +98,7 @@ $routes = [
     '/api/lancamento/salvar-massa'          => 'ApiController@salvarLancamentoMassa',
     '/api/producao/editar-dia'              => 'ApiController@getLancamentosDoDiaApontador',
     '/api/producao/atualizar'               => 'ApiController@atualizarLancamento',
+    '/api/producao/excluir'                 => 'ApiController@excluirLancamento',
 
 
     // MÓDULO DE GESTÃO DE PERMISSÕES

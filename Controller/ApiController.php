@@ -572,4 +572,30 @@ class ApiController
             'message' => $ok ? 'Lançamento atualizado com sucesso!' : 'Erro ao salvar'
         ]);
     }
+
+    // ==========================================
+    // EXCLUIR LANÇAMENTO (APP)
+    // ==========================================
+    public function excluirLancamento()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        // Permissão (igual nas outras funções)
+        $this->checkPermission('apontador', $input['funcionario_tipo'] ?? '', $input['funcionario_id'] ?? 0);
+
+        $id = (int)($input['id'] ?? 0);
+
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido']);
+            return;
+        }
+
+        $producaoModel = new ProducaoModel();
+        $ok = $producaoModel->excluirLancamentoApp($id);
+
+        echo json_encode([
+            'success' => $ok,
+            'message' => $ok ? 'Lançamento excluído com sucesso!' : 'Erro ao excluir'
+        ]);
+    }
 }

@@ -116,6 +116,20 @@ class ProducaoModel
         $stmt->execute([$id]);
     }
 
+    public function excluirLancamentoApp($id)
+    {
+        try {
+            $sql = "DELETE FROM producao WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+
+            return $stmt->execute(); // ← Isso retorna true ou false
+        } catch (Exception $e) {
+            error_log("Erro ao excluir lançamento ID $id: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function buscarLancamentoUnico($data, $funcionario_id, $acao_id, $tipo_produto_id)
     {
         $sql = "SELECT id, quantidade_kg 
@@ -198,28 +212,43 @@ class ProducaoModel
             p.quantidade_kg,
             p.lote_produto,
             p.hora_inicio,
-            p.hora_fim,
-            e.nome as equipe_nome
+            p.hora_fim
         FROM producao p
         JOIN funcionarios f ON p.funcionario_id = f.id
         JOIN acoes a ON p.acao_id = a.id
         JOIN tipos_produto tp ON p.tipo_produto_id = tp.id
-        JOIN equipes e ON p.equipe_id = e.id
         WHERE DATE(p.data_hora) = ?
-          AND e.apontador_id = ?
+          AND (
+                -- 1º: se o lançamento tem equipe_id e essa equipe é do apontador
+                (p.equipe_id IS NOT NULL 
+                 AND EXISTS (
+                     SELECT 1 FROM equipes e 
+                     WHERE e.id = p.equipe_id AND e.apontador_id = ?
+                 ))
+                OR
+                -- 2º: se não tem equipe_id, verifica se o funcionário está na equipe atual do apontador
+                (p.equipe_id IS NULL OR p.equipe_id = 0)
+                AND EXISTS (
+                    SELECT 1 
+                    FROM equipe_funcionarios ef 
+                    JOIN equipes e ON ef.equipe_id = e.id 
+                    WHERE ef.funcionario_id = p.funcionario_id 
+                      AND e.apontador_id = ?
+                )
+              )
+        GROUP BY p.id
         ORDER BY f.nome, p.hora_inicio
     ";
 
         try {
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$data, $apontador_id]);
+            $stmt->execute([$data, $apontador_id, $apontador_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log("Erro ao buscar lançamentos do apontador: " . $e->getMessage());
+            error_log("Erro buscarLancamentosDoDiaDoApontador: " . $e->getMessage());
             return [];
         }
     }
-
     /**
      * Atualiza um lançamento de produção já existente
      */
