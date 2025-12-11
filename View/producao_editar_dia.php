@@ -22,14 +22,14 @@
                     <table class="table table-bordered table-hover" id="tabela-producao">
                         <thead class="table-primary">
                             <tr>
-                                <th>Funcionário</th>
-                                <th>Ação</th>
-                                <th>Produto</th>
-                                <th>Kg</th>
-                                <th>Início</th>
-                                <th>Fim</th>
-                                <th>Total Dia</th>
-                                <th>Ações</th>
+                                <th class="text-center align-middle">Funcionário</th>
+                                <th class="text-center align-middle">Ação</th>
+                                <th class="text-center align-middle">Produto</th>
+                                <th class="text-center align-middle">Kg</th>
+                                <th class="text-center align-middle">Início</th>
+                                <th class="text-center align-middle">Fim</th>
+                                <th class="text-center align-middle">Total Dia</th>
+                                <th class="text-center align-middle">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -45,7 +45,7 @@
 
                                     <td class="fw-bold align-middle"><?= htmlspecialchars($l['funcionario_nome']) ?></td>
 
-                                    <td class="align-middle">
+                                    <td class="text-center align-middle">
                                         <span class="view-mode acao-view"><?= htmlspecialchars($l['acao_nome']) ?></span>
                                         <!-- SELECT DE AÇÃO -->
                                         <select class="form-select form-select-sm edit-mode d-none acao-select">
@@ -70,25 +70,26 @@
                                         </select>
                                     </td>
 
-                                    <td class="align-middle">
+                                    <td class="text-center align-middle">
                                         <span class="view-mode kg-view"><?= number_format($l['quantidade_kg'], 3, ',', '.') ?></span>
                                         <input type="text" class="form-control form-control-sm edit-mode d-none kg-input text-end"
                                             value="<?= number_format($l['quantidade_kg'], 3, ',', '.') ?>">
                                     </td>
 
-                                    <td class="align-middle">
+                                    <td class="text-center align-middle">
                                         <span class="view-mode inicio-view"><?= $l['hora_inicio'] ?: '--:--' ?></span>
                                         <input type="time" class="form-control form-control-sm edit-mode d-none hora-inicio"
                                             value="<?= $l['hora_inicio'] ?>">
                                     </td>
 
-                                    <td class="align-middle">
+                                    <td class="text-center align-middle">
                                         <span class="view-mode fim-view"><?= $l['hora_fim'] ?: '--:--' ?></span>
                                         <input type="time" class="form-control form-control-sm edit-mode d-none hora-fim"
                                             value="<?= $l['hora_fim'] ?>">
                                     </td>
 
-                                    <td class="align-middle text-end fw-bold text-primary total-dia">
+                                    <td class="text-center align-middle fw-bold text-primary total-dia"
+                                        data-funcionario="<?= htmlspecialchars($l['funcionario_nome']) ?>">
                                         <?= number_format($totais[$l['funcionario_nome']], 3, ',', '.') ?> kg
                                     </td>
 
@@ -106,6 +107,10 @@
                     </table>
                 </div>
             <?php endif; ?>
+            <script>
+                // Passa os totais reais do PHP pro JS de forma segura
+                const totaisIniciais = <?= json_encode($totais ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+            </script>
         </div>
     </div>
 </div>

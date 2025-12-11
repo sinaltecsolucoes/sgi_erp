@@ -224,7 +224,103 @@ body {
 
 .coluna-total,
 .coluna-acao {
-    width: 120px; /* Ajustar tamanho se necessário */
+    width: 120px;
+    /* Ajustar tamanho se necessário */
     text-align: center;
     white-space: nowrap;
+}
+
+/* ======================================================
+   ALINHAMENTO PERFEITO – CORRIGE O PADDING DA EXPANDIDA
+   ====================================================== */
+
+/* 1. Tabela principal – nomes dos funcionários */
+#tabelaPrincipal th:first-child,
+#tabelaPrincipal td:first-child {
+    width: 300px !important;
+    min-width: 300px !important;
+    max-width: 300px !important;
+    text-align: left !important;
+    padding-left: 1.5rem !important;
+    /* mesmo padding do card-body */
+    font-size: 0.85rem;
+}
+
+/* 2. Tabela expandida – nome do produto (compensa o padding do div.p-4) */
+.detalhes-linha .p-4 {
+    padding-left: 0 !important;
+    /* remove o padding esquerdo */
+    padding-right: 0 !important;
+    /* remove o padding direito */
+    margin-left: -1.5rem !important;
+    /* puxa a tabela 24px para a esquerda */
+    margin-right: -1.5rem !important;
+    /* compensa o lado direito também */
+    width: calc(100% + 3rem) !important;
+    /* ocupa todo o espaço */
+}
+
+.detalhes-linha table th:first-child,
+.detalhes-linha table td:first-child {
+    width: 300px !important;
+    min-width: 300px !important;
+    max-width: 300px !important;
+    text-align: left !important;
+    padding-left: 1.5rem !important;
+    /* mantém o mesmo recuo visual */
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* 3. Colunas de data (mesmo tamanho nas duas tabelas) */
+#tabelaPrincipal th:not(:first-child):not(:last-child),
+#tabelaPrincipal td:not(:first-child):not(:last-child),
+.detalhes-linha table th:not(:not:first-child):not(:last-child),
+.detalhes-linha table td:not(:first-child):not(:last-child) {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+    text-align: center !important;
+}
+
+/* 4. Coluna TOTAL / AÇÃO */
+#tabelaPrincipal th:last-child,
+#tabelaPrincipal td:last-child,
+.detalhes-linha table th:last-child,
+.detalhes-linha table td:last-child {
+    width: 150px !important;
+    min-width: 150px !important;
+    max-width: 150px !important;
+    text-align: center !important;
+}
+
+/* 5. Input de edição também centralizado */
+.detalhes-linha .input-edicao {
+    text-align: center !important;
+}
+
+/* ======================================================
+   TAMANHO DA FONTE DOS VALORES (dados do banco)
+   ====================================================== */
+
+/* 1. Tabela principal – valores diários e total do funcionário */
+#tabelaPrincipal td.valor-celula,
+#tabelaPrincipal .total-funcionario,
+#tabelaPrincipal .total-dia,
+#tabelaPrincipal #total-geral {
+    font-size: 0.95rem !important;     /* padrão bom, um pouco maior que o texto normal */
+    font-weight: 600 !important;       /* negrito leve para destacar */
+}
+
+/* 2. Tabela expandida – valores por produto (os que aparecem nas células de data) */
+.detalhes-linha .valor-exibicao,
+.detalhes-linha .input-edicao {
+    font-size: 0.92rem !important;     /* um pouquinho menor que a expandida */
+    font-weight: 600 !important;
+}
+
+/* 3. Se quiser deixar ainda maior na tabela principal (ex: 1.1rem) */
+#tabelaPrincipal td.valor-celula,
+#tabelaPrincipal .total-funcionario {
+    font-size: 0.92rem !important;     /* fica bem destacado */
 }

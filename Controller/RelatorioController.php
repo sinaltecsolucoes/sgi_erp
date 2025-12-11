@@ -6,11 +6,13 @@ use Dompdf\Options;
 class RelatorioController extends AppController
 {
     private $relatorioModel;
+    private $funcionarioModel;
 
     public function __construct()
     {
         parent::__construct();
         $this->relatorioModel = new RelatorioModel();
+        $this->funcionarioModel = new FuncionarioModel(); // Instancia o model de funcionarios
         require_once ROOT_PATH . 'public' . DS . 'libs' . DS . 'dompdf' . DS . 'vendor' . DS . 'autoload.php';
     }
 
@@ -21,62 +23,99 @@ class RelatorioController extends AppController
         $data_fim = $_GET['data_fim'] ?? $hoje->format('Y-m-t');
         $visualizacao = $_GET['visualizacao'] ?? 'sintetico';
 
+        // Captura o ID do funcionário
+        $funcionario_id = filter_input(INPUT_GET, 'funcionario_id', FILTER_VALIDATE_INT);
+
+        // Busca lista de funcionários para o Dropdown
+        $listaFuncionarios = $this->funcionarioModel->buscarTodos();
+
+        $erro = null;
         if (strtotime($data_inicio) > strtotime($data_fim)) {
             $erro = "Data inicial não pode ser maior que data final.";
-            return compact('data_inicio', 'data_fim', 'visualizacao', 'erro');
+            // Retorna dados vazios mas com a lista de funcionarios para não quebrar a view
+            return compact('data_inicio', 'data_fim', 'visualizacao', 'erro', 'listaFuncionarios', 'funcionario_id');
         }
 
-        $dados = $this->relatorioModel->gerarRelatorioCompleto($data_inicio, $data_fim);
+        $dados = $this->relatorioModel->gerarRelatorioCompleto($data_inicio, $data_fim, $funcionario_id);
 
-        return compact('data_inicio', 'data_fim', 'visualizacao', 'dados', 'erro');
+        return compact('data_inicio', 'data_fim', 'visualizacao', 'dados', 'erro', 'listaFuncionarios', 'funcionario_id');
     }
 
-    // RELATÓRIO DE QUANTIDADES
+    /**
+     * Método auxiliar para preparar os dados da View (Totais, Datas, etc)
+     * Evita repetir código entre Quantidades e Pagamentos.
+     */
+    private function prepararDadosView($dadosModel, $dataInicio, $dataFim)
+    {
+        // 1. Gera o array de datas (colunas)
+        $datas = [];
+        $atual = new DateTime($dataInicio);
+        $fim   = new DateTime($dataFim);
+        while ($atual <= $fim) {
+            $datas[] = $atual->format('Y-m-d');
+            $atual->modify('+1 day');
+        }
+
+        // 2. Calcula Totais Verticais (Dia a Dia) e Geral
+        $totalPorDia = array_fill_keys($datas, 0);
+        $totalGeral  = 0;
+
+        foreach ($dadosModel as $funcionario) {
+            $totalGeral += $funcionario['total'];
+            foreach ($funcionario['dias'] as $dia => $valor) {
+                if (isset($totalPorDia[$dia])) {
+                    $totalPorDia[$dia] += $valor;
+                }
+            }
+        }
+
+        return [
+            'matriz'        => $dadosModel,
+            'datas'         => $datas,
+            'total_por_dia' => $totalPorDia,
+            'total_geral'   => $totalGeral
+        ];
+    }
+
+    // =========================================================================
+    // 1. RELATÓRIO DE QUANTIDADES (KG)
+    // =========================================================================
     public function quantidades()
     {
+        // 1. Captura Filtros
         $hoje = new DateTime();
         $data_inicio = $_GET['ini'] ?? $hoje->format('Y-m-01');
-        $data_fim = $_GET['fim'] ?? $hoje->format('Y-m-t');
+        $data_fim    = $_GET['fim'] ?? $hoje->format('Y-m-t');
+        $funcId      = filter_input(INPUT_GET, 'funcionario_id', FILTER_VALIDATE_INT);
 
+        // 2. Validação Básica
         if (strtotime($data_inicio) > strtotime($data_fim)) {
             $_SESSION['erro'] = "Data inicial não pode ser maior que data final.";
             header('Location: /sgi_erp/relatorios/quantidades');
             exit;
         }
 
-        $relatorio = $this->relatorioModel->getQuantidadesDiaADia($data_inicio, $data_fim);
+        // 3. Busca Dados (Modo 'qtd' para KG)
+        $dadosBrutos = $this->relatorioModel->gerarRelatorioCompleto($data_inicio, $data_fim, $funcId, 'qtd');
 
-        $title = "RELATÓRIO DE PRODUÇÃO - PERÍODO: " .
-            date('d/m/Y', strtotime($data_inicio)) . " - " .
-            date('d/m/Y', strtotime($data_fim));
+        // 4. Processa Totais e Estrutura
+        $processados = $this->prepararDadosView($dadosBrutos, $data_inicio, $data_fim);
 
-        $content_view = ROOT_PATH . 'View/relatorio_quantidades.php';
+        // 5. Busca Lista para o Dropdown
+        $listaFuncionarios = $this->funcionarioModel->buscarTodos();
 
-        $dados = [
-            'matriz' => $relatorio['matriz'],
-            'detalhes' => $relatorio['detalhes'],
-            'ids' => $relatorio['ids'],
-            'datas' => $relatorio['datas'],
-            'total_por_dia' => $relatorio['total_por_dia'],
-            'total_geral' => $relatorio['total_geral'],
-            'data_inicio' => $data_inicio,
-            'data_fim' => $data_fim,
-            'pode_editar' => true
-        ];
+        // 6. Monta dados finais para a View
+        $dados = array_merge($processados, [
+            'data_inicio'        => $data_inicio,
+            'data_fim'           => $data_fim,
+            'funcionario_id'     => $funcId,          // Para manter o select selecionado
+            'lista_funcionarios' => $listaFuncionarios // Para preencher o select
+        ]);
 
-        // === BUSCA IDS PARA EDIÇÃO INLINE ===
-        $funcionario_ids = [];
-        $tipo_produto_ids = $this->relatorioModel->getAllTipoProdutoIds();
+        $title = "RELATÓRIO DE PRODUÇÃO (KG)";
+        $content_view = ROOT_PATH . 'View' . DS . 'relatorio_quantidades.php';
 
-        foreach ($dados['matriz'] as $nome => $linha) {
-            $id = $this->relatorioModel->getFuncionarioIdByNome($nome);
-            $funcionario_ids[$nome] = $id ?: 0;
-        }
-
-        $dados['funcionario_ids'] = $funcionario_ids;
-        $dados['tipo_produto_ids'] = $tipo_produto_ids;
-
-        require_once ROOT_PATH . 'View/template/main.php';
+        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
 
     public function atualizarProducao()
@@ -140,44 +179,42 @@ class RelatorioController extends AppController
         echo json_encode($resultado);
         exit;
     }
-
-    // === RELATÓRIO DE VALORES A PAGAR ===
+    // =========================================================================
+    // 2. RELATÓRIO DE PAGAMENTOS (R$)
+    // =========================================================================
     public function pagamentos()
     {
+        // 1. Captura Filtros
         $hoje = new DateTime();
         $data_inicio = $_GET['ini'] ?? $hoje->format('Y-m-01');
-        $data_fim = $_GET['fim'] ?? $hoje->format('Y-m-t');
+        $data_fim    = $_GET['fim'] ?? $hoje->format('Y-m-t');
+        $funcId      = filter_input(INPUT_GET, 'funcionario_id', FILTER_VALIDATE_INT);
 
         if (strtotime($data_inicio) > strtotime($data_fim)) {
-            $_SESSION['erro'] = "Data inicial não pode ser maior que data final.";
+            $_SESSION['erro'] = "Data inicial inválida.";
             header('Location: /sgi_erp/relatorios/pagamentos');
             exit;
         }
 
-        // Reusa a lógica de quantidades + multiplica pelo valor por quilo
-        $relatorio = $this->relatorioModel->getValoresFinanceirosDiaADia($data_inicio, $data_fim);
+        // 2. Busca Dados (Modo 'valor' para R$)
+        $dadosBrutos = $this->relatorioModel->gerarRelatorioCompleto($data_inicio, $data_fim, $funcId, 'valor');
 
-        $title = "RELATÓRIO FINANCEIRO - VALORES A PAGAR: " .
-            date('d/m/Y', strtotime($data_inicio)) . " - " .
-            date('d/m/Y', strtotime($data_fim));
+        // 3. Processa
+        $processados = $this->prepararDadosView($dadosBrutos, $data_inicio, $data_fim);
+        $listaFuncionarios = $this->funcionarioModel->buscarTodos();
 
-        $content_view = ROOT_PATH . 'View/relatorio_pagamentos.php';
+        // 4. Envia para View
+        $dados = array_merge($processados, [
+            'data_inicio'        => $data_inicio,
+            'data_fim'           => $data_fim,
+            'funcionario_id'     => $funcId,
+            'lista_funcionarios' => $listaFuncionarios
+        ]);
 
-        $dados = [
-            'matriz' => $relatorio['matriz'],
-            'detalhes' => $relatorio['detalhes'],
-            'ids' => $relatorio['ids'],
-            'datas' => $relatorio['datas'],
-            'total_por_dia' => $relatorio['total_por_dia'],
-            'total_geral' => $relatorio['total_geral'],
-            'data_inicio' => $data_inicio,
-            'data_fim' => $data_fim,
-            'pode_editar' => true,
-            'funcionario_ids' => $relatorio['funcionario_ids'],
-            'tipo_produto_id' => $relatorio['tipo_produto_ids']
-        ];
+        $title = "RELATÓRIO FINANCEIRO (R$)";
+        $content_view = ROOT_PATH . 'View' . DS . 'relatorio_pagamentos.php';
 
-        require_once ROOT_PATH . 'View/template/main.php';
+        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
 
     // === RELATÓRIO DE PRODUTIVIDADE ===

@@ -7,17 +7,29 @@
         <div class="card-body">
             <form method="GET" action="/sgi_erp/relatorios/pagamentos">
                 <div class="row g-3">
-                    <div class="col-md-5">
-                        <label>Data Início</label>
+                    <div class="col-md-3">
+                        <label class="form-label">Data Início</label>
                         <input type="date" name="ini" class="form-control" value="<?= $dados['data_inicio'] ?>" required>
                     </div>
-                    <div class="col-md-5">
-                        <label>Data Fim</label>
+                    <div class="col-md-3">
+                        <label class="form-label">Data Fim</label>
                         <input type="date" name="fim" class="form-control" value="<?= $dados['data_fim'] ?>" required>
                     </div>
-                    <div class="col-md-2">
-                        <label>&nbsp;</label><br>
-                        <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                    <div class="col-md-4">
+                        <label class="form-label">Funcionário</label>
+                        <select name="funcionario_id" class="form-select">
+                            <option value="">Todos os Funcionários</option>
+                            <?php foreach ($dados['lista_funcionarios'] as $f): ?>
+                                <option value="<?= $f->id ?>" <?= ($dados['funcionario_id'] == $f->id) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($f->nome) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-filter me-1"></i> Filtrar
+                        </button>
                     </div>
                 </div>
             </form>
@@ -49,23 +61,26 @@
                         </thead>
                         <tbody>
                             <?php foreach ($dados['matriz'] as $nome => $linha): ?>
-                                <tr class="funcionario-linha nome-funcionario" style="cursor: pointer; background: #f8fff8;">
-                                    <td class="nome-funcionario" >
+                                <tr class="funcionario-linha" style="cursor: pointer; background: #f8fff8;">
+                                    <td>
                                         <i class="fas fa-plus-circle text-success me-2 icon-expand"></i>
                                         <strong><?= htmlspecialchars($nome) ?></strong>
                                     </td>
+
                                     <?php foreach ($dados['datas'] as $d): ?>
-                                        <?php $valor = $linha[$d] ?? 0; ?>
-                                        <td class="text-end <?= $valor > 0 ? 'text-success fw-bold' : '' ?>" data-data="<?= $d ?>">
+                                        <?php $valor = $linha['dias'][$d] ?? 0; // CORRIGIDO AQUI 
+                                        ?>
+                                        <td class="text-center <?= $valor > 0 ? 'text-success fw-bold' : '' ?>" data-data="<?= $d ?>">
                                             <?= $valor > 0 ? 'R$ ' . number_format($valor, 2, ',', '.') : '' ?>
                                         </td>
                                     <?php endforeach; ?>
+
                                     <td class="text-end fw-bold table-success total-funcionario">
                                         R$ <?= number_format($linha['total'], 2, ',', '.') ?>
                                     </td>
                                 </tr>
 
-                                <!-- LINHA EXPANDIDA -->
+                                <!-- DETALHES POR PRODUTO -->
                                 <tr class="detalhes-linha" style="display: none;">
                                     <td colspan="<?= count($dados['datas']) + 2 ?>">
                                         <div class="p-4 bg-light rounded">
@@ -77,55 +92,46 @@
                                                     <button class="btn btn-warning btn-sm btn-editar-produto">Editar</button>
                                                     <button class="btn btn-success btn-sm btn-salvar-produto" style="display:none;">Salvar</button>
                                                     <button class="btn btn-secondary btn-sm btn-cancelar-produto" style="display:none;">Cancelar</button>
+                                                    <button class="btn btn-info btn-sm btn-desfazer" style="display:none;">Desfazer</button>
                                                 </div>
                                             </div>
 
                                             <table class="table table-sm table-bordered table-hover">
                                                 <thead class="table-light">
                                                     <tr>
-                                                        <th>Produto</th>
+                                                        <th>Produto / Serviço</th>
                                                         <?php foreach ($dados['datas'] as $d): ?>
                                                             <th class="text-center"><?= date('d/m', strtotime($d)) ?></th>
                                                         <?php endforeach; ?>
-                                                        <th class="coluna-acao">Ação</th>
+                                                        <th>Ação</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="corpo-edicao">
-                                                    <?php
-                                                    $produtos = [];
-                                                    foreach ($dados['detalhes'][$nome] ?? [] as $data => $items) {
-                                                        foreach ($items as $prod => $valor) {
-                                                            if (!isset($produtos[$prod])) $produtos[$prod] = [];
-                                                            $produtos[$prod][$data] = [
-                                                                'valor' => $valor,
-                                                                'id' => $dados['ids'][$nome][$data][$prod] ?? 0
-                                                            ];
-                                                        }
-                                                    }
-                                                    foreach ($produtos as $prod => $dias): ?>
-                                                        <tr data-produto="<?= htmlspecialchars($prod) ?>">
-                                                            <td><strong><?= htmlspecialchars($prod) ?></strong></td>
+                                                    <?php foreach ($linha['detalhes'] as $item => $info): // CORRIGIDO 
+                                                    ?>
+                                                        <tr>
+                                                            <td><strong><?= htmlspecialchars($item) ?></strong></td>
                                                             <?php foreach ($dados['datas'] as $d): ?>
                                                                 <?php
-                                                                $item = $dias[$d] ?? ['valor' => 0, 'id' => 0];
-                                                                $funcionarioId = $dados['funcionario_ids'][$nome] ?? 0;
-                                                                $tipoProdutoId = $dados['tipo_produto_ids'][$prod] ?? 0;
+                                                                $valorDia = $info['dias'][$d] ?? 0;
+                                                                $idLancamento = 0; // mesmo caso do KG
+                                                                $funcId = $dados['funcionario_ids'][$nome] ?? 0;
+                                                                $tipoId = $dados['tipo_produto_ids'][$item] ?? 0;
                                                                 ?>
                                                                 <td class="text-center celula-valor"
-                                                                    data-id="<?= $item['id'] ?>"
+                                                                    data-id="<?= $idLancamento ?>"
                                                                     data-data="<?= $d ?>"
-                                                                    data-funcionario-id="<?= $funcionarioId ?>"
-                                                                    data-tipo-produto-id="<?= $tipoProdutoId ?>">
+                                                                    data-funcionario-id="<?= $funcId ?>"
+                                                                    data-tipo-produto-id="<?= $tipoId ?>">
                                                                     <span class="valor-exibicao">
-                                                                        <?= $item['valor'] > 0 ? 'R$ ' . number_format($item['valor'], 2, ',', '.') : '-' ?>
+                                                                        <?= $valorDia > 0 ? 'R$ ' . number_format($valorDia, 2, ',', '.') : '-' ?>
                                                                     </span>
                                                                     <input type="text" class="form-control form-control-sm input-edicao"
-                                                                        value="<?= $item['valor'] > 0 ? number_format($item['valor'], 2, ',', '.') : '' ?>"
-                                                                        placeholder="0,00"
-                                                                        style="display:none; width:100px;">
+                                                                        value="<?= $valorDia > 0 ? number_format($valorDia, 2, ',', '.') : '' ?>"
+                                                                        placeholder="0,00" style="display:none; width:100px;">
                                                                 </td>
                                                             <?php endforeach; ?>
-                                                            <td class="coluna-acao">
+                                                            <td>
                                                                 <button class="btn btn-danger btn-sm btn-excluir-linha">Excluir</button>
                                                             </td>
                                                         </tr>
@@ -141,12 +147,12 @@
                             <tr>
                                 <th>TOTAL GERAL</th>
                                 <?php foreach ($dados['datas'] as $d): ?>
-                                    <th class="text-center total-dia valor-celula">
-                                        R$ <?= number_format($dados['total_por_dia'][$d], 2, ',', '.') ?>
+                                    <th class="text-center total-dia">
+                                        R$ <?= number_format($dados['total_por_dia'][$d] ?? 0, 2, ',', '.') ?>
                                     </th>
                                 <?php endforeach; ?>
-                                <th class="text-center coluna-total valor-celula" id="total-geral">
-                                    R$ <?= number_format($dados['total_geral'], 2, ',', '.') ?>
+                                <th class="text-center" id="total-geral">
+                                    R$ <?= number_format($dados['total_geral'] ?? 0, 2, ',', '.') ?>
                                 </th>
                             </tr>
                         </tfoot>
@@ -159,5 +165,5 @@
 
 <script>
     var relatorioDatas = <?= json_encode($dados['datas']) ?>;
-    var unidadeMedida = 'R$'; 
+    var unidadeMedida = 'R$';
 </script>

@@ -111,12 +111,19 @@ class ApiController
             return;
         }
 
+        // Instancia o modelo de presença para fazer a chamada automática
+        $presencaModel = new PresencaModel();
+        $hoje = date('Y-m-d');
+
         if ($equipe_id) {
             // Editar
             $this->equipeModel->atualizarNome($equipe_id, $nome_equipe);
             $this->equipeModel->removerTodosFuncionarios($equipe_id); // Remove todos atuais
             foreach ($membros_ids as $func_id) {
                 $this->equipeModel->associarFuncionario($equipe_id, $func_id);
+
+                // AUTO-PRESENÇA: Garante que o funcionário esteja marcado como presente
+                $presencaModel->registrarPresenca($func_id, $hoje);
             }
             echo json_encode(['success' => true, 'message' => 'Equipe atualizada!']);
         } else {
@@ -125,6 +132,9 @@ class ApiController
             if ($nova_id) {
                 foreach ($membros_ids as $func_id) {
                     $this->equipeModel->associarFuncionario($nova_id, $func_id);
+
+                    // AUTO-PRESENÇA: Garante que o funcionário esteja marcado como presente
+                    $presencaModel->registrarPresenca($func_id, $hoje);
                 }
                 echo json_encode(['success' => true, 'message' => 'Equipe criada!', 'equipe_id' => $nova_id]);
             } else {
@@ -251,14 +261,17 @@ class ApiController
         $hoje = date('Y-m-d');
 
         // 1. Funcionários PRESENTES hoje
-        $presentes = $this->funcionarioModel->buscarPresentesHoje($hoje);
+        //  $presentes = $this->funcionarioModel->buscarPresentesHoje($hoje);
+
+        // 1. Busca TODOS os ativos de produção, não apenas os presentes
+        $todosAtivos = $this->funcionarioModel->buscarTodosProducaoAtivos();
 
         // 2. IDs alocados hoje
         $alocados = $this->equipeModel->buscarFuncionariosAlocadosHoje();
         $alocadosIds = array_map('intval', $alocados);
 
         // 3. Filtra: só quem tem esta_presente == 1 E NÃO está alocado
-        $disponiveis = [];
+        /*   $disponiveis = [];
         foreach ($presentes as $f) {
             $id = (int)$f->id;
             if ($f->esta_presente == 1 && !in_array($id, $alocadosIds)) {
@@ -267,14 +280,35 @@ class ApiController
                     'nome' => $f->nome
                 ];
             }
+        }*/
+
+        // 3. Filtra: Mostra todos que estão ativos E NÃO estão alocados
+        $disponiveis = [];
+        foreach ($todosAtivos as $f) {
+            $id = (int)$f->id;
+            // Se NÃO estiver em outra equipe, adiciona na lista
+            if (!in_array($id, $alocadosIds)) {
+                $disponiveis[] = [
+                    'id'   => $id,
+                    'nome' => $f->nome
+                ];
+            }
         }
 
-        echo json_encode([
+        /*  echo json_encode([
             'success'      => true,
             'funcionarios' => $disponiveis,
             'total_presentes' => count($presentes),
             'total_alocados'  => count($alocadosIds),
             'disponiveis'     => count($disponiveis)
+        ]);*/
+
+        echo json_encode([
+            'success'      => true,
+            'funcionarios' => $disponiveis,
+            'total_ativos' => count($todosAtivos),
+            'total_alocados' => count($alocadosIds),
+            'disponiveis'  => count($disponiveis)
         ]);
     }
 

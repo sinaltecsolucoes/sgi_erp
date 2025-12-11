@@ -256,7 +256,7 @@ class FuncionarioModel
                   FROM 
                     {$this->table_presencas}
                   WHERE 
-                    data = :hoje AND presente = TRUE";
+                    data = :hoje AND presente = 1";
 
     try {
       $stmt = $this->db->prepare($query);
@@ -366,5 +366,32 @@ class FuncionarioModel
     $stmt->execute();
 
     return $stmt->fetchAll(PDO::FETCH_ASSOC); // Retorna array com ['id' => x, 'nome' => 'João']
+  }
+
+  /**
+   * Busca todos os funcionários de produção que estão ATIVOS.
+   * Usado para permitir que o apontador veja todos e faça a chamada automática.
+   */
+  public function buscarTodosProducaoAtivos()
+  {
+    // Removida a variável $hoje pois não é usada no filtro (queremos TODOS os ativos, independente de data)
+
+    $query = "SELECT 
+                f.id, 
+                f.nome, 
+                f.tipo 
+              FROM 
+                {$this->table_funcionarios} f 
+              WHERE 
+                f.ativo = 1
+                AND f.tipo = 'producao'
+              ORDER BY 
+                f.nome ASC";
+
+    $stmt = $this->db->prepare($query);
+    $stmt->execute();
+
+    // Retorna o padrão (Geralmente OBJETO), compatível com $f->nome no Controller
+    return $stmt->fetchAll();
   }
 }

@@ -10,7 +10,7 @@ class RelatorioModel
   private $table_funcionarios = 'funcionarios';
   private $table_acoes = 'acoes';
   private $table_tipos_produto = 'tipos_produto';
-  private $table_presencas = 'presencas'; // Usada em outros métodos, mantida aqui.
+  private $table_presencas = 'presencas';
 
   public function __construct()
   {
@@ -18,6 +18,137 @@ class RelatorioModel
     // Inicializa o model que buscará os valores por quilo (para o cálculo)
     $this->valPagamentoModel = new ValoresPagamentoModel();
   }
+
+  /**
+   * Auxiliar datas
+   */
+  private function getDatasArray($inicio, $fim)
+  {
+    $datas = [];
+    $atual = new DateTime($inicio);
+    $final = new DateTime($fim);
+    while ($atual <= $final) {
+      $datas[] = $atual->format('Y-m-d');
+      $atual->modify('+1 day');
+    }
+    return $datas;
+  }
+
+  /**
+   * Gera o relatório consolidado (Produtividade + Extras)
+   */
+  public function gerarRelatorioCompleto($data_inicio, $data_fim, $funcionarioId = null, $tipo = 'qtd')
+  {
+    // 1. Busca os dados
+    if ($tipo === 'valor') {
+      $producao = $this->getProducaoValores($data_inicio, $data_fim, $funcionarioId);
+    } else {
+      $producao = $this->getProducaoPorPeriodo($data_inicio, $data_fim, $funcionarioId);
+    }
+
+    $extras = $this->getServicosExtrasPorPeriodo($data_inicio, $data_fim, $funcionarioId);
+
+    $relatorio = [];
+    $datasPeriodo = $this->getDatasArray($data_inicio, $data_fim);
+
+    // 2. Processa PRODUÇÃO
+    foreach ($producao as $funcNome => $dados) {
+      $relatorio[$funcNome] = $dados;
+    }
+
+    // 3. Processa EXTRAS
+    foreach ($extras as $funcNome => $dados) {
+      if (!isset($relatorio[$funcNome])) {
+        $relatorio[$funcNome] = [
+          'dias' => array_fill_keys($datasPeriodo, 0),
+          'total' => 0,
+          'detalhes' => []
+        ];
+      }
+
+      // Se for relatório de VALOR, soma o dinheiro dos extras
+      if ($tipo === 'valor') {
+        foreach ($dados['dias'] as $dia => $valor) {
+          if (isset($relatorio[$funcNome]['dias'][$dia])) {
+            $relatorio[$funcNome]['dias'][$dia] += $valor;
+          }
+        }
+        $relatorio[$funcNome]['total'] += $dados['total'];
+      }
+    }
+
+    return $relatorio;
+  }
+
+  public function getProducaoPorPeriodo($data_inicio, $data_fim, $funcionarioId = null)
+  {
+    $query = "SELECT 
+                    DATE(p.data_hora) AS data, 
+                    f.nome AS funcionario, 
+                    tp.nome AS produto,
+                    SUM(p.quantidade_kg) as total_kg
+                  FROM {$this->table_producao} p
+                  JOIN {$this->table_funcionarios} f ON p.funcionario_id = f.id
+                  JOIN {$this->table_tipos_produto} tp ON p.tipo_produto_id = tp.id
+                  WHERE DATE(p.data_hora) BETWEEN :inicio AND :fim";
+
+    if ($funcionarioId) {
+      $query .= " AND p.funcionario_id = :fid ";
+    }
+
+    $query .= " GROUP BY DATE(p.data_hora), f.nome, tp.nome
+                    ORDER BY f.nome, DATE(p.data_hora)";
+
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':inicio', $data_inicio);
+    $stmt->bindParam(':fim', $data_fim);
+
+    if ($funcionarioId) {
+      $stmt->bindParam(':fid', $funcionarioId);
+    }
+
+    $stmt->execute();
+
+    // Força FETCH_OBJ para garantir que $row->data funcione
+    $resultados = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+    $dados = [];
+    $datasPeriodo = $this->getDatasArray($data_inicio, $data_fim);
+
+    foreach ($resultados as $row) {
+      $func = $row->funcionario;
+      $dia  = $row->data;
+      $prod = $row->produto;
+      $qtd  = (float)$row->total_kg;
+
+      if (!isset($dados[$func])) {
+        $dados[$func] = [
+          'dias' => array_fill_keys($datasPeriodo, 0),
+          'total' => 0,
+          'detalhes' => []
+        ];
+      }
+
+      if (isset($dados[$func]['dias'][$dia])) {
+        $dados[$func]['dias'][$dia] += $qtd;
+      }
+      $dados[$func]['total'] += $qtd;
+
+      if (!isset($dados[$func]['detalhes'][$prod])) {
+        $dados[$func]['detalhes'][$prod] = [
+          'dias' => array_fill_keys($datasPeriodo, 0),
+          'total' => 0
+        ];
+      }
+      if (isset($dados[$func]['detalhes'][$prod]['dias'][$dia])) {
+        $dados[$func]['detalhes'][$prod]['dias'][$dia] += $qtd;
+      }
+      $dados[$func]['detalhes'][$prod]['total'] += $qtd;
+    }
+
+    return $dados;
+  }
+
 
   /**
    * Função auxiliar para calcular a diferença de tempo em horas decimais.
@@ -41,147 +172,129 @@ class RelatorioModel
     return round(($fim - $inicio) / 3600.0, 2);
   }
 
-  /**
-   * Gera todos os dados agregados necessários para os relatórios (Pagamento, Quantidade, Produtividade).
-   */
-
-  public function gerarRelatorioCompleto($data_inicio, $data_fim)
+  public function getProducaoValores($data_inicio, $data_fim, $funcionarioId = null)
   {
-    $data_fim_inclusive = $data_fim . ' 23:59:59';
-
     $query = "SELECT 
-        p.data_hora,
-        DATE(p.data_hora) as data,
-        f.id as funcionario_id,
-        f.nome as funcionario_nome,
-        a.nome as acao_nome,
-        tp.nome as produto_nome,
-        tp.usa_lote,
-        p.lote_produto,
-        p.quantidade_kg,
-        p.hora_inicio,
-        p.hora_fim,
-        vp.valor_por_quilo
-    FROM producao p
-    JOIN funcionarios f ON p.funcionario_id = f.id
-    JOIN acoes a ON p.acao_id = a.id
-    JOIN tipos_produto tp ON p.tipo_produto_id = tp.id
-    LEFT JOIN valores_pagamento vp ON vp.tipo_produto_id = p.tipo_produto_id AND vp.acao_id = p.acao_id
-    WHERE p.data_hora BETWEEN ? AND ?
-    ORDER BY p.data_hora, f.nome";
+                    DATE(p.data_hora) as data, 
+                    f.nome AS funcionario, 
+                    tp.nome AS produto,
+                    SUM(p.quantidade_kg * COALESCE(vp.valor_por_quilo, 0)) as total_valor
+                  FROM {$this->table_producao} p
+                  JOIN {$this->table_funcionarios} f ON p.funcionario_id = f.id
+                  JOIN {$this->table_tipos_produto} tp ON p.tipo_produto_id = tp.id
+                  LEFT JOIN valores_pagamento vp ON p.tipo_produto_id = vp.tipo_produto_id AND p.acao_id = vp.acao_id
+                  WHERE DATE(p.data_hora) BETWEEN :inicio AND :fim";
+
+    if ($funcionarioId) {
+      $query .= " AND p.funcionario_id = :fid ";
+    }
+
+    $query .= " GROUP BY DATE(p.data_hora), f.nome, tp.nome
+                    ORDER BY f.nome, DATE(p.data_hora)";
 
     $stmt = $this->db->prepare($query);
-    $stmt->execute([$data_inicio, $data_fim_inclusive]);
-    $lancamentos = $stmt->fetchAll();
+    $stmt->bindParam(':inicio', $data_inicio);
+    $stmt->bindParam(':fim', $data_fim);
 
-    // Estrutura final
-    $relatorio = [
-      'por_dia' => [],           // para pagamentos e quantidades dia a dia
-      'servicos' => [],          // só usa_lote = 0
-      'produtividade' => [],     // kg e horas por funcionário
-      'total_geral' => 0.00
-    ];
+    if ($funcionarioId) {
+      $stmt->bindParam(':fid', $funcionarioId);
+    }
 
-    // Inicializa arrays
-    $funcionarios = [];
+    $stmt->execute();
 
-    foreach ($lancamentos as $l) {
-      $data = $l->data;
-      $fid = $l->funcionario_id;
-      $nome = $l->funcionario_nome;
-      //$valor = $l->quantidade_kg * $l->valor_por_kg;
+    // CORREÇÃO 3: Força FETCH_OBJ
+    $resultados = $stmt->fetchAll(PDO::FETCH_OBJ);
 
-      // Usa '?? 0' para garantir que se for NULL, o valor seja zero.
-      $valor_por_kg = $l->valor_por_kg ?? 0;
-      $valor = $l->quantidade_kg * $valor_por_kg; // Agora multiplica por um valor seguro (0 ou o preço)
+    $dados = [];
+    $datasPeriodo = $this->getDatasArray($data_inicio, $data_fim);
 
-      $horas = $this->calcularHorasDecimais($l->hora_inicio, $l->hora_fim);
+    foreach ($resultados as $row) {
+      $func = $row->funcionario;
+      $dia  = $row->data;
+      $prod = $row->produto;
+      $val  = (float)$row->total_valor;
 
-      // Inicializa funcionário
-      if (!isset($funcionarios[$fid])) {
-        $funcionarios[$fid] = [
-          'nome' => $nome,
-          'total_valor' => 0,
-          'total_kg' => 0,
-          'total_horas' => 0,
-          'dias' => [],
+      if (!isset($dados[$func])) {
+        $dados[$func] = [
+          'dias' => array_fill_keys($datasPeriodo, 0),
+          'total' => 0,
           'detalhes' => []
         ];
       }
 
-      // Acumula totais
-      $funcionarios[$fid]['total_valor'] += $valor;
-      $funcionarios[$fid]['total_kg'] += $l->quantidade_kg;
-      $funcionarios[$fid]['total_horas'] += $horas;
-      $relatorio['total_geral'] += $valor;
-
-      // Por dia
-      if (!isset($funcionarios[$fid]['dias'][$data])) {
-        $funcionarios[$fid]['dias'][$data] = ['valor' => 0, 'kg' => 0, 'detalhes' => []];
+      if (isset($dados[$func]['dias'][$dia])) {
+        $dados[$func]['dias'][$dia] += $val;
       }
-      $funcionarios[$fid]['dias'][$data]['valor'] += $valor;
-      $funcionarios[$fid]['dias'][$data]['kg'] += $l->quantidade_kg;
-      $funcionarios[$fid]['dias'][$data]['detalhes'][] = [
-        'acao' => $l->acao_nome,
-        'produto' => $l->produto_nome,
-        'lote' => $l->lote_produto,
-        'kg' => $l->quantidade_kg,
-        'valor' => $valor
-      ];
+      $dados[$func]['total'] += $val;
 
-      // Serviços separados
-      if ((int)$l->usa_lote === 0) {
-        $relatorio['servicos'][$fid]['nome'] = $nome;
-        $relatorio['servicos'][$fid]['total'] = ($relatorio['servicos'][$fid]['total'] ?? 0) + $valor;
-        $relatorio['servicos'][$fid]['detalhes'][$data][] = $l;
+      if (!isset($dados[$func]['detalhes'][$prod])) {
+        $dados[$func]['detalhes'][$prod] = [
+          'dias' => array_fill_keys($datasPeriodo, 0),
+          'total' => 0
+        ];
       }
+      if (isset($dados[$func]['detalhes'][$prod]['dias'][$dia])) {
+        $dados[$func]['detalhes'][$prod]['dias'][$dia] += $val;
+      }
+      $dados[$func]['detalhes'][$prod]['total'] += $val;
     }
 
-    // Produtividade
-    foreach ($funcionarios as $fid => $f) {
-      $relatorio['produtividade'][$fid] = [
-        'nome' => $f['nome'],
-        'total_kg' => $f['total_kg'],
-        'total_horas' => $f['total_horas'],
-        'kg_hora' => $f['total_horas'] > 0 ? round($f['total_kg'] / $f['total_horas'], 2) : 0
-      ];
-    }
-
-    // Monta matriz dia a dia (pagamentos e quantidades)
-    $datas = $this->gerarRangeDatas($data_inicio, $data_fim);
-    foreach ($funcionarios as $fid => $f) {
-      $linha = ['funcionario' => $f['nome'], 'total' => $f['total_valor']];
-      foreach ($datas as $d) {
-        $linha[$d] = $f['dias'][$d]['valor'] ?? 0;
-        $linha['detalhes_' . $d] = $f['dias'][$d]['detalhes'] ?? [];
-      }
-      $relatorio['por_dia']['pagamentos'][] = $linha;
-
-      // Quantidades
-      $linha_kg = ['funcionario' => $f['nome'], 'total' => $f['total_kg']];
-      foreach ($datas as $d) {
-        $linha_kg[$d] = $f['dias'][$d]['kg'] ?? 0;
-      }
-      $relatorio['por_dia']['quantidades'][] = $linha_kg;
-    }
-
-    $relatorio['datas'] = $datas;
-    return $relatorio;
+    return $dados;
   }
 
-  private function gerarRangeDatas($inicio, $fim)
+  public function getServicosExtrasPorPeriodo($data_inicio, $data_fim, $funcionarioId = null)
   {
-    $datas = [];
-    $atual = new DateTime($inicio);
-    $fim = new DateTime($fim);
-    while ($atual <= $fim) {
-      $datas[] = $atual->format('Y-m-d');
-      $atual->modify('+1 day');
+    $query = "SELECT 
+                    s.data, 
+                    f.nome AS funcionario, 
+                    a.nome AS acao, 
+                    s.valor
+                  FROM servicos_extras s
+                  JOIN funcionarios f ON s.funcionario_id = f.id
+                  LEFT JOIN acoes a ON s.id = a.id
+                  WHERE s.data BETWEEN :inicio AND :fim";
+
+    if ($funcionarioId) {
+      $query .= " AND s.funcionario_id = :fid ";
     }
-    return $datas;
+
+    $stmt = $this->db->prepare($query);
+    $stmt->bindParam(':inicio', $data_inicio);
+    $stmt->bindParam(':fim', $data_fim);
+
+    if ($funcionarioId) {
+      $stmt->bindParam(':fid', $funcionarioId);
+    }
+
+    $stmt->execute();
+
+    // CORREÇÃO 3: Força FETCH_OBJ
+    $resultados = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+    $dados = [];
+    $datasPeriodo = $this->getDatasArray($data_inicio, $data_fim);
+
+    foreach ($resultados as $row) {
+      $func = $row->funcionario;
+      $dia  = isset($row->data) ? date('Y-m-d', strtotime($row->data)) : null; // Garante formato Y-m-d
+      $valor = (float)$row->valor;
+
+      if ($dia && in_array($dia, $datasPeriodo)) {
+        if (!isset($dados[$func])) {
+          $dados[$func] = [
+            'dias' => array_fill_keys($datasPeriodo, 0),
+            'total' => 0
+          ];
+        }
+        $dados[$func]['dias'][$dia] += $valor;
+        $dados[$func]['total'] += $valor;
+      }
+    }
+
+    return $dados;
   }
 
-   public function getQuantidadesDiaADia($data_inicio, $data_fim)
+  public function getQuantidadesDiaADia($data_inicio, $data_fim)
   {
     $data_fim_sql = $data_fim . ' 23:59:59';
 
@@ -288,7 +401,7 @@ class RelatorioModel
     }
 
     unset($matriz['total'], $matriz['totais'], $matriz['detalhes']);
-    
+
     return [
       'matriz' => $matriz,
       'detalhes' => $detalhes,
@@ -299,7 +412,6 @@ class RelatorioModel
       'totais_funcionarios' => $totais_funcionarios
     ];
   }
-
 
   public function atualizarLancamentos($updates)
   {
@@ -608,37 +720,5 @@ class RelatorioModel
     }
 
     return ['totais' => $totais, 'detalhes' => $detalhesExtras];
-  }
-
-
-  private function getDatasArray($inicio, $fim)
-  {
-    $datas = [];
-    $atual = new DateTime($inicio);
-    $final = new DateTime($fim);
-    while ($atual <= $final) {
-      $datas[] = $atual->format('Y-m-d');
-      $atual->modify('+1 day');
-    }
-    return $datas;
-  }
-
-  public function getServicosExtrasPorPeriodo($data_inicio, $data_fim)
-  {
-    $model = new ServicosExtrasModel();
-    $servicos = $model->buscarPorPeriodo($data_inicio, $data_fim);
-
-    $resultado = [];
-    foreach ($servicos as $s) {
-      $nome = $s->funcionario_nome;
-      $data = $s->data_servico;
-
-      if (!isset($resultado[$nome])) {
-        $resultado[$nome] = ['total' => 0];
-      }
-      $resultado[$nome][$data] = ($resultado[$nome][$data] ?? 0) + (float)$s->valor;
-      $resultado[$nome]['total'] += (float)$s->valor;
-    }
-    return $resultado;
   }
 }
