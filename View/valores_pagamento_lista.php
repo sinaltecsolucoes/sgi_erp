@@ -47,7 +47,7 @@ $pode_excluir = Acl::check('ValoresPagamentoController@excluir', $tipo_usuario_l
                                     <td class="align-middle"><?php echo htmlspecialchars($v->acao_nome); ?></td>
                                     <td class="align-middle"><?php echo htmlspecialchars($v->produto_nome); ?></td>
                                     <td class="text-center align-middle">
-                                        R$ <?php echo number_format($v->valor_por_quilo, 2, ',', '.'); ?>
+                                        R$ <?php echo number_format($v->valor_por_quilo, 4, ',', '.'); ?>
                                     </td>
                                     <?php if ($pode_editar || $pode_excluir): ?>
                                         <td class="text-center align-middle">

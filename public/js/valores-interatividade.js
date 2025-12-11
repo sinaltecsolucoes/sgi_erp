@@ -7,8 +7,18 @@
  */
 
 $(document).ready(function () {
-    // Máscara para valor por quilo (ex: 5,50)
-    $('.money-mask').mask('000.000,00', { reverse: true });
+    $('.money-mask').each(function () {
+
+        // Lê o atributo data-decimals (quantidade de casas decimais)
+        var decimals = $(this).data('decimals') || 2; // padrão: 2 casas
+
+        // Monta a máscara dinamicamente
+        var maskPattern = '000.000,' + '0'.repeat(decimals);
+
+        // Aplica a máscara
+        $(this).mask(maskPattern, { reverse: true });
+
+    });
 });
 
 // Confirmação de exclusão

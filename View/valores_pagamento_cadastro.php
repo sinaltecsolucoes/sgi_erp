@@ -62,8 +62,9 @@ $produto_id = $valor_existente->tipo_produto_id ?? '';
                                 id="valor_por_quilo"
                                 name="valor_por_quilo"
                                 required
-                                value="<?php echo $is_editing ? htmlspecialchars(number_format($valor, 2, ',', '.')) : ''; ?>"
-                                placeholder="Ex: 5,50">
+                                data-decimals="4"
+                                value="<?php echo $is_editing ? htmlspecialchars(number_format($valor, 4, ',', '.')) : ''; ?>"
+                                placeholder="Ex: 5,5000">
                         </div>
 
                         <div class="d-flex justify-content-end mt-4">
