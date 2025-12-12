@@ -193,4 +193,51 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
     });
+
+    // ==============================================================
+    // FILTRO EM TEMPO REAL POR NOME DO FUNCIONÁRIO
+    // ==============================================================
+    document.getElementById('filtro-funcionario')?.addEventListener('input', function () {
+        const termo = this.value.trim().toLowerCase();
+        const linhas = document.querySelectorAll('#tabela-producao tbody tr');
+
+        linhas.forEach(tr => {
+            const nomeSpan = tr.querySelector('.nome-funcionario');
+            if (!nomeSpan) return;
+
+            const nomeCompleto = nomeSpan.textContent;
+            const nomeLower = nomeCompleto.toLowerCase();
+
+            if (termo === '' || nomeLower.includes(termo)) {
+                tr.style.display = '';
+                tr.classList.remove('filtro-oculto');
+
+                // Destaca o texto encontrado
+                if (termo !== '') {
+                    const regex = new RegExp(`(${termo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                    nomeSpan.innerHTML = nomeCompleto.replace(regex, '<mark>$1</mark>');
+                } else {
+                    nomeSpan.innerHTML = nomeCompleto; // remove destaque
+                }
+            } else {
+                tr.style.display = 'none';
+                tr.classList.add('filtro-oculto');
+                nomeSpan.innerHTML = nomeCompleto; // limpa destaque
+            }
+        });
+
+        // Quando limpar o campo, restaura os totais originais
+        if (termo === '') {
+            Object.keys(window.totaisIniciais).forEach(funcNome => {
+                const valor = window.totaisIniciais[funcNome];
+                const cells = document.querySelectorAll(`tr[data-funcionario="${funcNome}"] .total-dia`);
+                cells.forEach(cell => {
+                    cell.textContent = parseFloat(valor).toLocaleString('pt-BR', {
+                        minimumFractionDigits: 3,
+                        maximumFractionDigits: 3
+                    }) + ' kg';
+                });
+            });
+        }
+    });
 });

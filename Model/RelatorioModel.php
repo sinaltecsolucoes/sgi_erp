@@ -9,7 +9,7 @@ class RelatorioModel
   private $table_producao = 'producao';
   private $table_funcionarios = 'funcionarios';
   private $table_acoes = 'acoes';
-  private $table_tipos_produto = 'tipos_produto';
+  private $table_tipos_produto = 'tipos_produto'; 
   private $table_presencas = 'presencas';
 
   public function __construct()

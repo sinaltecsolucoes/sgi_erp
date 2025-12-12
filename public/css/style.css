@@ -324,3 +324,14 @@ body {
 #tabelaPrincipal .total-funcionario {
     font-size: 0.92rem !important;     /* fica bem destacado */
 }
+
+mark {
+        background: #fff3cd;
+        padding: 0 3px;
+        border-radius: 3px;
+        font-weight: 600;
+    }
+
+    tr.filtro-oculto {
+        display: none !important;
+    }

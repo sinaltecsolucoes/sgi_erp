@@ -1,3 +1,5 @@
+<?php // View/producao_editar_dia.php 
+?>
 <div class="container-fluid px-4">
     <h1 class="mt-4 text-primary"><?= $title ?></h1>
 
@@ -7,14 +9,32 @@
                 <input type="date" name="data" class="form-control w-auto" value="<?= $data_selecionada ?>" required>
                 <button class="btn btn-light">Buscar</button>
                 <div class="ms-auto">
-                    <a href="/sgi_erp/producao" class="btn btn-light">Voltar</a>
+                    <a href="/sgi_erp/dashboard" class="btn btn-light">Voltar</a>
                 </div>
             </form>
         </div>
 
         <div class="card-body">
+
+            <!-- CAMPO DE PESQUISA POR FUNCIONÁRIO -->
+            <div class="row mb-4">
+                <div class="col-lg-6 col-md-8">
+                    <label for="filtro-funcionario" class="form-label fw-bold text-primary">
+                        <i class="fas fa-search"></i> Pesquisar Funcionário
+                    </label>
+                    <input
+                        type="text"
+                        id="filtro-funcionario"
+                        class="form-control form-control-lg shadow-sm"
+                        placeholder="Digite o nome para filtrar instantaneamente..."
+                        autocomplete="off">
+                    <small class="text-muted">Filtra em tempo real • deixa vazio para ver todos</small>
+                </div>
+            </div>
+
             <?php if (empty($lancamentos)): ?>
-                <div class="alert alert-info text-center">
+                <div class="alert alert-info text-center py-5">
+                    <i class="fas fa-info-circle fa-2x mb-3"></i><br>
                     Nenhum lançamento encontrado para <strong><?= date('d/m/Y', strtotime($data_selecionada)) ?></strong>
                 </div>
             <?php else: ?>
@@ -40,69 +60,57 @@
                                 if (!isset($totais[$func])) $totais[$func] = 0;
                                 $totais[$func] += $l['quantidade_kg'];
                             ?>
-                                <tr data-id="<?= $l['id'] ?>"
-                                    data-funcionario="<?= htmlspecialchars($l['funcionario_nome']) ?>">
-
-                                    <td class="fw-bold align-middle"><?= htmlspecialchars($l['funcionario_nome']) ?></td>
-
+                                <tr data-id="<?= $l['id'] ?>" data-funcionario="<?= htmlspecialchars($l['funcionario_nome']) ?>">
+                                    <td class="fw-bold align-middle">
+                                        <span class="nome-funcionario"><?= htmlspecialchars($l['funcionario_nome']) ?></span>
+                                    </td>
+                                    <!-- resto das colunas igual antes -->
                                     <td class="text-center align-middle">
                                         <span class="view-mode acao-view"><?= htmlspecialchars($l['acao_nome']) ?></span>
-                                        <!-- SELECT DE AÇÃO -->
                                         <select class="form-select form-select-sm edit-mode d-none acao-select">
                                             <?php foreach ($acoes as $a): ?>
-                                                <option value="<?= $a->id ?>"
-                                                    <?= ((string) ($l['acao_id'] ?? '')) === ((string) $a->id) ? 'selected' : '' ?>>
+                                                <option value="<?= $a->id ?>" <?= ($l['acao_id'] == $a->id) ? 'selected' : '' ?>>
                                                     <?= htmlspecialchars($a->nome) ?>
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
                                     </td>
-
                                     <td class="align-middle">
                                         <span class="view-mode produto-view"><?= htmlspecialchars($l['produto_nome']) ?></span>
                                         <select class="form-select form-select-sm edit-mode d-none produto-select">
                                             <?php foreach ($tipos_produto as $tp): ?>
-                                                <option value="<?= $tp->id ?>"
-                                                    <?= ((string) ($l['tipo_produto_id'] ?? '')) === ((string) $tp->id) ? 'selected' : '' ?>>
+                                                <option value="<?= $tp->id ?>" <?= ($l['tipo_produto_id'] == $tp->id) ? 'selected' : '' ?>>
                                                     <?= htmlspecialchars($tp->nome) ?>
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
                                     </td>
-
                                     <td class="text-center align-middle">
                                         <span class="view-mode kg-view"><?= number_format($l['quantidade_kg'], 3, ',', '.') ?></span>
                                         <input type="text" class="form-control form-control-sm edit-mode d-none kg-input text-end"
                                             value="<?= number_format($l['quantidade_kg'], 3, ',', '.') ?>">
                                     </td>
-
                                     <td class="text-center align-middle">
                                         <span class="view-mode inicio-view"><?= $l['hora_inicio'] ?: '--:--' ?></span>
                                         <input type="time" class="form-control form-control-sm edit-mode d-none hora-inicio"
                                             value="<?= $l['hora_inicio'] ?>">
                                     </td>
-
                                     <td class="text-center align-middle">
                                         <span class="view-mode fim-view"><?= $l['hora_fim'] ?: '--:--' ?></span>
                                         <input type="time" class="form-control form-control-sm edit-mode d-none hora-fim"
                                             value="<?= $l['hora_fim'] ?>">
                                     </td>
-
-                                    <td class="text-center align-middle fw-bold text-primary total-dia"
-                                        data-funcionario="<?= htmlspecialchars($l['funcionario_nome']) ?>">
+                                    <td class="text-center align-middle fw-bold text-primary total-dia">
                                         <?= number_format($totais[$l['funcionario_nome']], 3, ',', '.') ?> kg
                                     </td>
-
                                     <td class="text-center align-middle">
-                                        <button class="btn btn-danger btn-sm btn-excluir" title="Excluir lançamento">
-                                            Excluir
+                                        <button class="btn btn-danger btn-sm btn-excluir" title="Excluir">Excluir
+                                            <i class="fas fa-trash-alt"></i>
                                         </button>
-                                        <button class="btn btn-success btn-sm btn-editar ms-1">
-                                            Editar
+                                        <button class="btn btn-warning btn-sm btn-editar ms-1" title="Editar">
+                                            <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-secondary btn-sm btn-cancelar d-none ms-1">
-                                            Cancelar
-                                        </button>
+                                        <button class="btn btn-secondary btn-sm btn-cancelar d-none ms-1">Cancelar</button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -110,10 +118,11 @@
                     </table>
                 </div>
             <?php endif; ?>
-            <script>
-                // Passa os totais reais do PHP pro JS de forma segura
-                const totaisIniciais = <?= json_encode($totais ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-            </script>
         </div>
     </div>
 </div>
+
+<script>
+    // Passa os totais do PHP para o JS (necessário para restaurar ao limpar filtro)
+    window.totaisIniciais = <?= json_encode($totais ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+</script>
