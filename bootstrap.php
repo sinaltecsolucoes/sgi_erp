@@ -67,12 +67,14 @@ $routes = [
     // Rotas de Produção
     '/producao'                    => 'ProducaoController@index',
     '/producao/salvar'             => 'ProducaoController@salvar',
+    '/producao/excluir'            => 'ProducaoController@excluir',
     '/producao/massa'              => 'ProducaoController@massa',
     '/producao/extras'             => 'ProducaoController@extras',
     '/producao/massa/salvar'       => 'ProducaoController@salvarMassa',
     '/producao/editar-massa'       => 'ProducaoController@editarMassa',
     '/producao/editar-dia'         => 'ProducaoController@editarDia',
     '/producao/salvar-massa-edit'  => 'ProducaoController@salvarMassaEdit',
+    
 
     // Rotas para Diárias e Serviços Extras ===
     '/servicos-extras'         => 'ServicosExtrasController@index',

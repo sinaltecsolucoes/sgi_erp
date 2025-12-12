@@ -94,7 +94,10 @@
                                     </td>
 
                                     <td class="text-center align-middle">
-                                        <button class="btn btn-success btn-sm btn-editar">
+                                        <button class="btn btn-danger btn-sm btn-excluir" title="Excluir lançamento">
+                                            Excluir
+                                        </button>
+                                        <button class="btn btn-success btn-sm btn-editar ms-1">
                                             Editar
                                         </button>
                                         <button class="btn btn-secondary btn-sm btn-cancelar d-none ms-1">

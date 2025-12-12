@@ -359,5 +359,34 @@ class ProducaoController extends AppController
         require_once ROOT_PATH . 'View/template/main.php';
     }
 
-    
+    public function excluir()
+    {
+        // Só aceita POST + JSON
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'msg' => 'Método não permitido']);
+            exit();
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $id = $input['id'] ?? null;
+
+        if (!$id || !is_numeric($id)) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'msg' => 'ID inválido']);
+            exit();
+        }
+
+        $id = (int)$id;
+
+        // Usa o método seguro do Model
+        $sucesso = $this->producaoModel->excluirLancamentoApp($id);
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => $sucesso,
+            'msg'     => $sucesso ? 'Lançamento excluído com sucesso!' : 'Erro ao excluir do banco de dados'
+        ]);
+        exit();
+    }
 }

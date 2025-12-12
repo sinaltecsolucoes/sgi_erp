@@ -37,17 +37,55 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('click', function (e) {
         const botaoEditar = e.target.closest('.btn-editar');
         const botaoCancelar = e.target.closest('.btn-cancelar');
+        const botaoExcluir = e.target.closest('.btn-excluir');
 
-        if (!botaoEditar && !botaoCancelar) {
+        if (!botaoEditar && !botaoCancelar && !botaoExcluir) return;
+
+        const tr = botaoEditar?.closest('tr') || botaoCancelar?.closest('tr') || botaoExcluir?.closest('tr');
+
+        // ==============================================================
+        // 1. EXCLUIR
+        // ==============================================================
+        if (botaoExcluir) {
+            const id = tr.dataset.id;
+            const funcionarioNome = tr.dataset.funcionario;
+
+            Swal.fire({
+                title: 'Tem certeza?',
+                text: "Esta ação não pode ser desfeita!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sim, excluir!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/sgi_erp/producao/excluir', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id })
+                    })
+                        .then(r => r.json())
+                        .then(res => {
+                            if (res.success) {
+                                tr.remove();
+                                atualizarTotalDia(funcionarioNome);
+                                Swal.fire('Excluído!', 'Lançamento removido.', 'success');
+                            } else {
+                                Swal.fire('Erro', res.msg || 'Falha ao excluir', 'error');
+                            }
+                        })
+                        .catch(() => Swal.fire('Erro', 'Erro de comunicação com o servidor', 'error'));
+                }
+            });
             return;
         }
 
-        const tr = botaoEditar ? botaoEditar.closest('tr') : botaoCancelar.closest('tr');
-        const acaoAtual = botaoEditar ? botaoEditar.dataset.action : 'nenhum';
-
-        // 1. CLIQUE EM EDITAR (primeiro clique)
-        if (botaoEditar && acaoAtual === 'editar') {
-
+        // ==============================================================
+        // 2. ENTRAR NO MODO EDIÇÃO
+        // ==============================================================
+        if (botaoEditar && botaoEditar.dataset.action === 'editar') {
             dadosOriginais[tr.dataset.id] = {
                 acao: tr.querySelector('.acao-view').textContent.trim(),
                 produto: tr.querySelector('.produto-view').textContent.trim(),
@@ -60,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
             tr.querySelectorAll('.view-mode').forEach(el => el.classList.add('d-none'));
             tr.querySelectorAll('.edit-mode').forEach(el => el.classList.remove('d-none'));
             tr.querySelector('.btn-cancelar').classList.remove('d-none');
+            tr.querySelector('.btn-excluir').classList.add('d-none'); // esconde excluir
 
             botaoEditar.textContent = 'Salvar';
             botaoEditar.classList.remove('btn-success');
@@ -71,12 +110,13 @@ document.addEventListener('DOMContentLoaded', function () {
             inputKg.addEventListener('input', () => aplicarMascaraKg(inputKg));
             inputKg.focus();
 
-            return; // ← ESSA LINHA É CRUCIAL
+            return;
         }
 
-        // 2. CLIQUE EM SALVAR (segundo clique)
-        if (botaoEditar && acaoAtual === 'salvar') {
-
+        // ==============================================================
+        // 3. SALVAR
+        // ==============================================================
+        if (botaoEditar && botaoEditar.dataset.action === 'salvar') {
             const dados = {
                 id: tr.dataset.id,
                 acao_id: tr.querySelector('.acao-select').value,
@@ -94,16 +134,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(r => r.json())
                 .then(res => {
                     if (res.success) {
+                        // Atualiza visualização
                         tr.querySelector('.acao-view').textContent = tr.querySelector('.acao-select option:checked').textContent;
                         tr.querySelector('.produto-view').textContent = tr.querySelector('.produto-select option:checked').textContent;
                         tr.querySelector('.kg-view').textContent = tr.querySelector('.kg-input').value || '0,000';
                         tr.querySelector('.inicio-view').textContent = tr.querySelector('.hora-inicio').value || '--:--';
                         tr.querySelector('.fim-view').textContent = tr.querySelector('.hora-fim').value || '--:--';
 
+                        // Volta ao modo normal
                         tr.classList.remove('modo-edicao');
                         tr.querySelectorAll('.view-mode').forEach(el => el.classList.remove('d-none'));
                         tr.querySelectorAll('.edit-mode').forEach(el => el.classList.add('d-none'));
                         tr.querySelector('.btn-cancelar').classList.add('d-none');
+                        tr.querySelector('.btn-excluir').classList.remove('d-none');
 
                         botaoEditar.textContent = 'Editar';
                         botaoEditar.classList.remove('btn-primary');
@@ -116,16 +159,15 @@ document.addEventListener('DOMContentLoaded', function () {
                         Swal.fire('Erro', res.msg || 'Erro ao salvar', 'error');
                     }
                 })
-                .catch(err => {
-                    Swal.fire('Erro', 'Falha na comunicação', 'error');
-                });
+                .catch(() => Swal.fire('Erro', 'Falha na comunicação com o servidor', 'error'));
 
             return;
         }
 
-        // 3. CANCELAR
+        // ==============================================================
+        // 4. CANCELAR (agora funciona 100%)
+        // ==============================================================
         if (botaoCancelar) {
-
             const orig = dadosOriginais[tr.dataset.id];
             if (orig) {
                 tr.querySelector('.acao-view').textContent = orig.acao;
@@ -139,14 +181,16 @@ document.addEventListener('DOMContentLoaded', function () {
             tr.querySelectorAll('.view-mode').forEach(el => el.classList.remove('d-none'));
             tr.querySelectorAll('.edit-mode').forEach(el => el.classList.add('d-none'));
             tr.querySelector('.btn-cancelar').classList.add('d-none');
+            tr.querySelector('.btn-excluir').classList.remove('d-none'); // volta o excluir
 
-            const btn = tr.querySelector('.btn-editar');
-            btn.textContent = 'Editar';
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-success');
-            btn.dataset.action = 'editar';
+            const btnEditar = tr.querySelector('.btn-editar');
+            btnEditar.textContent = 'Editar';
+            btnEditar.classList.remove('btn-primary');
+            btnEditar.classList.add('btn-success');
+            btnEditar.dataset.action = 'editar';
 
             delete dadosOriginais[tr.dataset.id];
+            return;
         }
     });
 });
