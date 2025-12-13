@@ -1,388 +1,305 @@
 // public/js/relatorios-interatividade.js
+
 $(document).ready(function () {
-    let ultimoBackup = null; // Para "Desfazer"
 
-    /**
-     * Função auxiliar para formatar valores numéricos com base na unidade global.
-     * A variável 'unidadeMedida' é definida em cada View PHP ('R$' ou 'KG').
-     * @param {number} numero - O valor a ser formatado.
-     * @returns {string} O valor formatado (Ex: "R$ 10,00" ou "5,000 kg").
-     */
-    function formatarTotal(numero) {
-        if (typeof numero !== 'number' || isNaN(numero) || numero === 0) {
-            return '';
-        }
+    // --- FUNÇÕES AUXILIARES ---
 
-        const unidade = typeof unidadeMedida !== 'undefined' ? unidadeMedida : 'R$';
-
-        let decimais;
-        let prefixo = '';
-        let sufixo = '';
-
-        if (unidade === 'KG') {
-            decimais = 3; // 3 casas decimais para KG
-            sufixo = ' kg';
-        } else { // Assume 'R$' ou qualquer outro
-            decimais = 2; // 2 casas decimais para Moeda
-            prefixo = 'R$ ';
-        }
-
-        const valorFormatado = numero.toLocaleString('pt-BR', {
-            minimumFractionDigits: decimais,
-            maximumFractionDigits: decimais
-        });
-
-        return prefixo + valorFormatado + sufixo;
+    function stringParaFloat(str) {
+        if (!str || str === '-' || str.trim() === '') return 0;
+        // Remove R$, kg e espaços
+        let limpo = str.replace('R$', '').replace('kg', '').trim();
+        // Remove pontos de milhar e troca vírgula decimal por ponto
+        return parseFloat(limpo.replace(/\./g, '').replace(',', '.')) || 0;
     }
 
-    // MÁSCARA BRASILEIRA (para entrada de usuário)
+    function floatParaString(num) {
+        if (num === 0) return '';
+        const decimais = (typeof unidadeMedida !== 'undefined' && unidadeMedida === 'KG') ? 3 : 2;
+        return num.toLocaleString('pt-BR', { minimumFractionDigits: decimais, maximumFractionDigits: decimais });
+    }
+
+    // --- LÓGICA DE CÁLCULO DE TOTAIS ---
+
+    window.recalcularTotaisGeral = function () {
+        let totalGeralzao = 0;
+
+        // 1. Array para armazenar totais por dia (para o footer)
+        let totaisPorDia = {};
+
+        // 2. Loop pelos Funcionários (Linhas Pai)
+        $('.funcionario-linha').each(function () {
+            let $linhaPai = $(this);
+            let parentId = $linhaPai.data('target'); // ex: func_1
+            let totalFuncionario = 0;
+
+            // Para cada dia deste funcionário...
+            $linhaPai.find('.total-dia-func').each(function () {
+                let $celulaPai = $(this);
+                let dataDia = $celulaPai.data('data');
+                let somaDiaFuncionario = 0;
+
+                // Encontra todas as linhas filhas VISÍVEIS ou OCULTAS deste funcionário
+                // E soma os valores das células correspondentes à data
+                $(`.linha-filho.${parentId}`).each(function () {
+                    let $linhaFilho = $(this);
+
+                    // Procura a célula de valor correspondente a data
+                    let $celulaFilho = $linhaFilho.find(`.celula-valor[data-data="${dataDia}"]`);
+
+                    // Verifica se está em modo edição (pega do input) ou visualização (pega do span)
+                    let valor = 0;
+                    if ($celulaFilho.find('.input-edicao').is(':visible')) {
+                        valor = stringParaFloat($celulaFilho.find('.input-edicao').val());
+                    } else {
+                        valor = stringParaFloat($celulaFilho.find('.valor-exibicao').text());
+                    }
+
+                    somaDiaFuncionario += valor;
+                });
+
+                // Atualiza a célula do Pai (Linha cinza)
+                $celulaPai.text(somaDiaFuncionario > 0 ? floatParaString(somaDiaFuncionario) : '');
+                if (somaDiaFuncionario > 0) $celulaPai.addClass('text-success');
+                else $celulaPai.removeClass('text-success');
+
+                // Acumula para o total do funcionário
+                totalFuncionario += somaDiaFuncionario;
+
+                // Acumula para o total do dia (Footer)
+                if (!totaisPorDia[dataDia]) totaisPorDia[dataDia] = 0;
+                totaisPorDia[dataDia] += somaDiaFuncionario;
+            });
+
+            // Atualiza Total Geral do Funcionário (Última coluna da linha cinza)
+            $linhaPai.find('.total-funcionario-geral').text(floatParaString(totalFuncionario));
+            totalGeralzao += totalFuncionario;
+        });
+
+        // 3. Atualiza o Footer (Total por Dia Geral)
+        $('.total-dia-footer').each(function () {
+            let data = $(this).data('data');
+            let valor = totaisPorDia[data] || 0;
+            $(this).text(floatParaString(valor));
+        });
+
+        // 4. Atualiza o Totalzão do Footer
+        $('#total-geral-final').text(floatParaString(totalGeralzao));
+    };
+
+    // --- EVENTOS DE INTERFACE ---
+
+    // 1. Expandir / Recolher
+    $(document).on('click', '.funcionario-linha', function () {
+        const targetId = $(this).data('target');
+        const $linhasFilhas = $(`.linha-filho.${targetId}`);
+        const $icon = $(this).find('.icon-expand');
+
+        let estaoVisiveis = $linhasFilhas.first().is(':visible');
+
+        if (estaoVisiveis) {
+            $linhasFilhas.hide();
+            $icon.removeClass('fa-minus-circle text-danger').addClass('fa-plus-circle');
+        } else {
+            $linhasFilhas.show(); // Mostra como table-row
+            $icon.removeClass('fa-plus-circle').addClass('fa-minus-circle text-danger');
+        }
+    });
+
+    // 2. Máscara de Input
     $(document).on('input', '.input-edicao', function () {
         let v = this.value.replace(/\D/g, '');
         v = v.replace(/(\d)(\d{3})$/, '$1,$2');
         v = v.replace(/(?=(\d{3})+(\D))\B/g, '.');
         this.value = v;
+
+        // Opcional: Recalcular totais em tempo real enquanto digita?
+        // recalcularTotaisGeral(); // Descomente se quiser cálculo live (pode pesar se tiver muitos dados)
     });
 
-    // EXPANSÃO
-    $(document).on('click', '.funcionario-linha', function () {
-        const $detalhe = $(this).next('.detalhes-linha');
-        const $icon = $(this).find('.icon-expand');
-        $detalhe.slideToggle(300);
-        $icon.toggleClass('fa-plus-circle fa-minus-circle');
+    // 3. Botão Editar
+    $(document).on('click', '.btn-editar-linha', function () {
+        const id = $(this).data('id');
+        const $row = $(`#linha_${id}`);
+
+        // Alterna Inputs e Spans
+        $row.find('.valor-exibicao').hide();
+        $row.find('.input-edicao').show();
+
+        // Alterna Botões
+        $row.find('.grupo-botoes-view').hide();
+        $row.find('.grupo-botoes-edit').show();
     });
 
-    // INICIAR EDIÇÃO
-    $(document).on('click', '.btn-editar-produto', function () {
-        const $container = $(this).closest('.detalhes-linha');
-        ultimoBackup = [];
+    // 4. Botão Cancelar
+    $(document).on('click', '.btn-cancelar-linha', function () {
+        const id = $(this).data('id');
+        const $row = $(`#linha_${id}`);
 
-        $container.find('.celula-valor').each(function () {
-            const $cell = $(this);
-            const texto = $cell.find('.valor-exibicao').text().trim();
-
-            // Remove R$ ou KG e converte para número
-            let num = 0;
-            if (texto && texto !== '-') {
-                // Remove R$ e KG (se for o caso)
-                let textoLimpo = texto.replace('R$', '').replace('kg', '').trim();
-                num = parseFloat(textoLimpo.replace(/\./g, '').replace(',', '.')) || 0;
-            }
-
-            ultimoBackup.push({
-                id: $cell.data('id'),
-                data: $cell.data('data'),
-                original: num
-            });
-
-            $cell.data('original', num);
-
-            // Define quantas casas decimais mostrar no input
-            let casasDecimais = (typeof unidadeMedida !== 'undefined' && unidadeMedida === 'KG') ? 3 : 2;
-
-            // Formata o valor para o input (usando vírgula como decimal)
-            const valorInput = num > 0 ? num.toFixed(casasDecimais).replace('.', ',') : '';
-            $cell.find('.input-edicao').val(valorInput);
+        // Restaura valores originais nos inputs
+        $row.find('.celula-valor').each(function () {
+            let valOriginal = $(this).find('.valor-exibicao').text();
+            let num = stringParaFloat(valOriginal);
+            $(this).find('.input-edicao').val(num > 0 ? floatParaString(num) : '');
         });
 
-        $container.find('.valor-exibicao').hide();
-        $container.find('.input-edicao').show();
-        $container.find('.btn-editar-produto').hide();
-        $container.find('.btn-salvar-produto, .btn-cancelar-produto, .btn-desfazer').show();
+        // Alterna visibilidade
+        $row.find('.valor-exibicao').show();
+        $row.find('.input-edicao').hide();
+        $row.find('.grupo-botoes-view').show();
+        $row.find('.grupo-botoes-edit').hide();
+
+        // Garante que os totais voltem ao original (caso tenha editado sem salvar)
+        recalcularTotaisGeral();
     });
 
-    // CANCELAR
-    $(document).on('click', '.btn-cancelar-produto', function () {
-        location.reload();
-    });
+    // 5. Botão Salvar (AJAX)
+    $(document).on('click', '.btn-salvar-linha', function () {
+        const id = $(this).data('id');
+        const $row = $(`#linha_${id}`);
+        let updates = [];
 
-    // DESFAZER
-    $(document).on('click', '.btn-desfazer', function () {
-        if (!ultimoBackup) {
-            Swal.fire('Nada para desfazer', '', 'info');
-            return;
-        }
+        console.clear(); // Limpa o console para facilitar
+        console.log("=== INICIANDO SALVAMENTO ===");
+        console.log("Linha HTML ID:", id);
 
-        ultimoBackup.forEach(u => {
-            const $cell = $(`td[data-id="${u.id}"][data-data="${u.data}"]`);
-            const textoExibicao = u.original > 0 ? formatarTotal(u.original) : '-';
-            $cell.find('.valor-exibicao').text(textoExibicao).show();
-            $cell.find('.input-edicao').val('').hide();
-        });
+        $row.find('.celula-valor').each(function () {
+            let $cell = $(this);
+            let valorInput = stringParaFloat($cell.find('.input-edicao').val());
+            let valorOriginal = stringParaFloat($cell.find('.valor-exibicao').text());
 
-        calcularTotais();
-        Swal.fire('Desfeito!', '', 'success');
-    });
+            // Só processa se houve mudança ou se tem valor
+            // (Para debug, vamos listar tudo que tem valor)
+            if (valorInput > 0 || valorOriginal > 0) {
+                let lancamentoId = $cell.attr('data-lancamento-id');
 
-    $(document).on('click', '.btn-salvar-produto', function () {
-        const $botaoSalvar = $(this);
-        const $container = $botaoSalvar.closest('.detalhes-linha');
-        const updates = [];
+                console.log(`> Célula [${$cell.data('data')}]:`);
+                console.log(`   - Valor Input: ${valorInput}`);
+                console.log(`   - ID no HTML (data-lancamento-id): ${lancamentoId}`);
+                console.log(`   - Func ID: ${$cell.attr('data-funcionario-id')}`);
+                console.log(`   - Prod ID: ${$cell.attr('data-tipo-produto-id')}`);
 
-        $container.find('.celula-valor').each(function () {
-            const $cell = $(this);
-            const inputVal = $cell.find('.input-edicao').val().trim();
-            let novoValor = 0;
-
-            if (inputVal !== '' && inputVal !== '0,000') {
-                // Remove ponto de milhar e troca vírgula por ponto para float
-                novoValor = parseFloat(inputVal.replace(/\./g, '').replace(',', '.')) || 0;
-            }
-
-            // Define casas decimais para comparação
-            let casasDecimaisComp = (typeof unidadeMedida !== 'undefined' && unidadeMedida === 'KG') ? 3 : 2;
-
-            const original = $cell.data('original') || 0;
-            if (novoValor.toFixed(casasDecimaisComp) !== original.toFixed(casasDecimaisComp)) {
                 updates.push({
-                    id: $cell.data('id') || 0,
-                    // Garante que enviamos com ponto como separador decimal para o PHP
-                    quantidade_kg: novoValor.toFixed(3),
-                    data: $cell.data('data'),
-                    funcionario_id: $cell.data('funcionario-id'),
-                    tipo_produto_id: $cell.data('tipo-produto-id')
+                    id: lancamentoId,
+                    data: $cell.attr('data-data'),
+                    funcionario_id: $cell.attr('data-funcionario-id'),
+                    tipo_produto_id: $cell.attr('data-tipo-produto-id'),
+                    quantidade_kg: valorInput.toFixed(3)
                 });
-
-                $cell.data('original', novoValor);
             }
         });
 
-        if (updates.length === 0) {
-            $container.find('.valor-exibicao').show();
-            $container.find('.input-edicao').hide();
-            $container.find('.btn-salvar-produto, .btn-cancelar-produto, .btn-desfazer').hide();
-            $container.find('.btn-editar-produto').show();
+        console.log("PAYLOAD JSON A SER ENVIADO:", JSON.stringify(updates));
+        // Verificação de segurança
+        if (updates.length > 0 && (!updates[0].funcionario_id || updates[0].funcionario_id == 0)) {
+            Swal.fire('Erro Técnico', 'ID do funcionário inválido.', 'error');
             return;
         }
 
-        Swal.fire({
-            title: 'Confirmar alterações?',
-            text: `${updates.length} valor(es) será(ão) salvo(s)`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Sim, salvar!',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (!result.isConfirmed) return;
+        Swal.fire({ title: 'Salvando...', didOpen: () => Swal.showLoading() });
 
-            Swal.fire({ title: 'Salvando...', didOpen: () => Swal.showLoading() });
+        $.ajax({
+            url: '/sgi_erp/relatorios/atualizar-producao',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ updates: updates }),
+            success: function (res) {
+                Swal.close();
+                if (res.success) {
+                    // Atualiza visualmente
+                    $row.find('.celula-valor').each(function () {
+                        let novoValor = stringParaFloat($(this).find('.input-edicao').val());
+                        $(this).find('.valor-exibicao').text(novoValor > 0 ? floatParaString(novoValor) : '-');
+                    });
 
-            $.ajax({
-                url: '/sgi_erp/relatorios/atualizar-producao',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ updates: updates }),
-                success: function (res) {
-                    Swal.close();
-
-                    if (res.success) {
-                        $container.find('.celula-valor').each(function () {
-                            const $cell = $(this);
-                            const valorAtual = $cell.data('original') || 0;
-
-                            const texto = valorAtual > 0
-                                ? formatarTotal(valorAtual) // Usa a função dinâmica
-                                : '-';
-
-                            // VOLTA PARA LABEL
-                            $cell.find('.valor-exibicao').text(texto).show();
-                            $cell.find('.input-edicao').val('').hide();
-
-                            // Atualiza data-id se for novo
-                            if (($cell.data('id') || 0) == 0) {
-                                const match = (res.novos_ids || []).find(n =>
-                                    n.data === $cell.data('data') &&
-                                    parseInt(n.func_id) === parseInt($cell.data('funcionario-id')) &&
-                                    parseInt(n.tipo_id) === parseInt($cell.data('tipo-produto-id'))
-                                );
-                                if (match) {
-                                    $cell.attr('data-id', match.new_id);
-                                }
-                            }
+                    // Se o PHP retornou novos IDs (para o que acabou de ser criado), atualizamos o HTML
+                    // Isso evita duplicar se o usuário salvar 2 vezes seguidas sem recarregar a pág
+                    if (res.novos_ids && res.novos_ids.length > 0) {
+                        res.novos_ids.forEach(novo => {
+                            // Procura a célula correspondente e atualiza o ID
+                            let $celula = $row.find(`.celula-valor[data-data="${novo.data}"]`);
+                            $celula.attr('data-lancamento-id', novo.new_id);
                         });
-
-                        calcularTotais(); // Recalcula totais
-
-                        // Restaura botões
-                        $container.find('.btn-salvar-produto, .btn-cancelar-produto, .btn-desfazer').hide();
-                        $container.find('.btn-editar-produto').show();
-
-                        Swal.fire({
-                            title: 'Sucesso!',
-                            text: res.msg || 'Tudo salvo!',
-                            icon: 'success',
-                            timer: 1500
-                        });
-
-                    } else {
-                        Swal.fire('Erro!', res.msg || 'Falha ao salvar.', 'error');
                     }
-                },
-                error: function () {
-                    Swal.close();
-                    Swal.fire('Erro de conexão', 'Tente novamente.', 'error');
+
+                    $row.find('.btn-cancelar-linha').trigger('click');
+                    recalcularTotaisGeral();
+
+                    const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+                    Toast.fire({ icon: 'success', title: 'Salvo com sucesso' });
+                } else {
+                    Swal.fire('Erro', res.msg || 'Erro ao salvar', 'error');
                 }
-            });
+            },
+            error: function () {
+                Swal.fire('Erro', 'Falha na comunicação com o servidor', 'error');
+            }
         });
     });
 
-    // EXCLUIR LINHA 
+    // 6. Botão Excluir
     $(document).on('click', '.btn-excluir-linha', function () {
-        const $row = $(this).closest('tr');
-        const ids = [];
+        const id = $(this).data('id');
+        const nomeProduto = $(this).data('nome'); // Corrigido para pegar nome
+        const $row = $(`#linha_${id}`);
 
-        // Coleta IDs existentes na linha
-        $row.find('.celula-valor[data-id]').each(function () {
-            const id = parseInt($(this).data('id'));
-            if (id > 0) ids.push(id);
+        // Array para guardar os IDs de banco (producao.id) que vamos apagar
+        let idsParaDeletar = [];
+
+        // Varre todas as células da linha
+        $row.find('.celula-valor').each(function () {
+            // Pega o ID que colocamos no PHP (data-lancamento-id)
+            let lancamentoId = $(this).attr('data-lancamento-id');
+
+            // Só adiciona se for um ID válido (maior que 0)
+            if (lancamentoId && parseInt(lancamentoId) > 0) {
+                idsParaDeletar.push(parseInt(lancamentoId));
+            }
         });
 
-        if (ids.length === 0) {
-            Swal.fire('Nada para excluir', 'Esta linha não tem dados salvos.', 'info');
+        // Se não achou nenhum ID (linha visualmente preenchida mas sem IDs, ou linha vazia)
+        if (idsParaDeletar.length === 0) {
+            Swal.fire('Aviso', 'Não há lançamentos salvos nesta linha para excluir.', 'info');
             return;
         }
 
         Swal.fire({
-            title: 'Excluir linha?',
-            text: 'Isso removerá todos os valores desta linha!',
+            title: 'Excluir?',
+            text: `Deseja apagar todos os lançamentos de ${nomeProduto} desta linha?`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Sim, excluir!'
-        }).then(result => {
-            if (!result.isConfirmed) return;
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Sim, excluir'
+        }).then((result) => {
+            if (result.isConfirmed) {
 
-            Swal.fire({
-                title: 'Excluindo...',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
+                // Debug
+                console.log("Enviando IDs para exclusão:", idsParaDeletar);
 
-            $.ajax({
-                url: '/sgi_erp/relatorios/excluir-producao',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ ids: ids }),
-                dataType: 'json',
-                success: function (res) {
-                    Swal.close();
-                    if (res.success) {
-                        $row.remove();
-                        calcularTotais();
-                        Swal.fire('Excluído!', res.msg || 'Linha removida.', 'success');
-                    } else {
-                        Swal.fire('Erro!', res.msg || 'Falha ao excluir.', 'error');
-                    }
-                },
-                error: function () {
-                    Swal.close();
-                    Swal.fire('Erro de conexão', 'Tente novamente.', 'error');
-                }
-            });
-        });
-    });
-
-    // RECALCULAR TOTAIS 
-    window.calcularTotais = function () {
-        let totalGeral = 0;
-
-        // 1. ZERA TODOS OS TOTAIS VISÍVEIS (evita soma duplicada ao percorrer)
-        $('.total-dia').text('');
-        $('.total-funcionario').text('');
-        $('#total-geral').text('');
-
-        // 2. ATUALIZA TOTAL POR DIA (rodapé) + TOTAL POR FUNCIONÁRIO (linha principal)
-        $('.funcionario-linha').each(function () {
-            const $linhaFunc = $(this);
-            let somaFuncionario = 0;
-
-            // Percorre cada coluna de data
-            $linhaFunc.find('td[data-data]').each(function (index) {
-                const $celulaDia = $(this);
-                const data = $celulaDia.data('data');
-                let somaDia = 0;
-
-                // Soma todos os valores editáveis dessa data (na linha de detalhes do mesmo funcionário)
-                const $detalhes = $linhaFunc.next('.detalhes-linha');
-
-                $detalhes.find(`.celula-valor[data-data="${data}"] .valor-exibicao`).each(function () {
-                    const textoCompleto = $(this).text().trim();
-
-                    // Remove 'R$ ' ou 'kg' para obter o número puro
-                    let textoLimpo = textoCompleto.replace('R$', '').replace('kg', '').trim();
-
-                    if (textoLimpo && textoLimpo !== '-') {
-                        // Converte para float: remove ponto de milhar e troca vírgula por ponto.
-                        const valor = parseFloat(textoLimpo.replace(/\./g, '').replace(',', '.')) || 0;
-                        somaDia += valor;
-                        somaFuncionario += valor;
+                $.ajax({
+                    url: '/sgi_erp/relatorios/excluir-producao', // Rota correta que você informou
+                    type: 'POST',
+                    contentType: 'application/json',
+                    // Envia exatamente o formato que o Controller espera: { ids: [...] }
+                    data: JSON.stringify({ ids: idsParaDeletar }),
+                    success: function (res) {
+                        if (res.success) {
+                            $row.remove(); // Remove a linha da tela
+                            recalcularTotaisGeral(); // Atualiza os totais
+                            Swal.fire('Excluído!', res.msg || 'Registros removidos.', 'success');
+                        } else {
+                            Swal.fire('Erro', res.msg || 'Não foi possível excluir.', 'error');
+                        }
+                    },
+                    error: function (xhr) {
+                        console.error(xhr);
+                        Swal.fire('Erro', 'Falha técnica ao excluir.', 'error');
                     }
                 });
-
-                // === ATUALIZA O TOTAL DO DIA NA LINHA DO FUNCIONÁRIO ===
-                const formatoDia = somaDia > 0 ? formatarTotal(somaDia) : '';
-                $celulaDia.text(formatoDia);
-                if (somaDia > 0) $celulaDia.addClass('text-success fw-bold');
-                else $celulaDia.removeClass('text-success fw-bold');
-
-                // === ATUALIZA O TOTAL DO DIA NO RODAPÉ (ACÚMULO) ===
-                const $totalDiaRodape = $('.total-dia').eq(index);
-
-                // Le o valor atual do rodapé
-                let textoRodape = $totalDiaRodape.text().replace('R$', '').replace('kg', '').trim();
-
-                // Converte o valor atual do rodapé para float (limpando a formatação)
-                let totalAtualRodape = parseFloat(textoRodape.replace(/\./g, '').replace(',', '.') || '0');
-
-                // Soma o total do dia do funcionário atual
-                totalAtualRodape += somaDia;
-
-                // Escreve o valor acumulado, formatado novamente.
-                $totalDiaRodape.text(formatarTotal(totalAtualRodape));
-            });
-
-            // === ATUALIZA TOTAL DO FUNCIONÁRIO (LINHA PRINCIPAL) ===
-            const formatoFunc = formatarTotal(somaFuncionario);
-            $linhaFunc.find('.total-funcionario').text(formatoFunc);
-
-            // Acumula no total geral
-            totalGeral += somaFuncionario;
+            }
         });
-
-        // === ATUALIZA TOTAL GERAL (RODAPÉ FINAL) ===
-        $('#total-geral').text(formatarTotal(totalGeral));
-    };
-
-    // Inicializa totais na carga da página
-    calcularTotais();
-
-    /**
-     * Coleta os parâmetros de filtro e redireciona para a rota de impressão/exportação.
-     * @param {string} formato - 'pdf' ou 'excel'
-     */
-    function acionarExportacao(formato) {
-        const path = window.location.pathname;
-        const tipoRelatorio = path.split('/').pop();
-
-        // Coleta os valores de data (usando os inputs do filtro)
-        const dataInicio = $('input[name="ini"]').val();
-        const dataFim = $('input[name="fim"]').val();
-
-        if (!dataInicio || !dataFim) {
-            Swal.fire('Filtros obrigatórios', 'Selecione as datas de Início e Fim.', 'warning');
-            return;
-        }
-
-        const url = `/sgi_erp/relatorios/imprimir?tipo=${tipoRelatorio}&ini=${dataInicio}&fim=${dataFim}&formato=${formato}`;
-
-        // Abre em uma nova aba para não interromper a navegação
-        window.open(url, '_blank');
-    }
-
-    // PDF & EXCEL
-    $('#btn-pdf').off('click').on('click', function () {
-        acionarExportacao('pdf');
     });
 
-    $('#btn-excel').off('click').on('click', function () {
-        acionarExportacao('excel');
-    });
+    // Inicialização
+    // Garante que os totais estejam corretos na carga (caso o PHP tenha vindo zerado ou cache)
+    // recalcularTotaisGeral(); 
 });

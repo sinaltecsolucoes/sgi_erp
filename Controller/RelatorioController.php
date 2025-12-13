@@ -80,7 +80,8 @@ class RelatorioController extends AppController
     // =========================================================================
     // 1. RELATÓRIO DE QUANTIDADES (KG)
     // =========================================================================
-    public function quantidades()
+
+    /*  public function quantidades()
     {
         // 1. Captura Filtros
         $hoje = new DateTime();
@@ -116,6 +117,43 @@ class RelatorioController extends AppController
         $content_view = ROOT_PATH . 'View' . DS . 'relatorio_quantidades.php';
 
         require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
+    } */
+
+    public function quantidades()
+    {
+        // 1. Captura Filtros
+        $hoje = new DateTime();
+        $data_inicio = $_GET['ini'] ?? $hoje->format('Y-m-01');
+        $data_fim    = $_GET['fim'] ?? $hoje->format('Y-m-t');
+        $funcId      = filter_input(INPUT_GET, 'funcionario_id', FILTER_VALIDATE_INT);
+
+        // 2. Validação Básica
+        if (strtotime($data_inicio) > strtotime($data_fim)) {
+            $_SESSION['erro'] = "Data inicial não pode ser maior que data final.";
+            header('Location: /sgi_erp/relatorios/quantidades');
+            exit;
+        }
+
+        // 3. Busca Dados COMPLETOS (com IDs)
+        // Alterado aqui: Usamos o método específico que retorna funcionario_ids e tipo_produto_ids
+        $dadosRelatorio = $this->relatorioModel->getQuantidadesDiaADia($data_inicio, $data_fim, $funcId);
+
+        // 4. Busca Lista para o Dropdown
+        $listaFuncionarios = $this->funcionarioModel->buscarTodos();
+
+        // 5. Monta dados finais para a View
+        // Mesclamos o resultado do model diretamente, pois ele já vem formatado corretamente
+        $dados = array_merge($dadosRelatorio, [
+            'data_inicio'        => $data_inicio,
+            'data_fim'           => $data_fim,
+            'funcionario_id'     => $funcId,
+            'lista_funcionarios' => $listaFuncionarios
+        ]);
+
+        $title = "RELATÓRIO DE PRODUÇÃO (KG)";
+        $content_view = ROOT_PATH . 'View' . DS . 'relatorio_quantidades.php';
+
+        require_once ROOT_PATH . 'View' . DS . 'template' . DS . 'main.php';
     }
 
     public function atualizarProducao()
@@ -123,6 +161,15 @@ class RelatorioController extends AppController
         header('Content-Type: application/json');
         $json = file_get_contents('php://input');
         $data = json_decode($json, true);
+
+        // DEBUG: Retorna imediatamente o que chegou para confirmarmos
+        /* echo json_encode([
+            'DEBUG_MODE' => true,
+            'RECEBIDO_RAW' => $data
+        ]);
+        exit; 
+        */
+        // ^^^ Descomente as linhas acima se quiser travar o salvamento e só ver o recebimento
 
         if (!$data || !isset($data['updates']) || !is_array($data['updates'])) {
             // Adicionado is_array para garantir que 'updates' é um array

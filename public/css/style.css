@@ -72,7 +72,6 @@
 /* 5. FONTE MAIOR */
 body {
     font-size: 1rem !important;
-    /* 16px */
 }
 
 h1.h3 {
@@ -178,22 +177,15 @@ body {
     }
 }
 
-/* 10. ESTILOS CUSTOMIZADOS PARA PRESENCA (movidos do View/presenca.php) */
-/* Usa light theme do Bootstrap, mas com !important para garantir */
-
-/* Cor de fundo para presente (cinza claro) */
+/* 10. ESTILOS CUSTOMIZADOS PARA PRESENCA */
 .list-group-item-light-custom {
     background-color: #f8f9fa !important;
-    /* Cor de fundo para presente */
 }
 
-/* Cor de fundo para ausente (mantém o padrão transparente/branco) */
 .list-group-item-danger-custom {
     background-color: transparent !important;
-    /* Mantém transparente para ausente */
 }
 
-/* Garante que o texto em negrito (font-weight-bold) funcione, pois foi removido o `font-weight-bold` inicial do span no PHP */
 .text-success.font-weight-bold {
     font-weight: 700 !important;
 }
@@ -211,10 +203,15 @@ body {
     font-size: 0.95rem;
 }
 
+/* Corrigido: permitir quebra no nome do funcionário */
 .nome-funcionario {
-    white-space: nowrap;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    word-wrap: break-word !important;
 }
 
+/* Valores */
 .valor-celula {
     white-space: nowrap;
     overflow: hidden;
@@ -225,57 +222,127 @@ body {
 .coluna-total,
 .coluna-acao {
     width: 120px;
-    /* Ajustar tamanho se necessário */
     text-align: center;
     white-space: nowrap;
 }
 
 /* ======================================================
-   ALINHAMENTO PERFEITO – CORRIGE O PADDING DA EXPANDIDA
+   ESTILOS ESPECÍFICOS PARA A PRIMEIRA COLUNA
    ====================================================== */
 
-/* 1. Tabela principal – nomes dos funcionários */
-#tabelaPrincipal th:first-child,
-#tabelaPrincipal td:first-child {
+/* Caso seja a célula com class="nome-funcionario" (relatório de quantidades) */
+#tabelaPrincipal td.nome-funcionario {
     width: 300px !important;
     min-width: 300px !important;
     max-width: 300px !important;
     text-align: left !important;
     padding-left: 1.5rem !important;
-    /* mesmo padding do card-body */
+    padding-right: 1rem !important;
+    vertical-align: middle !important;
+
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    line-height: 1.4 !important;
     font-size: 0.85rem;
 }
 
-/* 2. Tabela expandida – nome do produto (compensa o padding do div.p-4) */
-.detalhes-linha .p-4 {
-    padding-left: 0 !important;
-    /* remove o padding esquerdo */
-    padding-right: 0 !important;
-    /* remove o padding direito */
-    margin-left: -1.5rem !important;
-    /* puxa a tabela 24px para a esquerda */
-    margin-right: -1.5rem !important;
-    /* compensa o lado direito também */
-    width: calc(100% + 3rem) !important;
-    /* ocupa todo o espaço */
+#tabelaPrincipal td.nome-funcionario strong {
+    font-weight: 700;
 }
 
+/* Caso seja a primeira coluna genérica (relatório de valores, sem class="nome-funcionario") */
+#tabelaPrincipal td:first-child:not(.nome-funcionario) {
+    width: 300px !important;
+    min-width: 300px !important;
+    max-width: 300px !important;
+    text-align: left !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1rem !important;
+    vertical-align: middle !important;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    font-size: 0.85rem;
+}
+
+/* ======================================================
+   COLUNAS DE DATAS E TOTAIS (GLOBAL)
+   ====================================================== */
+#tabelaPrincipal th:not(:first-child):not(:last-child),
+#tabelaPrincipal td:not(:first-child):not(:last-child) {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+    text-align: center !important;
+}
+
+#tabelaPrincipal th:last-child,
+#tabelaPrincipal td:last-child {
+    width: 150px !important;
+    min-width: 150px !important;
+    max-width: 150px !important;
+    text-align: center !important;
+}
+
+/* ======================================================
+   AJUSTES DE DETALHES (ALINHAMENTO PERFEITO)
+   ====================================================== */
+
+/* ======================================================
+   AJUSTES DE DETALHES (ALINHAMENTO PIXEL PERFECT)
+   ====================================================== */
+
+/* 1. O SEGREDO: Remove o padding da célula da tabela principal que segura os detalhes */
+tr.detalhes-linha > td {
+    padding: 0 !important;
+    border-top: none !important;
+}
+
+/* 2. Configura o Container Cinza (Antigo .p-4) */
+/* Zeramos o padding aqui para a tabela interna poder encostar nas bordas */
+.detalhes-linha .p-4 {
+    padding: 0 !important; 
+    margin: 0 !important;
+    width: 100% !important;
+    background-color: #f8f9fc !important;
+    border-radius: 0 !important;
+}
+
+/* 3. Ajuste apenas para o cabeçalho (Título e Botões) não ficarem colados na borda */
+/* Como zeramos o padding do container acima, precisamos devolver o respiro só para o título */
+.detalhes-linha .d-flex.justify-content-between.align-items-center.mb-3 {
+    padding: 1.5rem 1.5rem 0.5rem 1.5rem !important; /* Topo, Dir, Baixo, Esq */
+    margin-bottom: 0 !important; /* Remove margem inferior para colar na tabela */
+}
+
+/* 4. A Tabela Interna ocupa 100% da largura disponível */
+.detalhes-linha table {
+    width: 100% !important;
+    margin-bottom: 0 !important;
+    background-color: transparent !important;
+    border-left: none !important;
+    border-right: none !important;
+}
+
+/* ======================================================
+   SINCRONIZAÇÃO DAS LARGURAS (CRUCIAL)
+   ====================================================== */
+
+/* COLUNA 1: Produto (Deve bater com Funcionário = 300px) */
+/* Adicionamos padding-left para compensar visualmente e alinhar o texto */
 .detalhes-linha table th:first-child,
 .detalhes-linha table td:first-child {
     width: 300px !important;
     min-width: 300px !important;
     max-width: 300px !important;
-    text-align: left !important;
-    padding-left: 1.5rem !important;
-    /* mantém o mesmo recuo visual */
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    padding-left: 1.5rem !important; 
+    vertical-align: middle !important;
+    border-left: none !important; /* Remove borda dupla visual */
 }
 
-/* 3. Colunas de data (mesmo tamanho nas duas tabelas) */
-#tabelaPrincipal th:not(:first-child):not(:last-child),
-#tabelaPrincipal td:not(:first-child):not(:last-child),
-.detalhes-linha table th:not(:not:first-child):not(:last-child),
+/* COLUNAS DO MEIO: Datas (Devem bater com 120px) */
+.detalhes-linha table th:not(:first-child):not(:last-child),
 .detalhes-linha table td:not(:first-child):not(:last-child) {
     width: 120px !important;
     min-width: 120px !important;
@@ -283,55 +350,24 @@ body {
     text-align: center !important;
 }
 
-/* 4. Coluna TOTAL / AÇÃO */
-#tabelaPrincipal th:last-child,
-#tabelaPrincipal td:last-child,
+/* ÚLTIMA COLUNA: Ação (Deve bater com Total = 150px) */
 .detalhes-linha table th:last-child,
 .detalhes-linha table td:last-child {
     width: 150px !important;
     min-width: 150px !important;
     max-width: 150px !important;
     text-align: center !important;
+    vertical-align: middle !important;
+    border-right: none !important;
 }
 
-/* 5. Input de edição também centralizado */
+/* Estilos dos Inputs e Textos na edição */
 .detalhes-linha .input-edicao {
     text-align: center !important;
 }
 
-/* ======================================================
-   TAMANHO DA FONTE DOS VALORES (dados do banco)
-   ====================================================== */
-
-/* 1. Tabela principal – valores diários e total do funcionário */
-#tabelaPrincipal td.valor-celula,
-#tabelaPrincipal .total-funcionario,
-#tabelaPrincipal .total-dia,
-#tabelaPrincipal #total-geral {
-    font-size: 0.95rem !important;     /* padrão bom, um pouco maior que o texto normal */
-    font-weight: 600 !important;       /* negrito leve para destacar */
-}
-
-/* 2. Tabela expandida – valores por produto (os que aparecem nas células de data) */
 .detalhes-linha .valor-exibicao,
 .detalhes-linha .input-edicao {
-    font-size: 0.92rem !important;     /* um pouquinho menor que a expandida */
+    font-size: 0.92rem !important;
     font-weight: 600 !important;
 }
-
-/* 3. Se quiser deixar ainda maior na tabela principal (ex: 1.1rem) */
-#tabelaPrincipal td.valor-celula,
-#tabelaPrincipal .total-funcionario {
-    font-size: 0.92rem !important;     /* fica bem destacado */
-}
-
-mark {
-        background: #fff3cd;
-        padding: 0 3px;
-        border-radius: 3px;
-        font-weight: 600;
-    }
-
-    tr.filtro-oculto {
-        display: none !important;
-    }

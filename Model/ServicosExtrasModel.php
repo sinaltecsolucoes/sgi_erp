@@ -39,9 +39,8 @@ class ServicosExtrasModel
                 f.nome AS funcionario_nome,
                 DATE(se.data) AS data_servico,
                 se.descricao,
-                se.valor,
-                se.acao_id
-            FROM servicos_extras se
+                se.valor
+                FROM servicos_extras se
             JOIN funcionarios f ON se.funcionario_id = f.id
             WHERE se.data BETWEEN ? AND ?
             ORDER BY se.data DESC, f.nome";

@@ -1,8 +1,6 @@
-<!-- View/relatorio_pagamentos.php -->
 <div class="container-fluid px-4">
     <h1 class="mt-4"><?= htmlspecialchars($title) ?></h1>
 
-    <!-- FILTRO -->
     <div class="card shadow mb-4">
         <div class="card-body">
             <form method="GET" action="/sgi_erp/relatorios/pagamentos">
@@ -62,14 +60,15 @@
                         <tbody>
                             <?php foreach ($dados['matriz'] as $nome => $linha): ?>
                                 <tr class="funcionario-linha" style="cursor: pointer; background: #f8fff8;">
-                                    <td>
-                                        <i class="fas fa-plus-circle text-success me-2 icon-expand"></i>
-                                        <strong><?= htmlspecialchars($nome) ?></strong>
+                                    <td class="nome-funcionario">
+                                        <div class="d-flex align-items-center" style="gap: 0.5rem;">
+                                            <i class="fas fa-plus-circle text-success icon-expand"></i>
+                                            <strong><?= htmlspecialchars($nome) ?></strong>
+                                        </div>
                                     </td>
 
                                     <?php foreach ($dados['datas'] as $d): ?>
-                                        <?php $valor = $linha['dias'][$d] ?? 0; // CORRIGIDO AQUI 
-                                        ?>
+                                        <?php $valor = $linha['dias'][$d] ?? 0; ?>
                                         <td class="text-center <?= $valor > 0 ? 'text-success fw-bold' : '' ?>" data-data="<?= $d ?>">
                                             <?= $valor > 0 ? 'R$ ' . number_format($valor, 2, ',', '.') : '' ?>
                                         </td>
@@ -80,7 +79,6 @@
                                     </td>
                                 </tr>
 
-                                <!-- DETALHES POR PRODUTO -->
                                 <tr class="detalhes-linha" style="display: none;">
                                     <td colspan="<?= count($dados['datas']) + 2 ?>">
                                         <div class="p-4 bg-light rounded">
@@ -107,14 +105,13 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody class="corpo-edicao">
-                                                    <?php foreach ($linha['detalhes'] as $item => $info): // CORRIGIDO 
-                                                    ?>
+                                                    <?php foreach ($linha['detalhes'] as $item => $info): ?>
                                                         <tr>
                                                             <td><strong><?= htmlspecialchars($item) ?></strong></td>
                                                             <?php foreach ($dados['datas'] as $d): ?>
                                                                 <?php
                                                                 $valorDia = $info['dias'][$d] ?? 0;
-                                                                $idLancamento = 0; // mesmo caso do KG
+                                                                $idLancamento = 0;
                                                                 $funcId = $dados['funcionario_ids'][$nome] ?? 0;
                                                                 $tipoId = $dados['tipo_produto_ids'][$item] ?? 0;
                                                                 ?>

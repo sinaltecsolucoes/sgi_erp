@@ -149,6 +149,29 @@ class RelatorioModel
     return $dados;
   }
 
+
+  /**
+   * Função auxiliar para calcular a diferença de tempo em horas decimais.
+   * @param string $hora_inicio Hora no formato 'HH:MM:SS'
+   * @param string $hora_fim Hora no formato 'HH:MM:SS'
+   * @return float O total de horas trabalhadas (decimal).
+   */
+  private function calcularHorasDecimais($hora_inicio, $hora_fim)
+  {
+    if (empty($hora_inicio) || empty($hora_fim)) {
+      return 0.00;
+    }
+    // Converte TIME para segundos
+    $inicio = strtotime("1970-01-01 $hora_inicio UTC");
+    $fim = strtotime("1970-01-01 $hora_fim UTC");
+
+    // Se a hora final for anterior à inicial (erro de lançamento), retorna 0
+    if ($fim < $inicio) return 0.00;
+
+    // Calcula a diferença em horas decimais (segundos / 3600) e arredonda
+    return round(($fim - $inicio) / 3600.0, 2);
+  }
+
   public function getProducaoValores($data_inicio, $data_fim, $funcionarioId = null)
   {
     $query = "SELECT 
@@ -178,6 +201,8 @@ class RelatorioModel
     }
 
     $stmt->execute();
+
+    // CORREÇÃO 3: Força FETCH_OBJ
     $resultados = $stmt->fetchAll(PDO::FETCH_OBJ);
 
     $dados = [];
@@ -242,6 +267,8 @@ class RelatorioModel
     }
 
     $stmt->execute();
+
+    // CORREÇÃO 3: Força FETCH_OBJ
     $resultados = $stmt->fetchAll(PDO::FETCH_OBJ);
 
     $dados = [];
@@ -249,7 +276,7 @@ class RelatorioModel
 
     foreach ($resultados as $row) {
       $func = $row->funcionario;
-      $dia  = isset($row->data) ? date('Y-m-d', strtotime($row->data)) : null;
+      $dia  = isset($row->data) ? date('Y-m-d', strtotime($row->data)) : null; // Garante formato Y-m-d
       $valor = (float)$row->valor;
 
       if ($dia && in_array($dia, $datasPeriodo)) {
@@ -267,12 +294,14 @@ class RelatorioModel
     return $dados;
   }
 
-  // --- MÉTODO CORRIGIDO ---
+  // Model/RelatorioModel.php
+
   public function getQuantidadesDiaADia($data_inicio, $data_fim, $funcionarioId = null)
   {
     $data_fim_sql = $data_fim . ' 23:59:59';
-    $datasPeriodo = $this->getDatasArray($data_inicio, $data_fim);
+    $datasPeriodo = $this->getDatasArray($data_inicio, $data_fim); // Garante todas as datas
 
+    // SQL (Mantido igual, trazendo IDs)
     $sql = "SELECT 
                 DATE(p.data_hora) as data,
                 f.id as funcionario_id,
@@ -304,11 +333,15 @@ class RelatorioModel
     $stmt->execute();
     $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Arrays de estrutura
+    // --- ESTRUTURA UNIFICADA (Para corrigir o erro da View) ---
+    // Estrutura: $matriz['NomeFunc']['detalhes']['NomeProd']['dias']['Data'] = valor
     $matriz = [];
-    $ids = []; // Inicializa o array de IDs
+
+    // Arrays de Mapeamento de IDs
     $funcionario_ids = [];
     $tipo_produto_ids = [];
+
+    // Totais globais
     $total_por_dia = array_fill_keys($datasPeriodo, 0);
     $total_geral = 0;
 
@@ -320,27 +353,21 @@ class RelatorioModel
 
       $f_id = (int)$r['funcionario_id'];
       $p_id = (int)$r['tipo_produto_id'];
-      $id_lancamento = (int)$r['lancamento_id'];
 
-      // Mapeamento de IDs
+      // Salva IDs para a View usar nos data-attributes
       $funcionario_ids[$nome] = $f_id;
       $tipo_produto_ids[$produto] = $p_id;
 
-      // =========================================================
-      // A CORREÇÃO CRUCIAL ESTÁ AQUI: PREENCHENDO O ARRAY $ids
-      // =========================================================
-      $ids[$nome][$data][$produto] = $id_lancamento;
-
-      // 1. Inicializa Funcionário
+      // 1. Inicializa Funcionário se não existir
       if (!isset($matriz[$nome])) {
         $matriz[$nome] = [
           'dias' => array_fill_keys($datasPeriodo, 0),
           'total' => 0,
-          'detalhes' => []
+          'detalhes' => [] // <--- AQUI ESTAVA FALTANDO!
         ];
       }
 
-      // 2. Preenche Totais
+      // 2. Preenche Totais do Funcionário
       if (in_array($data, $datasPeriodo)) {
         $matriz[$nome]['dias'][$data] += $kg;
         $matriz[$nome]['total'] += $kg;
@@ -349,7 +376,7 @@ class RelatorioModel
         $total_geral += $kg;
       }
 
-      // 3. Inicializa Detalhes do Produto
+      // 3. Inicializa Produto (Detalhes) se não existir
       if (!isset($matriz[$nome]['detalhes'][$produto])) {
         $matriz[$nome]['detalhes'][$produto] = [
           'dias' => array_fill_keys($datasPeriodo, 0)
@@ -362,11 +389,13 @@ class RelatorioModel
       }
     }
 
-    // --- SERVIÇOS EXTRAS ---
+    // --- SERVIÇOS EXTRAS (Mantendo compatibilidade) ---
     $servicosExtras = $this->getServicosExtrasValor($data_inicio, $data_fim);
 
     foreach ($servicosExtras['totais'] as $nome => $valores) {
+      // Filtra se necessário
       if ($funcionarioId && (!isset($funcionario_ids[$nome]) || $funcionario_ids[$nome] != $funcionarioId)) {
+        // Tenta buscar ID se não tivermos
         if (!isset($funcionario_ids[$nome])) {
           $id_extra = $this->getFuncionarioIdByNome($nome);
           if ($id_extra != $funcionarioId) continue;
@@ -382,6 +411,7 @@ class RelatorioModel
           'total' => 0,
           'detalhes' => []
         ];
+        // Busca ID para extras isolados
         if (!isset($funcionario_ids[$nome])) {
           $id_extra = $this->getFuncionarioIdByNome($nome);
           if ($id_extra) $funcionario_ids[$nome] = $id_extra;
@@ -389,7 +419,10 @@ class RelatorioModel
       }
 
       foreach ($valores as $data => $valor) {
-        if ($data === 'total') continue;
+        if ($data === 'total') {
+          // O total já é somado no loop abaixo, ignorar chave 'total'
+          continue;
+        }
 
         if (in_array($data, $datasPeriodo)) {
           $matriz[$nome]['dias'][$data] += $valor;
@@ -401,11 +434,11 @@ class RelatorioModel
       }
     }
 
+    // Ordena as datas para o cabeçalho
     sort($datasPeriodo);
 
     return [
-      'matriz' => $matriz,
-      'ids' => $ids, // AGORA ESTE ARRAY ESTÁ CHEIO E SERÁ ENVIADO PARA A VIEW
+      'matriz' => $matriz,            // Agora contém 'detalhes' dentro!
       'datas' => $datasPeriodo,
       'total_por_dia' => $total_por_dia,
       'total_geral' => $total_geral,
@@ -428,23 +461,28 @@ class RelatorioModel
       $func_id = $u['funcionario_id'] ?? null;
       $tipo_id = $u['tipo_produto_id'] ?? null;
 
-      $valorStr = trim($u['quantidade_kg'] ?? $u['valor'] ?? '0');
+      // === NORMALIZAÇÃO DE VALORES (aceita 5.000, 5,000, 5000, etc.) ===
+      $valorStr = trim($u['quantidade_kg'] ?? $u['valor'] ?? '0'); // Aceita os dois nomes por segurança
 
       if ($valorStr === '' || $valorStr === '-' || $valorStr === '0' || $valorStr === '0,000' || $valorStr === '0.000') {
         $valor = 0.0;
       } else {
+        // Remove tudo que não for número, ponto ou vírgula
         $clean = preg_replace('/[^\d,\.]/', '', $valorStr);
+        // Remove pontos de milhar (mantém apenas o último como decimal se houver)
         $clean = preg_replace('/\.(?=.*\.)/', '', $clean);
+        // Troca vírgula por ponto (para floatval)
         $clean = str_replace(',', '.', $clean);
         $valor = (float) $clean;
       }
 
-      // Se novo e valor <= 0, ignora
+      // === REGRAS DE NEGÓCIO ===
+      // Se novo (id=0) e valor <=0 → ignora
       if ($id == 0 && $valor <= 0) {
         continue;
       }
 
-      // Se edição e valor zerado, exclui
+      // Se update (id>0) e valor <=0 → EXCLUI
       if ($id > 0 && $valor <= 0) {
         $sql_delete = "DELETE FROM producao WHERE id = ?";
         $stmt_delete = $this->db->prepare($sql_delete);
@@ -453,6 +491,7 @@ class RelatorioModel
         continue;
       }
 
+      // Validação FKs
       if ($func_id === null || $tipo_id === null) {
         $erros[] = "Dados incompletos para ID $id";
         continue;
@@ -460,6 +499,7 @@ class RelatorioModel
 
       try {
         if ($id == 0) {
+          // INSERT
           $sql = "INSERT INTO producao 
                         (funcionario_id, tipo_produto_id, data_hora, quantidade_kg, acao_id)
                         VALUES (?, ?, CONCAT(?,' 00:00:00'), ?, ?)";
@@ -469,7 +509,7 @@ class RelatorioModel
           $novo_id = $this->db->lastInsertId();
           if ($novo_id) {
             $novos_ids[] = [
-              'temp_id' => $id,
+              'temp_id' => $id,  // 0 para novos
               'data' => $data,
               'func_id' => $func_id,
               'tipo_id' => $tipo_id,
@@ -478,6 +518,7 @@ class RelatorioModel
           }
           $sucesso++;
         } else {
+          // UPDATE
           $sql = "UPDATE producao SET quantidade_kg = ? WHERE id = ?";
           $stmt = $this->db->prepare($sql);
           $stmt->execute([$valor, $id]);
@@ -496,6 +537,7 @@ class RelatorioModel
     ];
   }
 
+  // Auxiliares pra buscar IDs (adicione isso no Model)
   public function getFuncionarioIdByNome($nome)
   {
     $stmt = $this->db->prepare("SELECT id FROM funcionarios WHERE nome = ? LIMIT 1");
@@ -532,6 +574,7 @@ class RelatorioModel
     }
   }
 
+  // Permite que o Controller acesse o PDO de forma segura
   public function getDb()
   {
     return $this->db;
@@ -550,6 +593,8 @@ class RelatorioModel
   public function getValoresFinanceirosDiaADia($data_inicio, $data_fim)
   {
     $data_fim_sql = $data_fim . ' 23:59:59';
+
+    // Gera todas as datas do período
     $datas = [];
     $inicio = new DateTime($data_inicio);
     $fim = new DateTime($data_fim);
@@ -558,6 +603,7 @@ class RelatorioModel
       $inicio->modify('+1 day');
     }
 
+    // PRODUÇÃO
     $sql = "SELECT 
                 DATE(p.data_hora) as data,
                 f.id as funcionario_id,
@@ -616,6 +662,7 @@ class RelatorioModel
 
     sort($datas);
 
+    // Totais por dia da produção
     $total_por_dia = array_fill_keys($datas, 0.0);
     foreach ($matriz as $nome => $dias) {
       foreach ($dias as $data => $valor) {
@@ -625,6 +672,7 @@ class RelatorioModel
       }
     }
 
+    // SERVIÇOS EXTRAS
     $extras = $this->getServicosExtrasValor($data_inicio, $data_fim);
     $servicosExtras = $extras['totais'];
     $detalhesExtras = $extras['detalhes'];
@@ -651,12 +699,14 @@ class RelatorioModel
         $matriz[$nome][$data] += $valor;
         $total_por_dia[$data] += $valor;
 
+        // adiciona nos detalhes usando o nome da ação
         if (!isset($detalhes[$nome][$data])) {
           $detalhes[$nome][$data] = [];
         }
         foreach ($detalhesExtras[$nome][$data] ?? [] as $acaoNome => $valorExtra) {
           $detalhes[$nome][$data][$acaoNome] = $valorExtra;
-          $ids[$nome][$data][$acaoNome] = 0;
+          $ids[$nome][$data][$acaoNome] = 0; // sem ID de produção
+
         }
       }
     }
@@ -686,7 +736,7 @@ class RelatorioModel
     foreach ($servicos as $s) {
       $nome = $s->funcionario_nome;
       $data = $s->data_servico;
-      $acaoNome = $s->descricao;
+      $acaoNome = $s->descricao; // nome da ação cadastrada
 
       if (!isset($totais[$nome])) {
         $totais[$nome] = array_fill_keys($this->getDatasArray($data_inicio, $data_fim), 0.0);
@@ -696,6 +746,7 @@ class RelatorioModel
       $totais[$nome][$data] += (float)$s->valor;
       $totais[$nome]['total'] += (float)$s->valor;
 
+      // guarda também os detalhes
       if (!isset($detalhesExtras[$nome][$data])) {
         $detalhesExtras[$nome][$data] = [];
       }

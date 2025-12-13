@@ -1,8 +1,6 @@
-<!-- View/relatorio_quantidades.php -->
 <div class="container-fluid px-4">
     <h1 class="mt-4"><?= htmlspecialchars($title) ?></h1>
 
-    <!-- FILTRO -->
     <div class="card shadow mb-4">
         <div class="card-body">
             <form method="GET" action="/sgi_erp/relatorios/quantidades">
@@ -27,9 +25,7 @@
                         </select>
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-filter me-1"></i> Filtrar
-                        </button>
+                        <button type="submit" class="btn btn-primary w-100">Filtrar</button>
                     </div>
                 </div>
             </form>
@@ -37,124 +33,114 @@
     </div>
 
     <?php if (empty($dados['matriz'])): ?>
-        <div class="alert alert-info">Nenhum lançamento no período.</div>
+        <div class="alert alert-info">Nenhum lançamento encontrado para o período.</div>
     <?php else: ?>
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Quantidades Produzidas (Kg)</h6>
                 <div>
-                    <button id="btn-pdf" class="btn btn-danger btn-sm me-2">PDF</button>
-                    <button id="btn-excel" class="btn btn-success btn-sm">Excel</button>
                 </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-bordered" id="tabelaPrincipal">
-                        <thead class="table-dark">
+                    <table class="table table-bordered table-hover" id="tabelaPrincipal">
+                        <thead class="table-dark sticky-top">
                             <tr>
-                                <th>FUNCIONÁRIO</th>
+                                <th style="width: 350px;">FUNCIONÁRIO / PRODUTO</th>
                                 <?php foreach ($dados['datas'] as $d): ?>
-                                    <th class="text-center"><?= date('d/m', strtotime($d)) ?></th>
+                                    <th class="text-center" style="width: 100px;"><?= date('d/m', strtotime($d)) ?></th>
                                 <?php endforeach; ?>
-                                <th class="text-center coluna-total">TOTAL</th>
+                                <th class="text-center bg-secondary" style="width: 140px;">TOTAL</th>
                             </tr>
                         </thead>
+
                         <tbody>
-                            <?php foreach ($dados['matriz'] as $nome => $linha): ?>
-                                <tr class="funcionario-linha" style="cursor: pointer; background: #f8f9fa;">
-                                    <td class="nome-funcionario">
-                                        <i class="fas fa-plus-circle text-primary me-2 icon-expand"></i>
-                                        <strong><?= htmlspecialchars($nome) ?></strong>
+                            <?php
+                            $funcIndex = 0;
+                            // O loop percorre a matriz já consolidada pelo PHP
+                            foreach ($dados['matriz'] as $nome => $linha):
+                                $funcIndex++;
+                                $funcRowId = "func_" . $funcIndex;
+                                $funcId = $dados['funcionario_ids'][$nome] ?? 0;
+                            ?>
+                                <tr class="funcionario-linha table-secondary" data-target="<?= $funcRowId ?>" style="cursor: pointer;">
+                                    <td class="nome-funcionario fw-bold text-primary">
+                                        <i class="fas fa-plus-circle me-2 icon-expand"></i>
+                                        <?= htmlspecialchars($nome) ?>
                                     </td>
 
                                     <?php foreach ($dados['datas'] as $d): ?>
-                                        <?php $kg = $linha['dias'][$d] ?? 0; 
-                                        ?>
-                                        <td class="text-center <?= $kg > 0 ? 'text-success fw-bold' : '' ?> valor-celula" data-data="<?= $d ?>">
+                                        <?php $kg = $linha['dias'][$d] ?? 0; ?>
+                                        <td class="text-center fw-bold total-dia-func <?= $kg > 0 ? 'text-success' : '' ?>"
+                                            data-data="<?= $d ?>">
                                             <?= $kg > 0 ? number_format($kg, 3, ',', '.') : '' ?>
                                         </td>
                                     <?php endforeach; ?>
 
-                                    <td class="text-center fw-bold table-success total-funcionario">
+                                    <td class="text-center fw-bold bg-dark text-white total-funcionario-geral">
                                         <?= number_format($linha['total'], 3, ',', '.') ?>
                                     </td>
                                 </tr>
 
-                                <!-- LINHA EXPANDIDA - DETALHES POR PRODUTO -->
-                                <tr class="detalhes-linha" style="display: none;">
-                                    <td colspan="<?= count($dados['datas']) + 2 ?>">
-                                        <div class="p-4 bg-light rounded">
-                                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                                <strong class="text-primary h5 mb-0">
-                                                    Lançamentos de <?= htmlspecialchars($nome) ?>
-                                                </strong>
-                                                <div>
-                                                    <button class="btn btn-warning btn-sm btn-editar-produto">Editar</button>
-                                                    <button class="btn btn-success btn-sm btn-salvar-produto" style="display:none;">Salvar</button>
-                                                    <button class="btn btn-secondary btn-sm btn-cancelar-produto" style="display:none;">Cancelar</button>
-                                                    <button class="btn btn-info btn-sm btn-desfazer" style="display:none;">Desfazer</button>
-                                                </div>
-                                            </div>
+                                <?php
+                                $prodIndex = 0;
+                                foreach ($linha['detalhes'] as $prod => $infoProduto):
+                                    $prodIndex++;
+                                    $uniqueProdId = $funcRowId . "_prod_" . $prodIndex;
+                                    $tipoId = $dados['tipo_produto_ids'][$prod] ?? 0;
+                                ?>
+                                    <tr class="detalhe-produto linha-filho <?= $funcRowId ?>" id="linha_<?= $uniqueProdId ?>" style="display: none;">
+                                        <td style="padding-left: 3rem;" class="text-muted align-middle">
+                                            <i class="fas fa-box-open me-2 small"></i>
+                                            <?= htmlspecialchars($prod) ?>
+                                        </td>
 
-                                            <table class="table table-sm table-bordered table-hover">
-                                                <thead class="table-secondary">
-                                                    <tr>
-                                                        <th>Produto</th>
-                                                        <?php foreach ($dados['datas'] as $d): ?>
-                                                            <th class="text-center"><?= date('d/m', strtotime($d)) ?></th>
-                                                        <?php endforeach; ?>
-                                                        <th class="coluna-acao">Ação</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="corpo-edicao">
-                                                    <?php foreach ($linha['detalhes'] as $prod => $infoProduto): // CORRIGIDO AQUI 
-                                                    ?>
-                                                        <tr data-produto="<?= htmlspecialchars($prod) ?>">
-                                                            <td><strong><?= htmlspecialchars($prod) ?></strong></td>
-                                                            <?php foreach ($dados['datas'] as $d): ?>
-                                                                <?php
-                                                                $kgDia = $infoProduto['dias'][$d] ?? 0;
-                                                                // ID não vem no gerarRelatorioCompleto(), então deixamos 0 (novo lançamento)
-                                                                $idLancamento = 0;
-                                                                $funcId = $dados['funcionario_ids'][$nome] ?? 0;
-                                                                $tipoId = $dados['tipo_produto_ids'][$prod] ?? 0;
-                                                                ?>
-                                                                <td class="text-center celula-valor"
-                                                                    data-id="<?= $idLancamento ?>"
-                                                                    data-data="<?= $d ?>"
-                                                                    data-funcionario-id="<?= $funcId ?>"
-                                                                    data-tipo-produto-id="<?= $tipoId ?>">
-                                                                    <span class="valor-exibicao">
-                                                                        <?= $kgDia > 0 ? number_format($kgDia, 3, ',', '.') : '-' ?>
-                                                                    </span>
-                                                                    <input type="text" class="form-control form-control-sm input-edicao"
-                                                                        value="<?= $kgDia > 0 ? number_format($kgDia, 3, ',', '.') : '' ?>"
-                                                                        placeholder="0,000" style="display:none; width:90px;">
-                                                                </td>
-                                                            <?php endforeach; ?>
-                                                            <td>
-                                                                <button class="btn btn-danger btn-sm btn-excluir-linha" title="Excluir este produto do dia">
-                                                                    Excluir
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    <?php endforeach; ?>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </td>
-                                </tr>
+                                        <?php foreach ($dados['datas'] as $d): ?>
+                                            <?php
+                                            $kgDia = $infoProduto['dias'][$d] ?? 0;
+                                            // Pega o ID Individual guardado no array separado
+                                            $idLancamento = $dados['ids'][$nome][$d][$prod] ?? 0;
+                                            ?>
+                                            <td class="text-center celula-valor align-middle"
+                                                data-data="<?= $d ?>"
+                                                data-funcionario-id="<?= $funcId ?>"
+                                                data-tipo-produto-id="<?= $tipoId ?>"
+                                                data-lancamento-id="<?= $idLancamento ?>">
+
+                                                <span class="valor-exibicao text-secondary">
+                                                    <?= $kgDia > 0 ? number_format($kgDia, 3, ',', '.') : '-' ?>
+                                                </span>
+
+                                                <input type="text" class="form-control form-control-sm input-edicao mx-auto"
+                                                    value="<?= $kgDia > 0 ? number_format($kgDia, 3, ',', '.') : '' ?>"
+                                                    style="display:none; width:80px; text-align:center;">
+                                            </td>
+                                        <?php endforeach; ?>
+
+                                        <td class="text-center align-middle">
+                                            <div class="grupo-botoes-view">
+                                                <button class="btn btn-warning btn-sm py-0 px-2 btn-editar-linha" data-id="<?= $uniqueProdId ?>"><i class="fas fa-edit"></i></button>
+                                                <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-excluir-linha" data-id="<?= $uniqueProdId ?>" data-nome="<?= htmlspecialchars($prod) ?>"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                            <div class="grupo-botoes-edit" style="display:none;">
+                                                <button class="btn btn-success btn-sm py-0 px-2 btn-salvar-linha" data-id="<?= $uniqueProdId ?>"><i class="fas fa-check"></i></button>
+                                                <button class="btn btn-secondary btn-sm py-0 px-2 btn-cancelar-linha" data-id="<?= $uniqueProdId ?>"><i class="fas fa-times"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
                             <?php endforeach; ?>
                         </tbody>
+
                         <tfoot class="table-dark">
                             <tr>
                                 <th>TOTAL GERAL</th>
                                 <?php foreach ($dados['datas'] as $d): ?>
-                                    <th class="text-center total-dia">
+                                    <th class="text-center total-dia-footer" data-data="<?= $d ?>">
                                         <?= number_format($dados['total_por_dia'][$d] ?? 0, 3, ',', '.') ?>
                                     </th>
                                 <?php endforeach; ?>
-                                <th class="text-center" id="total-geral">
+                                <th class="text-center" id="total-geral-final">
                                     <?= number_format($dados['total_geral'] ?? 0, 3, ',', '.') ?>
                                 </th>
                             </tr>
